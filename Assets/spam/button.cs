@@ -56,4 +56,9 @@ public class button : MonoBehaviour
             stampMark.SetActive(true);
         }
     }
+
+    public void ResetButton()
+    {
+        wasPressed = false;
+    }
 }
