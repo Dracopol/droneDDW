@@ -5,33 +5,6 @@ TagManager:
   serializedVersion: 3
   tags:
   - fingertip
-  - QDSUISection
-  - QDSUIAccentColor
-  - QDSUISecondaryButton
-  - QDSUIPrimaryButton
-  - QDSUITextSecondaryInvertedColor
-  - QDSUITextInvertedColor
-  - QDSUIToggleButton
-  - QDSUIIcon
-  - QDSUITextSecondaryColor
-  - QDSUIDestructiveButton
-  - QDSUISharedThemeColor
-  - QDSUIBorderlessButton
-  - QDSUIToggleBorderlessButton
-  - QDSUIBackplateGradient
-  - QDSUITooltip
-  - QDSUIBackplate
-  - QDSUIToggleSwitch
-  - PassThroughButton
-  - PassThrough
-  - Locomotion
-  - LocoButton
-  - LocoText
-  - QDSUILineDrawing
-  - QDSUITextInputField
-  - SamplesInfoPanel
-  - QDSUIToggleCheckboxRadio
-  - QDSUIToggleThumbnail
   layers:
   - Default
   - TransparentFX
