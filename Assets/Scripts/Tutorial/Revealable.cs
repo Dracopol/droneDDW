@@ -26,6 +26,11 @@ namespace DroneDDW.Tutorial
 				_audioSource.PlayOneShot(_revealClip);
 		}
 
+		internal void Hide()
+		{
+			gameObject.SetActive(false);
+		}
+
 		#endregion
 	}
 }

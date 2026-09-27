@@ -294,6 +294,9 @@ GameObject:
   - component: {fileID: 131101639}
   - component: {fileID: 131101638}
   - component: {fileID: 131101637}
+  - component: {fileID: 131101641}
+  - component: {fileID: 131101642}
+  - component: {fileID: 131101643}
   m_Layer: 0
   m_Name: Paper B
   m_TagString: Untagged
@@ -347,7 +350,7 @@ MeshRenderer:
   m_RenderingLayerMask: 3
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4bb9c65d966551f4098ecb26b506b83e, type: 2}
+  - {fileID: 2100000, guid: 84c9af453e0ed4943a56fd337075361f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -393,8 +396,134 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 414343336}
+  - {fileID: 715967509}
   m_Father: {fileID: 865886550}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &131101641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131101636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81d1471381a1bc845af5b3087739478d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.Paper
+  _collider: {fileID: 131101637}
+  _stampMark: {fileID: 715967508}
+--- !u!82 &131101642
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131101636}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &131101643
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131101636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36fc835b7bcb93344811d1b890b6ca6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.Revealable
+  _audioSource: {fileID: 131101642}
+  _revealClip: {fileID: 8300000, guid: 0eb03b0d5016164488f592fe7fe7316d, type: 3}
 --- !u!1 &336875579
 GameObject:
   m_ObjectHideFlags: 0
@@ -567,7 +696,7 @@ GameObject:
   - component: {fileID: 414343338}
   - component: {fileID: 414343337}
   m_Layer: 0
-  m_Name: GameObject (1)
+  m_Name: Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -612,7 +741,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Case B
+  m_text: Yellow
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1199,6 +1328,66 @@ MonoBehaviour:
   _dropDistanceMeters: 0.5
   _audioSource: {fileID: 612284056}
   _respawnClip: {fileID: 8300000, guid: 0eb03b0d5016164488f592fe7fe7316d, type: 3}
+--- !u!1 &715967507
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 715967509}
+  - component: {fileID: 715967508}
+  m_Layer: 0
+  m_Name: Stamp Mark
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &715967508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 715967507}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0777d029ed3dffa4692f417d4aba19ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 2100000, guid: 7e5f73bbdb35f80965db5f3e85f70b20, type: 2}
+  m_DrawDistance: 1000
+  m_FadeScale: 0.9
+  m_StartAngleFade: 180
+  m_EndAngleFade: 180
+  m_UVScale: {x: 1, y: 1}
+  m_UVBias: {x: 0, y: 0}
+  m_RenderingLayerMask:
+    serializedVersion: 0
+    m_Bits: 2
+  m_ScaleMode: 0
+  m_Offset: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.1, y: 0.1, z: 0.02}
+  m_FadeFactor: 1
+  version: 1
+  m_DecalLayerMask: 2
+--- !u!4 &715967509
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 715967507}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.10000003, y: 0.002, z: 0.1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 131101640}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &718759198
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1851,6 +2040,9 @@ GameObject:
   - component: {fileID: 1035558622}
   - component: {fileID: 1035558621}
   - component: {fileID: 1035558620}
+  - component: {fileID: 1035558625}
+  - component: {fileID: 1035558624}
+  - component: {fileID: 1035558626}
   m_Layer: 0
   m_Name: Paper A
   m_TagString: Untagged
@@ -1904,7 +2096,7 @@ MeshRenderer:
   m_RenderingLayerMask: 3
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4bb9c65d966551f4098ecb26b506b83e, type: 2}
+  - {fileID: 2100000, guid: 26a8c46c9ffeccb4da6bf0169ba1e585, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1950,8 +2142,134 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2080845746}
+  - {fileID: 1702335415}
   m_Father: {fileID: 865886550}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!82 &1035558624
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1035558619}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &1035558625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1035558619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81d1471381a1bc845af5b3087739478d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.Paper
+  _collider: {fileID: 1035558620}
+  _stampMark: {fileID: 1702335416}
+--- !u!114 &1035558626
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1035558619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36fc835b7bcb93344811d1b890b6ca6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.Revealable
+  _audioSource: {fileID: 1035558624}
+  _revealClip: {fileID: 8300000, guid: 0eb03b0d5016164488f592fe7fe7316d, type: 3}
 --- !u!4 &1053675749 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 4739f314c74f24a418b05883355594e7, type: 3}
@@ -2450,6 +2768,55 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &1299727953
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1299727955}
+  - component: {fileID: 1299727954}
+  m_Layer: 0
+  m_Name: Practice Choice Condition
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1299727954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1299727953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e42c64c582580e48ab30e157500cd07, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.StampCondition
+  _stamp: {fileID: 612284060}
+  _papers:
+  - {fileID: 1035558625}
+  - {fileID: 131101641}
+  _hasOutcomePerPaper: 1
+--- !u!4 &1299727955
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1299727953}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1525142862}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1313465623 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 23b18a69199b9664d958c48fd51a5045, type: 3}
@@ -2537,7 +2904,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 22800de01f4de9f41b8234d7a247589f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2009459296}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 22800de01f4de9f41b8234d7a247589f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2009459298}
   m_SourcePrefab: {fileID: 100100000, guid: 22800de01f4de9f41b8234d7a247589f, type: 3}
+--- !u!23 &1477264328 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1628214654665603892, guid: 22800de01f4de9f41b8234d7a247589f, type: 3}
+  m_PrefabInstance: {fileID: 1477264323}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1480960444
 GameObject:
   m_ObjectHideFlags: 0
@@ -2884,9 +3259,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Tutorial.TutorialRunner
   _droneyVoice: {fileID: 2009459296}
+  _droneyAppearance: {fileID: 2009459298}
   _steps:
   - _name: Intro
     _revealedObjects: []
+    _hiddenObjects: []
     _promptClip: {fileID: 8300000, guid: 812e1b440f3ebbd45aa26216f73f389c, type: 3}
     _condition: {fileID: 0}
     _outcomes: []
@@ -2894,30 +3271,59 @@ MonoBehaviour:
     _hintTarget: {fileID: 0}
   - _name: Hand track
     _revealedObjects: []
+    _hiddenObjects: []
     _promptClip: {fileID: 8300000, guid: ec0941f3411b988499192b01ad71e0ca, type: 3}
     _condition: {fileID: 1959277691}
     _outcomes:
     - _successClip: {fileID: 8300000, guid: dcf1fa10d05d7f64a93797c58634e469, type: 3}
+      _droneyBodyMaterial: {fileID: 0}
     _stuckClip: {fileID: 8300000, guid: 56eecba7a0037d645a99cbdb8b59e29f, type: 3}
     _hintTarget: {fileID: 0}
   - _name: Grab
     _revealedObjects:
     - {fileID: 612284059}
+    _hiddenObjects: []
     _promptClip: {fileID: 8300000, guid: b575edaf90d66f546b7ffe90aa38dc8b, type: 3}
     _condition: {fileID: 1523872685}
     _outcomes:
     - _successClip: {fileID: 8300000, guid: 9c3271cfaa83a374fa38b647e202bb8e, type: 3}
+      _droneyBodyMaterial: {fileID: 0}
     _stuckClip: {fileID: 8300000, guid: cc2845cffc756c746aaf33526c1dd689, type: 3}
     _hintTarget: {fileID: 612284057}
   - _name: Stamp
     _revealedObjects:
     - {fileID: 1123940883}
+    _hiddenObjects: []
     _promptClip: {fileID: 8300000, guid: f1a7b3ae246e7204b93abd63bf387c30, type: 3}
     _condition: {fileID: 1956975718}
     _outcomes:
     - _successClip: {fileID: 8300000, guid: 2989f0cbd64066543a0deb29e13729fa, type: 3}
+      _droneyBodyMaterial: {fileID: 0}
     _stuckClip: {fileID: 8300000, guid: 5ece1e097e3c24745b7d65b706baed17, type: 3}
     _hintTarget: {fileID: 1123940876}
+  - _name: Practice choice
+    _revealedObjects:
+    - {fileID: 1035558626}
+    - {fileID: 131101643}
+    _hiddenObjects:
+    - {fileID: 1123940883}
+    _promptClip: {fileID: 8300000, guid: 526e29583b63ffb42a1dc9e29207dc1f, type: 3}
+    _condition: {fileID: 1299727954}
+    _outcomes:
+    - _successClip: {fileID: 8300000, guid: 85b82a6639f8ee24ba0f62c98d8c2150, type: 3}
+      _droneyBodyMaterial: {fileID: 2100000, guid: bd5557a5779099545be19139cce95500, type: 2}
+    - _successClip: {fileID: 8300000, guid: ad9dd7b2022e8a44a975ca94824683b8, type: 3}
+      _droneyBodyMaterial: {fileID: 2100000, guid: 3102a8ba7f3863d4dbcd36df2687dd40, type: 2}
+    _stuckClip: {fileID: 8300000, guid: 5c057ebc1c6916040b141afef5e159c9, type: 3}
+    _hintTarget: {fileID: 0}
+  - _name: Outro
+    _revealedObjects: []
+    _hiddenObjects: []
+    _promptClip: {fileID: 8300000, guid: 1c9713d3f140f2b4d90d1cb170ea4d37, type: 3}
+    _condition: {fileID: 0}
+    _outcomes: []
+    _stuckClip: {fileID: 0}
+    _hintTarget: {fileID: 0}
   _firstHintDelaySeconds: 8
   _hintRepeatSeconds: 15
 --- !u!114 &1525142861
@@ -2950,6 +3356,7 @@ Transform:
   - {fileID: 1959277692}
   - {fileID: 1523872686}
   - {fileID: 1956975719}
+  - {fileID: 1299727955}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1619300244
@@ -3065,6 +3472,66 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1619300244}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1702335414
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1702335415}
+  - component: {fileID: 1702335416}
+  m_Layer: 0
+  m_Name: Stamp Mark
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1702335415
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1702335414}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.10000003, y: 0.002, z: 0.1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1035558623}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1702335416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1702335414}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0777d029ed3dffa4692f417d4aba19ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 2100000, guid: 7e5f73bbdb35f80965db5f3e85f70b20, type: 2}
+  m_DrawDistance: 1000
+  m_FadeScale: 0.9
+  m_StartAngleFade: 180
+  m_EndAngleFade: 180
+  m_UVScale: {x: 1, y: 1}
+  m_UVBias: {x: 0, y: 0}
+  m_RenderingLayerMask:
+    serializedVersion: 0
+    m_Bits: 2
+  m_ScaleMode: 0
+  m_Offset: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.1, y: 0.1, z: 0.02}
+  m_FadeFactor: 1
+  version: 1
+  m_DecalLayerMask: 2
 --- !u!1 &1818866666
 GameObject:
   m_ObjectHideFlags: 0
@@ -3507,6 +3974,19 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2009459298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009459295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8fea6094edf3424eb0725b09e92c317, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Droney.DroneyAppearance
+  _bodyRenderer: {fileID: 1477264328}
 --- !u!1001 &2037957753
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3576,7 +4056,7 @@ GameObject:
   - component: {fileID: 2080845745}
   - component: {fileID: 2080845744}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3602,7 +4082,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Case A
+  m_text: Blue
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

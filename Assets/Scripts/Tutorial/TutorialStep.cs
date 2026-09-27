@@ -14,6 +14,9 @@ namespace DroneDDW.Tutorial
 
 		[Tooltip("Appear when the step starts, and stay for the rest of the tutorial")]
 		[SerializeField] private Revealable[] _revealedObjects;
+
+		[Tooltip("Disappear when the step starts, e.g. props from an earlier step")]
+		[SerializeField] private Revealable[] _hiddenObjects;
 		[SerializeField] private AudioClip _promptClip;
 
 		[Tooltip("Leave empty for steps that only talk, like the intro and outro")]
@@ -30,6 +33,7 @@ namespace DroneDDW.Tutorial
 
 		internal string Name => _name;
 		internal IReadOnlyList<Revealable> RevealedObjects => _revealedObjects;
+		internal IReadOnlyList<Revealable> HiddenObjects => _hiddenObjects;
 		internal AudioClip PromptClip => _promptClip;
 		internal StepCondition Condition => _condition;
 		internal bool HasCondition => _condition != null;
@@ -41,9 +45,10 @@ namespace DroneDDW.Tutorial
 
 		#region Internal
 
-		internal AudioClip GetSuccessClip(int outcomeIndex)
+		// Null for steps without outcomes, like the intro and outro
+		internal StepOutcome GetOutcome(int outcomeIndex)
 		{
-			return _outcomes.Length == 0 ? null : _outcomes[outcomeIndex].SuccessClip;
+			return _outcomes.Length == 0 ? null : _outcomes[outcomeIndex];
 		}
 
 		#endregion

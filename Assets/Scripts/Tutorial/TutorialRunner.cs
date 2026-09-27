@@ -12,6 +12,7 @@ namespace DroneDDW.Tutorial
 		#region Serialized fields
 
 		[SerializeField] private DroneyVoice _droneyVoice;
+		[SerializeField] private DroneyAppearance _droneyAppearance;
 		[SerializeField] private TutorialStep[] _steps;
 
 		[Header("Stuck hints")]
@@ -65,6 +66,9 @@ namespace DroneDDW.Tutorial
 		{
 			Debug.Log($"[DDW Tutorial] {step.Name}: start", this);
 
+			foreach (Revealable revealable in step.HiddenObjects)
+				revealable.Hide();
+
 			foreach (Revealable revealable in step.RevealedObjects)
 				revealable.Show();
 
@@ -83,7 +87,15 @@ namespace DroneDDW.Tutorial
 				: await WaitWithHintsAsync(step, conditionTask, cancellationToken);
 
 			Debug.Log($"[DDW Tutorial] {step.Name}: complete with outcome {outcomeIndex}", this);
-			await _droneyVoice.PlayAsync(step.GetSuccessClip(outcomeIndex), cancellationToken);
+			StepOutcome outcome = step.GetOutcome(outcomeIndex);
+
+			if (outcome == null)
+				return;
+
+			if (outcome.DroneyBodyMaterial != null)
+				_droneyAppearance.SetBodyMaterial(outcome.DroneyBodyMaterial);
+
+			await _droneyVoice.PlayAsync(outcome.SuccessClip, cancellationToken);
 		}
 
 		private async UniTask<int> WaitWithHintsAsync(
