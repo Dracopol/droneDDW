@@ -35,6 +35,33 @@ namespace DroneDDW.Core
 			}
 		}
 
+		// Completes with the event's value the next time it fires
+		internal static async UniTask<T> NextAsync<T>(
+			Action<Action<T>> subscribe,
+			Action<Action<T>> unsubscribe,
+			CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			UniTaskCompletionSource<T> completionSource = new();
+			Action<T> handler = HandleEvent;
+			subscribe(handler);
+
+			try
+			{
+				return await completionSource.Task.AttachExternalCancellation(cancellationToken);
+			}
+			finally
+			{
+				unsubscribe(handler);
+			}
+
+			void HandleEvent(T value)
+			{
+				completionSource.TrySetResult(value);
+			}
+		}
+
 		#endregion
 	}
 }
