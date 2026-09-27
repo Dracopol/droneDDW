@@ -240,7 +240,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &131101637
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -706,13 +706,16 @@ GameObject:
   - component: {fileID: 612284050}
   - component: {fileID: 612284049}
   - component: {fileID: 612284056}
+  - component: {fileID: 612284059}
+  - component: {fileID: 612284058}
+  - component: {fileID: 612284057}
   m_Layer: 0
   m_Name: Stamp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &612284049
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1060,6 +1063,46 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &612284057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 612284048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a90869803edb1f4bb06a3d32597fbb8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.HintTarget
+  _highlight: {fileID: 0}
+--- !u!114 &612284058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 612284048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26a7936602eade748ae55916e244f911, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.GrabMonitor
+  _grabInteractable: {fileID: 612284049}
+--- !u!114 &612284059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 612284048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36fc835b7bcb93344811d1b890b6ca6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.Revealable
+  _audioSource: {fileID: 612284056}
+  _revealClip: {fileID: 8300000, guid: 0eb03b0d5016164488f592fe7fe7316d, type: 3}
 --- !u!1001 &718759198
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1450,7 +1493,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &865886550
 Transform:
   m_ObjectHideFlags: 0
@@ -1703,7 +1746,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &1035558620
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2200,6 +2243,51 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1053675752}
   m_SourcePrefab: {fileID: 100100000, guid: 4739f314c74f24a418b05883355594e7, type: 3}
+--- !u!1 &1523872684
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1523872686}
+  - component: {fileID: 1523872685}
+  m_Layer: 0
+  m_Name: Grab Condition
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1523872685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1523872684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 586af2d7972a4db40a74778592e71ddb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.GrabCondition
+  _grabMonitor: {fileID: 612284058}
+--- !u!4 &1523872686
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1523872684}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1525142862}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1525142858
 GameObject:
   m_ObjectHideFlags: 0
@@ -2250,18 +2338,29 @@ MonoBehaviour:
   _droneyVoice: {fileID: 2009459296}
   _steps:
   - _name: Intro
+    _revealedObjects: []
     _promptClip: {fileID: 8300000, guid: 812e1b440f3ebbd45aa26216f73f389c, type: 3}
     _condition: {fileID: 0}
     _outcomes: []
     _stuckClip: {fileID: 0}
     _hintTarget: {fileID: 0}
   - _name: Hand track
+    _revealedObjects: []
     _promptClip: {fileID: 8300000, guid: ec0941f3411b988499192b01ad71e0ca, type: 3}
     _condition: {fileID: 1959277691}
     _outcomes:
     - _successClip: {fileID: 8300000, guid: dcf1fa10d05d7f64a93797c58634e469, type: 3}
     _stuckClip: {fileID: 8300000, guid: 56eecba7a0037d645a99cbdb8b59e29f, type: 3}
     _hintTarget: {fileID: 0}
+  - _name: Grab
+    _revealedObjects:
+    - {fileID: 612284059}
+    _promptClip: {fileID: 8300000, guid: b575edaf90d66f546b7ffe90aa38dc8b, type: 3}
+    _condition: {fileID: 1523872685}
+    _outcomes:
+    - _successClip: {fileID: 8300000, guid: 9c3271cfaa83a374fa38b647e202bb8e, type: 3}
+    _stuckClip: {fileID: 8300000, guid: cc2845cffc756c746aaf33526c1dd689, type: 3}
+    _hintTarget: {fileID: 612284057}
   _firstHintDelaySeconds: 8
   _hintRepeatSeconds: 15
 --- !u!114 &1525142861
@@ -2292,6 +2391,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1959277692}
+  - {fileID: 1523872686}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1619300244

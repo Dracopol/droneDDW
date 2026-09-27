@@ -65,6 +65,9 @@ namespace DroneDDW.Tutorial
 		{
 			Debug.Log($"[DDW Tutorial] {step.Name}: start", this);
 
+			foreach (Revealable revealable in step.RevealedObjects)
+				revealable.Show();
+
 			if (!step.HasCondition)
 			{
 				await _droneyVoice.PlayAsync(step.PromptClip, cancellationToken);

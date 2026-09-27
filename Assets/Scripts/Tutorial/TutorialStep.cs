@@ -11,6 +11,9 @@ namespace DroneDDW.Tutorial
 
 		[Tooltip("Label in the step list and in logs")]
 		[SerializeField] private string _name;
+
+		[Tooltip("Appear when the step starts, and stay for the rest of the tutorial")]
+		[SerializeField] private Revealable[] _revealedObjects;
 		[SerializeField] private AudioClip _promptClip;
 
 		[Tooltip("Leave empty for steps that only talk, like the intro and outro")]
@@ -26,6 +29,7 @@ namespace DroneDDW.Tutorial
 		#region Properties
 
 		internal string Name => _name;
+		internal IReadOnlyList<Revealable> RevealedObjects => _revealedObjects;
 		internal AudioClip PromptClip => _promptClip;
 		internal StepCondition Condition => _condition;
 		internal bool HasCondition => _condition != null;
