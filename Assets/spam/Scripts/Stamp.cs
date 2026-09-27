@@ -1,11 +1,12 @@
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 public class Stamp : MonoBehaviour
 {
     [SerializeField] private Transform stampBottom;
     [SerializeField] private Collider paperA;
     [SerializeField] private Collider paperB;
-    [SerializeField] private GameObject stampMark;
+    [SerializeField] private DecalProjector stampMark;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip stampSound;
 
@@ -20,7 +21,7 @@ public class Stamp : MonoBehaviour
             audioSource = GetComponent<AudioSource>();
 
         if (stampMark != null)
-            stampMark.SetActive(false);
+            stampMark.gameObject.SetActive(false);
     }
 
     public void HandleStampTrigger(Collider other, Transform triggerZone)
@@ -40,13 +41,15 @@ public class Stamp : MonoBehaviour
 
         Vector3 markPosition = new Vector3(triggerZone.position.x, paper.bounds.max.y, triggerZone.position.z);
 
-        Vector3 markEuler = stampBottom.eulerAngles;
-        markEuler.x = 0f;
-        markEuler.z = 0f;
+        // Decals project along their local +Z, so tilt 90 degrees to point down at the paper, keeping the stamp's yaw
+        Quaternion markRotation = Quaternion.Euler(90f, stampBottom.eulerAngles.y, 0f);
+
+        // Centre the projection box on the paper surface, whatever the projector's pivot is set to
+        markPosition -= markRotation * stampMark.pivot;
 
         stampMark.transform.SetParent(paper.transform, true);
-        stampMark.transform.SetPositionAndRotation(markPosition, Quaternion.Euler(markEuler));
-        stampMark.SetActive(true);
+        stampMark.transform.SetPositionAndRotation(markPosition, markRotation);
+        stampMark.gameObject.SetActive(true);
 
         if (audioSource != null && stampSound != null)
             audioSource.PlayOneShot(stampSound);
@@ -59,6 +62,6 @@ public class Stamp : MonoBehaviour
         hasStamped = false;
 
         if (stampMark != null)
-            stampMark.SetActive(false);
+            stampMark.gameObject.SetActive(false);
     }
 }
