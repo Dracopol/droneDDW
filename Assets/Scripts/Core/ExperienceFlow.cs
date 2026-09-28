@@ -13,9 +13,13 @@ namespace DroneDDW.Core
 		#region Serialized fields
 
 		[SerializeField] private TutorialRunner _tutorialRunner;
+		[SerializeField] private EnvironmentTransition _environmentTransition;
 
 		[Tooltip("Editor only: waits for this key so there's time to put the headset on. Builds start right away.")]
 		[SerializeField] private Key _editorStartKey = Key.Space;
+
+		[Tooltip("Editor only: goes straight to the switch to VR, for testing what comes after the tutorial")]
+		[SerializeField] private bool _skipsTutorialInEditor;
 
 		#endregion
 
@@ -26,8 +30,15 @@ namespace DroneDDW.Core
 			try
 			{
 				await WaitForEditorStartKeyAsync(destroyCancellationToken);
-				await _tutorialRunner.RunAsync(destroyCancellationToken);
-				Debug.Log("[DDW Experience] Tutorial complete", this);
+
+				if (Application.isEditor && _skipsTutorialInEditor)
+					Debug.Log("[DDW Experience] Tutorial skipped", this);
+				else
+					await _tutorialRunner.RunAsync(destroyCancellationToken);
+
+				Debug.Log("[DDW Experience] Tutorial complete, switching to VR", this);
+				await _environmentTransition.ToVirtualAsync(destroyCancellationToken);
+				Debug.Log("[DDW Experience] In VR", this);
 			}
 			catch (OperationCanceledException)
 			{

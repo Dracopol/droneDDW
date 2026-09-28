@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace DroneDDW.Tutorial
+namespace DroneDDW.Core
 {
-	// An object that starts hidden and appears when a tutorial step needs it
+	// An object that starts hidden and appears when needed, e.g. a tutorial prop or the VR room
 	internal class Revealable : MonoBehaviour
 	{
 		#region Serialized fields
