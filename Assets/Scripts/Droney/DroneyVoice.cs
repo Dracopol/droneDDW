@@ -7,6 +7,15 @@ namespace DroneDDW.Droney
 {
 	internal class DroneyVoice : MonoBehaviour
 	{
+		#region Events
+
+		internal event Action<AudioClip> OnLineStart;
+
+		// Also raised when a line is cut off
+		internal event Action<AudioClip> OnLineEnd;
+
+		#endregion
+
 		#region Serialized fields
 
 		[SerializeField] private AudioSource _audioSource;
@@ -32,6 +41,7 @@ namespace DroneDDW.Droney
 
 			_audioSource.clip = clip;
 			_audioSource.Play();
+			OnLineStart?.Invoke(clip);
 
 			try
 			{
@@ -44,6 +54,10 @@ namespace DroneDDW.Droney
 			{
 				StopIfPlaying(clip);
 				throw;
+			}
+			finally
+			{
+				OnLineEnd?.Invoke(clip);
 			}
 		}
 

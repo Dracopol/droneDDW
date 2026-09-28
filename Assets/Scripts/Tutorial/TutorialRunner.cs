@@ -14,6 +14,8 @@ namespace DroneDDW.Tutorial
 
 		[SerializeField] private DroneyVoice _droneyVoice;
 		[SerializeField] private DroneyAppearance _droneyAppearance;
+		[SerializeField] private DroneyFlight _droneyFlight;
+		[SerializeField] private HintMarker _hintMarker;
 		[SerializeField] private TutorialStep[] _steps;
 
 		[Header("Stuck hints")]
@@ -116,7 +118,8 @@ namespace DroneDDW.Tutorial
 			{
 				// Cuts off a stuck line that is still playing
 				hintSource.Cancel();
-				SetHintActive(step, false);
+				_hintMarker.Hide();
+				_droneyFlight.ReturnHome();
 			}
 		}
 
@@ -130,8 +133,9 @@ namespace DroneDDW.Tutorial
 				while (true)
 				{
 					Debug.Log($"[DDW Tutorial] {step.Name}: stuck hint", this);
-					SetHintActive(step, true);
+					BeginHint(step);
 					await _droneyVoice.PlayAsync(step.StuckClip, cancellationToken);
+					_droneyFlight.ReturnHome();
 					await UniTask.Delay(TimeSpan.FromSeconds(_hintRepeatSeconds), cancellationToken: cancellationToken);
 				}
 			}
@@ -141,10 +145,15 @@ namespace DroneDDW.Tutorial
 			}
 		}
 
-		private void SetHintActive(TutorialStep step, bool isActive)
+		// The marker stays until the step completes, Droney only goes over while she says the stuck line
+		private void BeginHint(TutorialStep step)
 		{
-			if (step.HintTarget != null)
-				step.HintTarget.SetHighlighted(isActive);
+			if (step.HintTarget == null)
+				return;
+
+			step.HintTarget.BeginHint();
+			_hintMarker.Show(step.HintTarget);
+			_droneyFlight.PointOut(step.HintTarget.Position);
 		}
 
 		#endregion

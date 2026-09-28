@@ -14,6 +14,14 @@ namespace DroneDDW.Interaction
 		[Min(0f)]
 		[SerializeField] private float _dropDistanceMeters = 0.5f;
 
+		[Tooltip("Also respawns once it has lain this far from where it started, measured flat, e.g. across the table")]
+		[Min(0f)]
+		[SerializeField] private float _maxDistanceMeters = 0.7f;
+
+		[Tooltip("How long it has to lie too far away first, so a stamp that's just sliding isn't snatched back")]
+		[Min(0f)]
+		[SerializeField] private float _tooFarSeconds = 1.5f;
+
 		[SerializeField] private AudioSource _audioSource;
 		[SerializeField] private AudioClip _respawnClip;
 
@@ -22,6 +30,7 @@ namespace DroneDDW.Interaction
 		#region Fields
 
 		private Pose _startPose;
+		private float _tooFarElapsedSeconds;
 
 		#endregion
 
@@ -38,18 +47,38 @@ namespace DroneDDW.Interaction
 
 		private void FixedUpdate()
 		{
-			if (_grabMonitor.IsHeld || _rigidbody.position.y > _startPose.position.y - _dropDistanceMeters)
+			if (_grabMonitor.IsHeld)
+			{
+				_tooFarElapsedSeconds = 0f;
 				return;
+			}
 
-			Respawn();
+			if (_rigidbody.position.y < _startPose.position.y - _dropDistanceMeters)
+			{
+				Respawn();
+				return;
+			}
+
+			_tooFarElapsedSeconds = IsTooFar() ? _tooFarElapsedSeconds + Time.fixedDeltaTime : 0f;
+
+			if (_tooFarElapsedSeconds >= _tooFarSeconds)
+				Respawn();
 		}
 
 		#endregion
 
 		#region Private
 
+		private bool IsTooFar()
+		{
+			Vector3 offset = _rigidbody.position - _startPose.position;
+			offset.y = 0f;
+			return offset.magnitude > _maxDistanceMeters;
+		}
+
 		private void Respawn()
 		{
+			_tooFarElapsedSeconds = 0f;
 			_rigidbody.linearVelocity = Vector3.zero;
 			_rigidbody.angularVelocity = Vector3.zero;
 			_rigidbody.position = _startPose.position;

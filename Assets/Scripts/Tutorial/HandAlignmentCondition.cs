@@ -37,6 +37,30 @@ namespace DroneDDW.Tutorial
 		[Min(0f)]
 		[SerializeField] private float _holdSeconds = 0.5f;
 
+		[Header("Feedback")]
+		[SerializeField] private AudioSource _audioSource;
+		[SerializeField] private AudioClip _lockInClip;
+
+		[Tooltip("The ghost hands' own hint target, its stuck hints bring them back in view")]
+		[SerializeField] private HintTarget _hintTarget;
+
+		[Tooltip("A stuck hint moves the ghost hands back in front of the player once they're this far out of view")]
+		[Range(0f, 180f)]
+		[SerializeField] private float _maxViewAngleDegrees = 45f;
+
+		#endregion
+
+		#region Event handlers
+
+		private void HandleHintBegin()
+		{
+			Vector3 forward = Vector3.ProjectOnPlane(_head.forward, Vector3.up);
+			Vector3 toGhostHands = Vector3.ProjectOnPlane(_ghostHandsRoot.position - _head.position, Vector3.up);
+
+			if (Vector3.Angle(forward, toGhostHands) > _maxViewAngleDegrees)
+				PlaceInFrontOfHead();
+		}
+
 		#endregion
 
 		#region Internal
@@ -51,6 +75,7 @@ namespace DroneDDW.Tutorial
 
 			PlaceInFrontOfHead();
 			SetGhostHandsVisible(true);
+			_hintTarget.OnHintBegin += HandleHintBegin;
 
 			try
 			{
@@ -60,6 +85,7 @@ namespace DroneDDW.Tutorial
 			}
 			finally
 			{
+				_hintTarget.OnHintBegin -= HandleHintBegin;
 				SetGhostHandsVisible(false);
 			}
 
@@ -105,7 +131,12 @@ namespace DroneDDW.Tutorial
 				GhostHand ghostHand = _ghostHands[index];
 
 				if (progress[index] < 1f)
+				{
 					progress[index] = GetNextProgress(progress[index], IsAligned(ghostHand));
+
+					if (progress[index] >= 1f)
+						_audioSource.PlayOneShot(_lockInClip);
+				}
 
 				ghostHand.SetProgress(progress[index]);
 

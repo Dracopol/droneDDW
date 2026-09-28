@@ -27,6 +27,9 @@ namespace DroneDDW.Interaction
 		[SerializeField] private AudioSource _audioSource;
 		[SerializeField] private AudioClip _stampClip;
 
+		[Tooltip("Plays when the stamp touches an armed paper but doesn't count, so the player knows to try again")]
+		[SerializeField] private AudioClip _rejectedClip;
+
 		#endregion
 
 		#region Fields
@@ -59,7 +62,7 @@ namespace DroneDDW.Interaction
 
 			if (!_grabMonitor.IsHeld)
 			{
-				Debug.Log($"[DDW Stamp] Ignored {paper.name}: the stamp isn't held", this);
+				Reject(paper, "the stamp isn't held");
 				return;
 			}
 
@@ -67,7 +70,7 @@ namespace DroneDDW.Interaction
 
 			if (tiltDegrees > _maxTiltDegrees)
 			{
-				Debug.Log($"[DDW Stamp] Ignored {paper.name}: tilted {tiltDegrees:0} degrees", this);
+				Reject(paper, $"tilted {tiltDegrees:0} degrees");
 				return;
 			}
 
@@ -76,6 +79,16 @@ namespace DroneDDW.Interaction
 
 			Debug.Log($"[DDW Stamp] Stamped {paper.name}", this);
 			OnStamp?.Invoke(paper);
+		}
+
+		#endregion
+
+		#region Private
+
+		private void Reject(Paper paper, string reason)
+		{
+			_audioSource.PlayOneShot(_rejectedClip);
+			Debug.Log($"[DDW Stamp] Ignored {paper.name}: {reason}", this);
 		}
 
 		#endregion

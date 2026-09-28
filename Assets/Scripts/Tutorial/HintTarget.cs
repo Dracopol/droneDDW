@@ -1,32 +1,38 @@
+using System;
 using UnityEngine;
 
 namespace DroneDDW.Tutorial
 {
-	// Something the tutorial points at when the player is stuck
+	// Something the tutorial points out when the player is stuck: the hint marker floats above it and Droney flies over
 	internal class HintTarget : MonoBehaviour
 	{
-		#region Serialized fields
+		#region Events
 
-		[Tooltip("Shown while the hint is active, e.g. a glow around the stamp or ghost hands")]
-		[SerializeField] private GameObject _highlight;
+		// Raised each time a stuck hint for this target starts
+		internal event Action OnHintBegin;
 
 		#endregion
 
-		#region Setup
+		#region Serialized fields
 
-		private void Awake()
-		{
-			SetHighlighted(false);
-		}
+		[Tooltip("How high above this object the hint marker floats")]
+		[Min(0f)]
+		[SerializeField] private float _markerHeightMeters = 0.15f;
+
+		#endregion
+
+		#region Properties
+
+		internal Vector3 Position => transform.position;
+		internal float MarkerHeightMeters => _markerHeightMeters;
 
 		#endregion
 
 		#region Internal
 
-		internal void SetHighlighted(bool isHighlighted)
+		internal void BeginHint()
 		{
-			if (_highlight != null)
-				_highlight.SetActive(isHighlighted);
+			OnHintBegin?.Invoke();
 		}
 
 		#endregion
