@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DroneDDW.Buttons
+namespace DroneDDW.InteractionTests
 {
 	// One segment of a tracked hand skeleton, thick enough to stand in for the flesh around it
 	internal readonly struct HandBone

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Hands;
 
-namespace DroneDDW.Buttons
+namespace DroneDDW.InteractionTests
 {
 	// A tracked hand as thick bone segments, read from the joint transforms of the rig's hand visual
 	internal class HandSkeleton : MonoBehaviour

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DroneDDW.Buttons
+namespace DroneDDW.InteractionTests
 {
 	// Keeps the panel in front of and below the head, turning only around the vertical axis so it stays level.
 	// It waits until the head has turned or moved far enough, and holds still while hands are near the buttons.

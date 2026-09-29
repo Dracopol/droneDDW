@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DroneDDW.Buttons
+namespace DroneDDW.InteractionTests
 {
 	// Runs physics at a higher rate while enabled and puts the project's rate back afterwards
 	internal class FixedRateOverride : MonoBehaviour

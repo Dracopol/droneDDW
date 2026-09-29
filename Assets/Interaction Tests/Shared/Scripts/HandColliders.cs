@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DroneDDW.Buttons
+namespace DroneDDW.InteractionTests
 {
 	// Kinematic capsules that follow one tracked hand's bones, so the hand can push rigidbodies around
 	internal class HandColliders : MonoBehaviour
