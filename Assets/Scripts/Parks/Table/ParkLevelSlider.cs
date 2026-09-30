@@ -11,7 +11,7 @@ namespace DroneDDW.Parks.Table
 	/// The five-detent slider on the table. Put it on the handle's parent (Rig_Slider): the handle moves
 	/// along this object's local X axis between the two ends. While dragging it reports the nearest
 	/// detent (for the live model preview); on release it snaps to that detent and commits the level.
-	/// Input comes from outside (<see cref="ParkSliderXRDriver"/>, or anything else that calls the drag methods).
+	/// Input comes from outside (<see cref="ParkSliderHandDriver"/>, or anything else that calls the drag methods).
 	/// </summary>
 	[DisallowMultipleComponent]
 	[AddComponentMenu("DroneDDW/Parks/Park Level Slider")]

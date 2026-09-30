@@ -4,6 +4,7 @@
     "references": [
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
         "Unity.InputSystem",
         "Unity.Mathematics",
         "UniTask"

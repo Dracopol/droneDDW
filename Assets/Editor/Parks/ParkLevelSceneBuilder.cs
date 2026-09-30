@@ -27,8 +27,8 @@ namespace DroneDDW.Parks.Editor.Building
 	///    tagged with the levels it belongs to, a level controller that runs the wave transition,
 	///    the seat anchor with a copy of the project's XR rig (taken from the main scene, hands set up
 	///    as in the Interaction Tests scenes, grabbing with the finger grab and its shared settings),
-	///    the table with the five-detent slider and the five miniatures, two ambience sources playing
-	///    the Content/Audio/Ambience loops and a realtime sun.
+	///    the table with the five-detent slider (pushed by any part of a hand, grabbed once the fingers close)
+	///    and the five miniatures, two ambience sources playing the Content/Audio/Ambience loops and a realtime sun.
 	/// Safe to run again: materials and prefabs keep their GUIDs, the scene is rebuilt.
 	/// </summary>
 	internal static class ParkLevelSceneBuilder
@@ -180,7 +180,7 @@ namespace DroneDDW.Parks.Editor.Building
 			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
 			GameObject seat = new GameObject("SeatAnchor");
 			seat.transform.position = new Vector3(0f, SeatHeight, 0f);
-			Transform head = SetUpSunAndViewer(scene, seat.transform);
+			Transform head = SetUpSunAndViewer(scene, seat.transform, out Transform trackingSpace);
 
 			GameObject world = new GameObject(layout.ParkName);
 			Dictionary<string, Transform> groups = new Dictionary<string, Transform>();
@@ -228,7 +228,7 @@ namespace DroneDDW.Parks.Editor.Building
 			controller.Configure(elements.ToArray(), seat.transform, StartLevel);
 			controller.ShowLevelInEditor(StartLevel);
 
-			TableParts table = BuildTable(rigModel, levelModels, world.transform, head);
+			TableParts table = BuildTable(rigModel, levelModels, world.transform, head, trackingSpace);
 			ParkAmbience ambience = BuildAmbience(experience.transform);
 			ParkExperience coordinator = experience.AddComponent<ParkExperience>();
 			coordinator.Configure(controller, table.Slider, table.Preview, ambience);
@@ -276,9 +276,10 @@ namespace DroneDDW.Parks.Editor.Building
 
 		/// <summary>
 		/// Turns the default light into the sun and seats the viewer: a copy of the project's XR rig, or the
-		/// default camera as a desktop stand-in when there is no rig to copy. Returns the viewer's head.
+		/// default camera as a desktop stand-in when there is no rig to copy. Returns the viewer's head, and hands out
+		/// the rig's tracking space (null for the desktop camera).
 		/// </summary>
-		private static Transform SetUpSunAndViewer(Scene scene, Transform seat)
+		private static Transform SetUpSunAndViewer(Scene scene, Transform seat, out Transform trackingSpace)
 		{
 			Camera defaultCamera = null;
 			foreach (GameObject rootObject in scene.GetRootGameObjects())
@@ -301,7 +302,7 @@ namespace DroneDDW.Parks.Editor.Building
 				}
 			}
 
-			Camera rigCamera = CopyXRRig(scene, seat);
+			Camera rigCamera = CopyXRRig(scene, seat, out trackingSpace);
 			if (rigCamera != null)
 			{
 				if (defaultCamera != null)
@@ -331,10 +332,12 @@ namespace DroneDDW.Parks.Editor.Building
 		/// <summary>
 		/// Copies the XR rig (the root with an XR Origin) from the main scene onto the seat, so the park runs on
 		/// the same seated, hand-tracked setup. It is a copy: rebuild the park after changing the rig there.
-		/// Returns the rig's camera, or null when the main scene or its rig is missing.
+		/// Returns the rig's camera, or null when the main scene or its rig is missing, and hands out the rig's
+		/// tracking space: the camera offset its hand joints are relative to.
 		/// </summary>
-		private static Camera CopyXRRig(Scene scene, Transform seat)
+		private static Camera CopyXRRig(Scene scene, Transform seat, out Transform trackingSpace)
 		{
+			trackingSpace = null;
 #if PARKS_XRI
 			if (AssetDatabase.LoadAssetAtPath<SceneAsset>(XRRigScenePath) == null)
 			{
@@ -358,7 +361,9 @@ namespace DroneDDW.Parks.Editor.Building
 					UseInteractionTestHands(rig.transform);
 
 					// The main scene's camera clears to transparent black for passthrough; the park needs its sky.
-					Camera camera = rig.GetComponent<XROrigin>().Camera;
+					XROrigin origin = rig.GetComponent<XROrigin>();
+					trackingSpace = origin.CameraFloorOffsetObject.transform;
+					Camera camera = origin.Camera;
 					camera.clearFlags = CameraClearFlags.Skybox;
 					camera.farClipPlane = Mathf.Max(camera.farClipPlane, FarClipPlane);
 					return camera;
@@ -397,7 +402,8 @@ namespace DroneDDW.Parks.Editor.Building
 			target.gameObject.SetActive(isActive);
 		}
 
-		private static TableParts BuildTable(GameObject rigModel, GameObject levelModels, Transform parkRoot, Transform head)
+		private static TableParts BuildTable(GameObject rigModel, GameObject levelModels, Transform parkRoot,
+			Transform head, Transform trackingSpace)
 		{
 			GameObject rig = (GameObject)PrefabUtility.InstantiatePrefab(rigModel);
 			PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
@@ -433,12 +439,12 @@ namespace DroneDDW.Parks.Editor.Building
 			handle.localPosition = handlePosition;
 			if (handle.TryGetComponent(out BoxCollider handleCollider))
 			{
-				// Bigger than the knob so it is easy to grab with a controller.
+				// Bigger than the knob, so it is easy to grab. The hands push against the knob itself.
 				handleCollider.center = HandleColliderCenter;
 				handleCollider.size = HandleColliderSize;
 			}
 
-			AddXRInput(levelSlider, handle.gameObject);
+			AddHandInput(levelSlider, handle.gameObject, trackingSpace);
 			return new TableParts(levelSlider, preview);
 		}
 
@@ -468,12 +474,23 @@ namespace DroneDDW.Parks.Editor.Building
 			return miniatures;
 		}
 
-		private static void AddXRInput(ParkLevelSlider slider, GameObject handle)
+		/// <summary>
+		/// Hands push the handle by default and grab it once the fingers close: the interactable is what the finger
+		/// grab selects, the hand bones are what pushes, and the driver combines both into one drag.
+		/// </summary>
+		private static void AddHandInput(ParkLevelSlider slider, GameObject handle, Transform trackingSpace)
 		{
 #if PARKS_XRI
+			if (!handle.TryGetComponent(out MeshFilter handleMesh))
+			{
+				Debug.LogError($"[Parks] {RigName}.fbx's Rig_Handle has no mesh, so the hands can't push it.");
+			}
+
 			XRSimpleInteractable interactable = handle.AddComponent<XRSimpleInteractable>();
-			ParkSliderXRDriver driver = slider.gameObject.AddComponent<ParkSliderXRDriver>();
-			driver.Configure(slider, interactable);
+			ParkHandBones handBones = slider.gameObject.AddComponent<ParkHandBones>();
+			handBones.Configure(trackingSpace);
+			ParkSliderHandDriver driver = slider.gameObject.AddComponent<ParkSliderHandDriver>();
+			driver.Configure(slider, interactable, handleMesh, handBones);
 #else
 			Debug.LogWarning("[Parks] XR Interaction Toolkit is not installed, so the slider has no XR input yet. "
 				+ "Install it and run this menu again, or call ParkLevelSlider.BeginDrag / DragTo / EndDrag from your own input.");
