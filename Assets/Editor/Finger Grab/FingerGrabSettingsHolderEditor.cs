@@ -1,6 +1,6 @@
 using UnityEditor;
 
-namespace DroneDDW.Interaction.Editor
+namespace DroneDDW.FingerGrab.Editor
 {
 	// Shows the holder's settings asset in place, so selecting the "Finger Grab Settings" object in the Hierarchy is
 	// enough to toggle the labels and tune the fingers

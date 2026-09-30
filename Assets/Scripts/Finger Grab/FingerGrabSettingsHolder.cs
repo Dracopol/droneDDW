@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DroneDDW.Interaction
+namespace DroneDDW.FingerGrab
 {
 	// The scene's finger grab settings, on the "Finger Grab Settings" object. Both hands read from here, so swapping the
 	// asset switches them together. Its inspector shows the asset's values in place.

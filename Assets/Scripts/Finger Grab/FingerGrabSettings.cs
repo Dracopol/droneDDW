@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace DroneDDW.Interaction
+namespace DroneDDW.FingerGrab
 {
 	// The finger grab's tuning, shared by both hands and every scene that uses this asset: each finger's grab and release
 	// distance, and whether the tuning labels show. An asset, so changes made in Play mode are kept.

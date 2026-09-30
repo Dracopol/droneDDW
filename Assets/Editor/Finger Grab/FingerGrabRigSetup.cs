@@ -10,13 +10,14 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
 
-namespace DroneDDW.Interaction.Editor
+namespace DroneDDW.FingerGrab.Editor
 {
 	// Switches a scene's hand rig to the finger grab: thumb plus any finger selects, grabs attach and near hovering
 	// happen between the fingers, and there are no far (ray) grabs. Both hands read their thresholds from one
 	// "Finger Grab Settings" object, which points at the shared settings asset. The rig's pinch reader stays in the
-	// scene unused, so going back is one select input reference per hand.
-	internal static class FingerGrabRigSetup
+	// scene unused, so going back is one select input reference per hand. Public because the park builder, in another
+	// assembly, applies it to the rig it copies.
+	public static class FingerGrabRigSetup
 	{
 		#region Fields
 
@@ -32,6 +33,34 @@ namespace DroneDDW.Interaction.Editor
 		private const float ReadoutFontSize = 0.13f;
 
 		private static readonly Vector2 ReadoutSizeMeters = new(0.34f, 0.12f);
+
+		#endregion
+
+		#region Public
+
+		// Sets up both hands of the scene's XR rig and the scene's "Finger Grab Settings" object, or brings existing ones
+		// up to date. Returns how many hands use the finger grab afterwards.
+		public static int AddToScene(Scene scene)
+		{
+			XROrigin origin = FindInScene<XROrigin>(scene);
+			if (origin == null)
+			{
+				Debug.LogError($"{LogPrefix} {scene.name} has no XR Origin.");
+				return 0;
+			}
+
+			FingerGrabSettingsHolder settingsHolder = FindOrCreateSettingsHolder(scene);
+			int handCount = 0;
+			foreach (NearFarInteractor interactor in origin.GetComponentsInChildren<NearFarInteractor>(true))
+			{
+				if (AddToHand(origin, interactor, settingsHolder))
+				{
+					handCount++;
+				}
+			}
+
+			return handCount;
+		}
 
 		#endregion
 
@@ -85,29 +114,6 @@ namespace DroneDDW.Interaction.Editor
 			int handCount = AddToScene(scene);
 			EditorSceneManager.SaveScene(scene);
 			Debug.Log($"{LogPrefix} Updated {TestScenePath}: {handCount} hands read from {SettingsAssetPath}.");
-		}
-
-		// Returns how many hands use the finger grab afterwards
-		private static int AddToScene(Scene scene)
-		{
-			XROrigin origin = FindInScene<XROrigin>(scene);
-			if (origin == null)
-			{
-				Debug.LogError($"{LogPrefix} {scene.name} has no XR Origin.");
-				return 0;
-			}
-
-			FingerGrabSettingsHolder settingsHolder = FindOrCreateSettingsHolder(scene);
-			int handCount = 0;
-			foreach (NearFarInteractor interactor in origin.GetComponentsInChildren<NearFarInteractor>(true))
-			{
-				if (AddToHand(origin, interactor, settingsHolder))
-				{
-					handCount++;
-				}
-			}
-
-			return handCount;
 		}
 
 		private static T FindInScene<T>(Scene scene) where T : Component

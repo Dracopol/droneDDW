@@ -3,6 +3,8 @@
     "rootNamespace": "DroneDDW.Parks.Editor",
     "references": [
         "DroneDDW.Parks",
+        "DroneDDW.FingerGrab",
+        "DroneDDW.FingerGrab.Editor",
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.CoreUtils",
         "Unity.InputSystem",

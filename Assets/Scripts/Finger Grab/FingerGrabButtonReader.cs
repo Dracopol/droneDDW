@@ -5,7 +5,7 @@ using UnityEngine.XR.Hands;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 
-namespace DroneDDW.Interaction
+namespace DroneDDW.FingerGrab
 {
 	// A grab button for one hand: the thumb tip against any fingertip, each finger with its own distances, so the
 	// fingertips don't have to touch. Goes in an interactor's select input as an Object Reference, like the rig's

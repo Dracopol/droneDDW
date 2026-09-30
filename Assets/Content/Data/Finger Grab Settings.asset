@@ -11,8 +11,8 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1b338a9310e7f24a9aa64ee9804bc84, type: 3}
   m_Name: Finger Grab Settings
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabSettings
-  _isReadoutVisible: 1
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabSettings
+  _isReadoutVisible: 0
   _index:
     _isEnabled: 1
     _grabDistanceMeters: 0.03

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DroneDDW.FingerGrab.Editor;
 using DroneDDW.Parks.Audio;
 using DroneDDW.Parks.Experience;
 using DroneDDW.Parks.Levels;
@@ -25,8 +26,9 @@ namespace DroneDDW.Parks.Editor.Building
 	/// 3. Builds Scenes/Park Levels.unity: one park holding all five levels, every changing object
 	///    tagged with the levels it belongs to, a level controller that runs the wave transition,
 	///    the seat anchor with a copy of the project's XR rig (taken from the main scene, hands set up
-	///    as in the Interaction Tests scenes), the table with the five-detent slider and the five
-	///    miniatures, two ambience sources playing the Content/Audio/Ambience loops and a realtime sun.
+	///    as in the Interaction Tests scenes, grabbing with the finger grab and its shared settings),
+	///    the table with the five-detent slider and the five miniatures, two ambience sources playing
+	///    the Content/Audio/Ambience loops and a realtime sun.
 	/// Safe to run again: materials and prefabs keep their GUIDs, the scene is rebuilt.
 	/// </summary>
 	internal static class ParkLevelSceneBuilder
@@ -307,6 +309,9 @@ namespace DroneDDW.Parks.Editor.Building
 					Object.DestroyImmediate(defaultCamera.gameObject);
 				}
 
+				// Thumb plus any finger grabs the slider, tuned by the shared Finger Grab Settings asset
+				int fingerGrabHandCount = FingerGrabRigSetup.AddToScene(scene);
+				Debug.Log($"[Parks] Finger grab set up on {fingerGrabHandCount} hands.");
 				return rigCamera.transform;
 			}
 

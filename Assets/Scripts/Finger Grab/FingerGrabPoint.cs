@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
-namespace DroneDDW.Interaction
+namespace DroneDDW.FingerGrab
 {
 	// Sits between the thumb tip and the grabbing fingertip (the closest finger while not grabbing), so grabs attach and
 	// near hovering happens where the fingers actually close. Turns with the rig's pinch pose, so held objects keep the

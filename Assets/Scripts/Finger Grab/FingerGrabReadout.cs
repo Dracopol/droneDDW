@@ -2,7 +2,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 
-namespace DroneDDW.Interaction
+namespace DroneDDW.FingerGrab
 {
 	// A label by the hand for tuning the finger grab on the headset: each finger's distance to the thumb against its
 	// grab and release distances, and which finger holds the grab. Shown or hidden by the Finger Grab Settings toggle.

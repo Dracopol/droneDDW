@@ -6019,7 +6019,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ab195ff8f11edd4fa34ebe27c03caf3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabReadout
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabReadout
   _reader: {fileID: 1281510454}
   _label: {fileID: 924654613}
   _head: {fileID: 1208118539}
@@ -8760,7 +8760,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: add4718b46a588544a0f2150503598f9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabButtonReader
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabButtonReader
   _handedness: 2
   _trackingSpace: {fileID: 823125493}
   _settingsHolder: {fileID: 1523065906}
@@ -8775,7 +8775,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 177600001abc0294b8e424982c43a54d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabPoint
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabPoint
   _reader: {fileID: 1281510454}
   _pinchPose: {fileID: 1547302490}
 --- !u!1 &1290735040
@@ -9381,7 +9381,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11c39a6830e4a32408e0db86a003d845, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabSettingsHolder
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabSettingsHolder
   _settings: {fileID: 11400000, guid: b9442a3dfddbce74c9a5a09c592f64ea, type: 2}
 --- !u!4 &1523065907
 Transform:
@@ -11847,7 +11847,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 177600001abc0294b8e424982c43a54d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabPoint
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabPoint
   _reader: {fileID: 1909737088}
   _pinchPose: {fileID: 1614625012}
 --- !u!114 &1909737088
@@ -11861,7 +11861,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: add4718b46a588544a0f2150503598f9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabButtonReader
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabButtonReader
   _handedness: 1
   _trackingSpace: {fileID: 823125493}
   _settingsHolder: {fileID: 1523065906}
@@ -12477,7 +12477,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ab195ff8f11edd4fa34ebe27c03caf3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.FingerGrabReadout
+  m_EditorClassIdentifier: DroneDDW.FingerGrab::DroneDDW.FingerGrab.FingerGrabReadout
   _reader: {fileID: 1909737088}
   _label: {fileID: 2030242379}
   _head: {fileID: 1208118539}

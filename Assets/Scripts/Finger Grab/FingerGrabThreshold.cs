@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace DroneDDW.Interaction
+namespace DroneDDW.FingerGrab
 {
 	// How close one fingertip has to come to the thumb tip to grab, and how far apart they have to go again to let go
 	[Serializable]
