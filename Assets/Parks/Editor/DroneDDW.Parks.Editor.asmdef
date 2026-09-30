@@ -1,0 +1,33 @@
+{
+    "name": "DroneDDW.Parks.Editor",
+    "rootNamespace": "DroneDDW.Parks.Editor",
+    "references": [
+        "DroneDDW.Parks",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.CoreUtils",
+        "Unity.InputSystem",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "2.0.0",
+            "define": "PARKS_XRI"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "3.0.0",
+            "define": "PARKS_XRI_3"
+        }
+    ],
+    "noEngineReferences": false
+}

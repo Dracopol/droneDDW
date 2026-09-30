@@ -1838,7 +1838,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 400ccc388246bad409f6f315514c3229, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Tutorial.GhostHand
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.GhostHand
   _handedness: 2
   _palm: {fileID: 821046837}
   _renderer: {fileID: 821046835}
@@ -2208,7 +2208,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 400ccc388246bad409f6f315514c3229, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Tutorial.GhostHand
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.GhostHand
   _handedness: 1
   _palm: {fileID: 873855497}
   _renderer: {fileID: 873855495}
@@ -3677,7 +3677,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 259522b44b9590d4e90754e027388d2d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Interaction.HandTrackingMonitor
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Interaction.HandTrackingMonitor
   _leftHandTracking: {fileID: 4875728876841103114}
   _rightHandTracking: {fileID: 905062257638968603}
   _leftPalm: {fileID: 1699628196674966414}
@@ -3693,7 +3693,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd3a4b72b4c4160448b166c543b39d66, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Tutorial.TutorialRunner
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.TutorialRunner
   _droneyVoice: {fileID: 2009459296}
   _droneyAppearance: {fileID: 2009459298}
   _droneyFlight: {fileID: 2009459302}
@@ -3775,7 +3775,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c33bcc85c269d74c8b7425f73fd25b5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Core.ExperienceFlow
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Core.ExperienceFlow
   _tutorialRunner: {fileID: 1525142860}
   _environmentTransition: {fileID: 1525142863}
   _editorStartKey: 1
@@ -4549,7 +4549,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c95f2c025cf5f5f4dab14c6eaba9e1fe, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Tutorial.HandAlignmentCondition
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Tutorial.HandAlignmentCondition
   _handTrackingMonitor: {fileID: 1525142859}
   _head: {fileID: 1184690077522103201}
   _ghostHandsRoot: {fileID: 1944424335}
@@ -4598,7 +4598,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd840d33d6810f84991702e8841a8a8d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IMVR.DroneDDW.Droney.DroneyVoice
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Droney.DroneyVoice
   _audioSource: {fileID: 2009459297}
 --- !u!82 &2009459297
 AudioSource:
