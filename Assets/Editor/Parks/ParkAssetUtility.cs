@@ -19,6 +19,7 @@ namespace DroneDDW.Parks.Editor.Building
 		internal const string LayoutsFolder = "Assets/Content/Data/Parks";
 		internal const string TexturesFolder = "Assets/Content/Textures/Parks";
 		internal const string AudioFolder = "Assets/Content/Audio/Ambience";
+		internal const string SoundEffectsFolder = "Assets/Content/Audio/SFX";
 		internal const string MaterialsFolder = "Assets/Content/Materials/Parks";
 		internal const string PrefabsFolder = "Assets/Content/Prefabs/Parks";
 		internal const string ScenesFolder = "Assets/Scenes";
@@ -26,6 +27,10 @@ namespace DroneDDW.Parks.Editor.Building
 		private const string PaletteFileName = "Park_Palette.png";
 		private const string MaquettePaletteFileName = "Park_Palette_Maquette.png";
 		private const string MaterialPrefix = "Park_Mat_";
+		private const string PropsKey = "Props";
+		private const string GlowSuffix = "_Glow";
+		private const string EmissionKeyword = "_EMISSION";
+		private const string EmissionColorProperty = "_EmissionColor";
 		private const string WaterKey = "Water";
 		private const string MaquetteKey = "Maquette";
 		private const string UrpLitShader = "Universal Render Pipeline/Lit";
@@ -34,7 +39,7 @@ namespace DroneDDW.Parks.Editor.Building
 		private const float WaterSmoothness = 0.85f;
 		private const float MaquetteSmoothness = 0.05f;
 
-		private static readonly string[] MaterialKeys = { "Terrain", "Paths", "Vegetation", "Props", "Structures", WaterKey, MaquetteKey };
+		private static readonly string[] MaterialKeys = { "Terrain", "Paths", "Vegetation", PropsKey, "Structures", WaterKey, MaquetteKey };
 
 		#endregion
 
@@ -114,6 +119,45 @@ namespace DroneDDW.Parks.Editor.Building
 
 			AssetDatabase.SaveAssets();
 			return materials;
+		}
+
+		/// <summary>
+		/// The props material with emission switched on and black (Park_Mat_Props_Glow), for the table parts that
+		/// light up at runtime: it looks the same until ParkSliderVisuals lights a part. Being used in the scene keeps
+		/// the emission shader variant in the Quest build. Call after <see cref="CreateMaterials"/>.
+		/// </summary>
+		internal static Material CreateGlowMaterial()
+		{
+			string propsPath = $"{MaterialsFolder}/{MaterialPrefix}{PropsKey}.mat";
+			Material props = AssetDatabase.LoadAssetAtPath<Material>(propsPath);
+			if (props == null)
+			{
+				Debug.LogWarning($"[Parks] No props material at {propsPath}, so the slider parts can't glow.");
+				return null;
+			}
+
+			string glowName = MaterialPrefix + PropsKey + GlowSuffix;
+			string path = $"{EnsureFolder(MaterialsFolder)}/{glowName}.mat";
+			Material glow = AssetDatabase.LoadAssetAtPath<Material>(path);
+			if (glow == null)
+			{
+				glow = new Material(props) { name = glowName };
+				AssetDatabase.CreateAsset(glow, path);
+			}
+			else
+			{
+				// Follow the props material, which the builder rewrites on every run.
+				glow.shader = props.shader;
+				glow.CopyPropertiesFromMaterial(props);
+			}
+
+			// Not flagged "emissive is black", so URP's material checks keep the keyword on with a black colour.
+			glow.EnableKeyword(EmissionKeyword);
+			glow.SetColor(EmissionColorProperty, Color.black);
+			glow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+			EditorUtility.SetDirty(glow);
+			AssetDatabase.SaveAssets();
+			return glow;
 		}
 
 		internal static void RemapModels(Dictionary<string, Material> materials)

@@ -4,6 +4,7 @@ using DroneDDW.Parks.Audio;
 using DroneDDW.Parks.Experience;
 using DroneDDW.Parks.Levels;
 using DroneDDW.Parks.Table;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -27,8 +28,9 @@ namespace DroneDDW.Parks.Editor.Building
 	///    tagged with the levels it belongs to, a level controller that runs the wave transition,
 	///    the seat anchor with a copy of the project's XR rig (taken from the main scene, hands set up
 	///    as in the Interaction Tests scenes, grabbing with the finger grab and its shared settings),
-	///    the table with the five-detent slider (pushed by any part of a hand, grabbed once the fingers close)
-	///    and the five miniatures, two ambience sources playing the Content/Audio/Ambience loops and a realtime sun.
+	///    the table with the five-detent slider (pushed by any part of a hand, grabbed once the fingers close, with
+	///    its sounds, lights and level name label) and the five miniatures, two ambience sources playing the
+	///    Content/Audio/Ambience loops and a realtime sun.
 	/// Safe to run again: materials and prefabs keep their GUIDs, the scene is rebuilt.
 	/// </summary>
 	internal static class ParkLevelSceneBuilder
@@ -64,6 +66,14 @@ namespace DroneDDW.Parks.Editor.Building
 		private const string HandVisualizerName = "Hand Visualizer";
 		private const string NatureClipFileName = "Park_Ambience_Nature.ogg";
 		private const string EfficiencyClipFileName = "Park_Ambience_Efficiency.ogg";
+		private const string PressClipFileName = "Button Press.wav";
+		private const string TouchClipFileName = "Button Touch.wav";
+		private const string ReleaseClipFileName = "Button Release.wav";
+		private const string LockInClipFileName = "Lock In.wav";
+		private const string ScrapeClipFileName = "Slider Scrape.wav";
+		private const string NotchPrefix = "Rig_Detent_";
+		private const string NatureGlyphName = "Rig_Glyph_Nature";
+		private const string EfficiencyGlyphName = "Rig_Glyph_Efficiency";
 		private const int StartLevel = 2;
 		private const float SeatHeight = 0.12f;
 		private const float EyeHeight = 1.2f;
@@ -71,11 +81,16 @@ namespace DroneDDW.Parks.Editor.Building
 		private const float TableDistance = 0.75f;
 		private const float SliderHalfTravel = 0.3f;
 		private const float SunIntensity = 1.1f;
+		private const float SoundMinDistance = 0.3f;
+		private const float SoundMaxDistance = 10f;
+		private const float LabelFontSize = 0.13f;
 
 		private static readonly string[] GroupNames = { "Terrain", "Paths", "Vegetation", "Props", "Structures" };
 		private static readonly string[] RigParts = { "Rig_Slider", "Rig_Handle", "Rig_ModelRoot", "Rig_ViewCone" };
 		private static readonly Vector3 HandleColliderCenter = new Vector3(0f, 0.03f, 0f);
 		private static readonly Vector3 HandleColliderSize = new Vector3(0.08f, 0.07f, 0.08f);
+		private static readonly Vector3 LabelOffsetMeters = new Vector3(0f, 0.1f, 0.06f);
+		private static readonly Vector2 LabelSizeMeters = new Vector2(0.3f, 0.05f);
 		private static readonly Vector3 SunEuler = new Vector3(50f, 30f, 0f);
 		private static readonly Vector3 CameraEuler = new Vector3(14f, 0f, 0f);
 		private static readonly Color SunColor = new Color(1f, 0.957f, 0.86f);
@@ -228,7 +243,7 @@ namespace DroneDDW.Parks.Editor.Building
 			controller.Configure(elements.ToArray(), seat.transform, StartLevel);
 			controller.ShowLevelInEditor(StartLevel);
 
-			TableParts table = BuildTable(rigModel, levelModels, world.transform, head, trackingSpace);
+			TableParts table = BuildTable(rigModel, levelModels, world.transform, head, trackingSpace, controller);
 			ParkAmbience ambience = BuildAmbience(experience.transform);
 			ParkExperience coordinator = experience.AddComponent<ParkExperience>();
 			coordinator.Configure(controller, table.Slider, table.Preview, ambience);
@@ -403,7 +418,7 @@ namespace DroneDDW.Parks.Editor.Building
 		}
 
 		private static TableParts BuildTable(GameObject rigModel, GameObject levelModels, Transform parkRoot,
-			Transform head, Transform trackingSpace)
+			Transform head, Transform trackingSpace, ParkLevelController controller)
 		{
 			GameObject rig = (GameObject)PrefabUtility.InstantiatePrefab(rigModel);
 			PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
@@ -445,6 +460,7 @@ namespace DroneDDW.Parks.Editor.Building
 			}
 
 			AddHandInput(levelSlider, handle.gameObject, trackingSpace);
+			AddSliderFeedback(levelSlider, rig.transform, modelRoot, controller, head);
 			return new TableParts(levelSlider, preview);
 		}
 
@@ -495,6 +511,125 @@ namespace DroneDDW.Parks.Editor.Building
 			Debug.LogWarning("[Parks] XR Interaction Toolkit is not installed, so the slider has no XR input yet. "
 				+ "Install it and run this menu again, or call ParkLevelSlider.BeginDrag / DragTo / EndDrag from your own input.");
 #endif
+		}
+
+		/// <summary>
+		/// What the slider gives back, since hands feel no haptics: sounds from the knob, the glow material on the
+		/// knob, notches and end glyphs with the lights that drive it, and the level name label.
+		/// </summary>
+		private static void AddSliderFeedback(ParkLevelSlider slider, Transform rig, Transform modelRoot,
+			ParkLevelController controller, Transform head)
+		{
+			AddSliderSounds(slider, controller);
+
+			Renderer knob = slider.Handle.GetComponent<Renderer>();
+			Renderer[] notches = new Renderer[ParkLevels.Count];
+			for (int detent = 0; detent < notches.Length; detent++)
+			{
+				notches[detent] = FindRenderer(rig, NotchPrefix + detent);
+			}
+
+			Renderer natureGlyph = FindRenderer(rig, NatureGlyphName);
+			Renderer efficiencyGlyph = FindRenderer(rig, EfficiencyGlyphName);
+			Material glow = ParkAssetUtility.CreateGlowMaterial();
+			if (glow != null)
+			{
+				SetMaterial(knob, glow);
+				SetMaterial(natureGlyph, glow);
+				SetMaterial(efficiencyGlyph, glow);
+				foreach (Renderer notch in notches)
+				{
+					SetMaterial(notch, glow);
+				}
+			}
+
+			ParkSliderVisuals visuals = slider.gameObject.AddComponent<ParkSliderVisuals>();
+			visuals.Configure(slider, controller, knob, notches, natureGlyph, efficiencyGlyph, modelRoot);
+			AddLevelLabel(slider, head);
+		}
+
+		/// <summary>Four 3D sources on the knob, so every slider sound comes from where the hand is.</summary>
+		private static void AddSliderSounds(ParkLevelSlider slider, ParkLevelController controller)
+		{
+			GameObject soundsObject = new GameObject("Slider Sounds");
+			Transform sounds = soundsObject.transform;
+			sounds.SetParent(slider.Handle, false);
+			ParkSliderSounds sliderSounds = soundsObject.AddComponent<ParkSliderSounds>();
+			sliderSounds.Configure(slider, controller, CreateSoundSource("Notch", sounds),
+				CreateSoundSource("Hand", sounds), CreateSoundSource("Commit", sounds),
+				CreateSoundSource("Scrape", sounds));
+
+			// The grab is the press click played lower
+			AudioClip press = LoadSoundEffect(PressClipFileName);
+			sliderSounds.ConfigureClips(press, LoadSoundEffect(TouchClipFileName), press,
+				LoadSoundEffect(ReleaseClipFileName), LoadSoundEffect(LockInClipFileName),
+				LoadSoundEffect(ScrapeClipFileName));
+		}
+
+		private static AudioSource CreateSoundSource(string name, Transform parent)
+		{
+			GameObject sourceObject = new GameObject(name);
+			sourceObject.transform.SetParent(parent, false);
+			AudioSource source = sourceObject.AddComponent<AudioSource>();
+			source.playOnAwake = false;
+			source.spatialBlend = 1f;
+			source.rolloffMode = AudioRolloffMode.Logarithmic;
+			source.minDistance = SoundMinDistance;
+			source.maxDistance = SoundMaxDistance;
+			source.dopplerLevel = 0f;
+			return source;
+		}
+
+		private static AudioClip LoadSoundEffect(string fileName)
+		{
+			string path = $"{ParkAssetUtility.SoundEffectsFolder}/{fileName}";
+			AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+			if (clip == null)
+			{
+				Debug.LogWarning($"[Parks] No sound at {path}, so that slider sound stays silent.");
+			}
+
+			return clip;
+		}
+
+		private static void AddLevelLabel(ParkLevelSlider slider, Transform head)
+		{
+			GameObject labelObject = new GameObject("Level Label");
+			labelObject.transform.SetParent(slider.transform, false);
+			labelObject.transform.localPosition = slider.Handle.localPosition + LabelOffsetMeters;
+
+			// The text sits at the empty's origin, where the batch-mode save quirk that zeroes label positions can't
+			// move it; the label component moves the empty.
+			GameObject textObject = new GameObject("Text");
+			textObject.transform.SetParent(labelObject.transform, false);
+			TextMeshPro text = textObject.AddComponent<TextMeshPro>();
+			text.rectTransform.sizeDelta = LabelSizeMeters;
+			text.fontSize = LabelFontSize;
+			text.alignment = TextAlignmentOptions.Center;
+			text.text = ParkLevels.GetName(StartLevel);
+
+			ParkLevelLabel label = labelObject.AddComponent<ParkLevelLabel>();
+			label.Configure(slider, text, head);
+		}
+
+		private static Renderer FindRenderer(Transform root, string name)
+		{
+			Transform part = FindDeep(root, name);
+			if (part != null && part.TryGetComponent(out Renderer renderer))
+			{
+				return renderer;
+			}
+
+			Debug.LogWarning($"[Parks] {RigName}.fbx has no {name} mesh, so it won't light up.");
+			return null;
+		}
+
+		private static void SetMaterial(Renderer renderer, Material material)
+		{
+			if (renderer != null)
+			{
+				renderer.sharedMaterial = material;
+			}
 		}
 
 		private static ParkAmbience BuildAmbience(Transform parent)

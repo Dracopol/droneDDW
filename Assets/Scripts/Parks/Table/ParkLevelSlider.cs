@@ -9,9 +9,10 @@ namespace DroneDDW.Parks.Table
 {
 	/// <summary>
 	/// The five-detent slider on the table. Put it on the handle's parent (Rig_Slider): the handle moves
-	/// along this object's local X axis between the two ends. While dragging it reports the nearest
-	/// detent (for the live model preview); on release it snaps to that detent and commits the level.
-	/// Input comes from outside (<see cref="ParkSliderHandDriver"/>, or anything else that calls the drag methods).
+	/// along this object's local X axis between the two ends. While dragging it reports the detent the handle
+	/// is on (for the live model preview); on release it snaps to that detent and commits the level.
+	/// Input comes from outside (<see cref="ParkSliderHandDriver"/>, or anything else that calls the drag methods),
+	/// and reports how a hand touches the handle (<see cref="Contact"/>) for the slider's sounds, lights and label.
 	/// </summary>
 	[DisallowMultipleComponent]
 	[AddComponentMenu("DroneDDW/Parks/Park Level Slider")]
@@ -24,6 +25,8 @@ namespace DroneDDW.Parks.Table
 
 		/// <summary>The handle was released on a detent.</summary>
 		public event Action<int> OnLevelCommit;
+
+		public event Action<ParkSliderContact> OnContactChange;
 
 		#endregion
 
@@ -41,6 +44,16 @@ namespace DroneDDW.Parks.Table
 		[SerializeField, Min(0.01f), Tooltip("Seconds the handle takes to settle on a detent after release.")]
 		private float _snapDuration = 0.18f;
 
+		[Header("Detents")]
+		[SerializeField, Range(0f, 0.5f), Tooltip("How far past the halfway point between two detents the handle "
+			+ "has to go before the next one counts, as a fraction of a step, so it doesn't flicker when resting "
+			+ "in between.")]
+		private float _detentHysteresis = 0.1f;
+
+		[SerializeField, Min(0f), Tooltip("While grabbed, how far the hand goes past a detent before the handle "
+			+ "follows, so each detent catches it for a moment. 0 = off.")]
+		private float _softDetentMeters = 0.012f;
+
 		#endregion
 
 		#region Fields
@@ -50,6 +63,7 @@ namespace DroneDDW.Parks.Table
 		private float _grabOffset;
 		private int _detent = -1;
 		private int _snapId;
+		private ParkSliderContact _contact;
 
 		#endregion
 
@@ -57,11 +71,17 @@ namespace DroneDDW.Parks.Table
 
 		public bool IsDragging => _isDragging;
 
-		/// <summary>The detent the handle is on or nearest to while dragging.</summary>
+		/// <summary>The detent the handle is on, or was last on while dragging.</summary>
 		public int Detent => _detent;
 		public int DetentCount => ParkLevels.Count;
+		public ParkSliderContact Contact => _contact;
+		public Transform Handle => _handle;
+
+		/// <summary>Where the handle is along the track: 0 at full nature, 1 at full efficiency.</summary>
+		public float HandleBlend => Mathf.InverseLerp(_minLocalX, _maxLocalX, HandleX);
 
 		private float HandleX => _handle.localPosition.x;
+		private float StepMeters => Mathf.Abs(_maxLocalX - _minLocalX) / (ParkLevels.Count - 1);
 
 		private CancellationToken LifetimeToken
 		{
@@ -116,9 +136,15 @@ namespace DroneDDW.Parks.Table
 			}
 
 			float x = Mathf.Clamp(ToLocalX(worldPoint) + _grabOffset, Mathf.Min(_minLocalX, _maxLocalX), Mathf.Max(_minLocalX, _maxLocalX));
+			if (_contact == ParkSliderContact.Grabbed)
+			{
+				// Only a grab: a pushed handle that lagged behind would let the fingers sink into it
+				x = ApplySoftDetents(x);
+			}
+
 			SetHandleX(x);
 			int detent = XToDetent(x);
-			if (detent == _detent)
+			if (detent == _detent || !HasLeftDetent(x))
 			{
 				return;
 			}
@@ -127,7 +153,9 @@ namespace DroneDDW.Parks.Table
 			OnDetentChange?.Invoke(detent);
 		}
 
-		/// <summary>Releases the handle: it settles on the nearest detent and that level is committed.</summary>
+		/// <summary>
+		/// Releases the handle: it settles on its detent (the one shown while dragging), and that level is committed.
+		/// </summary>
 		public void EndDrag()
 		{
 			if (!_isDragging)
@@ -159,6 +187,18 @@ namespace DroneDDW.Parks.Table
 			SetHandleX(DetentToX(_detent));
 		}
 
+		/// <summary>Called by the input every frame with how a hand is touching the handle.</summary>
+		public void SetContact(ParkSliderContact contact)
+		{
+			if (contact == _contact)
+			{
+				return;
+			}
+
+			_contact = contact;
+			OnContactChange?.Invoke(contact);
+		}
+
 		#endregion
 
 		#region Internal
@@ -187,6 +227,31 @@ namespace DroneDDW.Parks.Table
 		private int XToDetent(float x)
 		{
 			return ParkLevels.Clamp(Mathf.RoundToInt(Mathf.InverseLerp(_minLocalX, _maxLocalX, x) * (ParkLevels.Count - 1)));
+		}
+
+		/// <summary>Whether the handle is past halfway to the next detent, plus the hysteresis.</summary>
+		private bool HasLeftDetent(float x)
+		{
+			return _detent < 0 || Mathf.Abs(x - DetentToX(_detent)) >= StepMeters * (0.5f + _detentHysteresis);
+		}
+
+		/// <summary>
+		/// Holds the handle on the nearest detent until the hand is the soft detent distance past it, then lets it
+		/// catch up, reaching the hand again halfway between two detents, so the handle never jumps.
+		/// </summary>
+		private float ApplySoftDetents(float x)
+		{
+			float halfStepMeters = StepMeters * 0.5f;
+			if (_softDetentMeters <= 0f || _softDetentMeters >= halfStepMeters)
+			{
+				return x;
+			}
+
+			float detentX = DetentToX(XToDetent(x));
+			float offsetMeters = x - detentX;
+			float stretchedMeters = Mathf.Max(0f, Mathf.Abs(offsetMeters) - _softDetentMeters)
+				* halfStepMeters / (halfStepMeters - _softDetentMeters);
+			return detentX + Mathf.Sign(offsetMeters) * stretchedMeters;
 		}
 
 		private void SetHandleX(float x)

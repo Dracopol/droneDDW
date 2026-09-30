@@ -7,7 +7,7 @@ namespace DroneDDW.Parks.Experience
 {
 	/// <summary>
 	/// Wires the pieces together through their events:
-	/// slider dragged over a detent, the table model previews that level;
+	/// slider dragged over a detent, the table model previews that level and the ambience leans toward it;
 	/// slider released, the park moves to that level;
 	/// park level changed (from the slider, keys or code), model, slider and ambience follow.
 	/// </summary>
@@ -78,10 +78,21 @@ namespace DroneDDW.Parks.Experience
 			{
 				_preview.ShowLevel(level);
 			}
+
+			if (_ambience != null)
+			{
+				_ambience.PreviewLevel(level);
+			}
 		}
 
 		private void HandleLevelCommit(int level)
 		{
+			if (_ambience != null)
+			{
+				// Released on the park's level, this leans back; a real change fades on from the lean instead.
+				_ambience.EndPreview();
+			}
+
 			_controller.RequestLevel(level);
 		}
 

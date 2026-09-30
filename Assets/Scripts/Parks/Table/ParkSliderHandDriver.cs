@@ -14,7 +14,8 @@ namespace DroneDDW.Parks.Table
 	/// the fingers close on it (its interactable is selected through the finger grab), the handle follows the grab
 	/// instead, keeping its offset. Pushing and grabbing are one drag: it ends, and the level is committed, only once
 	/// nothing has touched or held the handle for a short moment, so a touch that flickers mid-push doesn't commit
-	/// early. Plays a haptic tick on every detent and a firmer one on commit while grabbing (nothing with hands).
+	/// early. Every frame it also tells the slider how a hand touches the handle (for its sounds, lights and label).
+	/// Plays a haptic tick on every detent and a firmer one on commit while grabbing (nothing with hands).
 	/// Compiled only when the XR Interaction Toolkit package is installed.
 	/// </summary>
 	[DisallowMultipleComponent]
@@ -95,6 +96,7 @@ namespace DroneDDW.Parks.Table
 		{
 			_slider.OnDetentChange -= HandleDetentChange;
 			_slider.OnLevelCommit -= HandleLevelCommit;
+			_slider.SetContact(ParkSliderContact.None);
 			if (_mode == HoldMode.None)
 			{
 				return;
@@ -111,10 +113,12 @@ namespace DroneDDW.Parks.Table
 
 		private void Update()
 		{
+			// The contact is reported before dragging: the slider's soft detents only apply to a grab
 			IXRSelectInteractor interactor = _interactable.isSelected ? _interactable.firstInteractorSelecting : null;
 			if (interactor != null)
 			{
 				Vector3 attachPoint = GetAttachPoint(interactor);
+				_slider.SetContact(ParkSliderContact.Grabbed);
 				Hold(HoldMode.Grab, attachPoint, attachPoint, interactor);
 				return;
 			}
@@ -123,10 +127,12 @@ namespace DroneDDW.Parks.Table
 			if (_isPushEnabled && TryGetPushTarget(out Vector3 targetPoint))
 			{
 				// A push has no grab point: anchoring at the handle moves it exactly to where the hands leave room
+				_slider.SetContact(ParkSliderContact.Pushed);
 				Hold(HoldMode.Push, _handleMesh.transform.position, targetPoint, null);
 				return;
 			}
 
+			_slider.SetContact(_interactable.isHovered ? ParkSliderContact.InReach : ParkSliderContact.None);
 			if (_mode != HoldMode.None && Time.time - _lastHoldTime >= _releaseDelaySeconds)
 			{
 				_mode = HoldMode.None;

@@ -7,6 +7,7 @@
         "DroneDDW.FingerGrab.Editor",
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.CoreUtils",
+        "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Mathematics"
     ],

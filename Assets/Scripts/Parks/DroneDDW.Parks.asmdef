@@ -5,6 +5,7 @@
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.CoreUtils",
         "Unity.XR.Hands",
+        "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Mathematics",
         "UniTask"
