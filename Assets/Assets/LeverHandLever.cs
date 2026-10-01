@@ -21,30 +21,40 @@ public class LeverHandLever : MonoBehaviour
     [Tooltip("Tick this if moving the lever left gives nature instead of efficiency.")]
     [SerializeField] private bool invertDirection = false;
 
-    [Header("Snapping when released")]
-    [SerializeField] private bool snapOnRelease = true;
+    [Header("Grid snapping")]
+    [Tooltip("Size of one grid step as % of the full range. 10 = 11 positions (0,10,...,100).")]
     [SerializeField, Range(1f, 50f)] private float snapStepPercent = 10f;
-    [SerializeField] private float snapSpeed = 10f;
+    [Tooltip("Hand must pass this far beyond a step boundary (0-0.5 of a step) before it switches. Prevents flickering.")]
+    [SerializeField, Range(0f, 0.4f)] private float hysteresis = 0.15f;
+    [Tooltip("If on, the lever jumps instantly between grid positions. If off, it glides to them.")]
+    [SerializeField] private bool instantSnap = false;
+    [SerializeField] private float glideSpeed = 25f;
 
     [Header("Events")]
-    public UnityEvent<float> onValueChanged;
+    public UnityEvent<float> onValueChanged;    
     public UnityEvent<float> onReleased;
+    public UnityEvent<int> onStepChanged;       
 
     public float Value01 { get; private set; } = 0.5f;
     public int NaturePercent => Mathf.RoundToInt(Value01 * 100f);
     public int EfficiencyPercent => 100 - NaturePercent;
+    public int StepIndex => stepIndex;
+    public int StepCount => stepCount;
 
     private Quaternion restRotation;
     private Vector3 restPosition;
     private float grabOffset;
-    private float currentAngle;
-    private float lastSentValue = -1f;
+    private float displayAngle;
+    private int stepIndex;
+    private int stepCount;
+    private float stepAngle;
+    private int lastSentStep = -1;
 
     private XRHandSubsystem subsystem;
     private static readonly List<XRHandSubsystem> subsystems = new List<XRHandSubsystem>();
     private Transform origin;
     private bool leftPinching, rightPinching;
-    private int gripHand = -1;   
+    private int gripHand = -1;
     private Vector3 gripPoint;
     private Vector3 knobBaseScale;
     private float nextWarn;
@@ -60,7 +70,32 @@ public class LeverHandLever : MonoBehaviour
         if (knob == null) knob = transform;
         knobBaseScale = knob.localScale;
 
-        Debug.Log("[LEVER] LeverHandLever is running. Knob = " + knob.name);
+        RebuildGrid();
+        stepIndex = stepCount / 2;       
+        displayAngle = AngleOfStep(stepIndex);
+
+        Debug.Log($"[LEVER] LeverHandLever is running. Knob = {knob.name}, {stepCount + 1} grid positions");
+    }
+
+    private void OnValidate() => RebuildGrid();
+
+    private void RebuildGrid()
+    {
+        stepCount = Mathf.Max(1, Mathf.RoundToInt(100f / snapStepPercent));
+        stepAngle = (2f * maxAngle) / stepCount;
+    }
+
+    private float AngleOfStep(int i) => -maxAngle + i * stepAngle;
+
+    private int AngleToStep(float rawAngle)
+    {
+        rawAngle = Mathf.Clamp(rawAngle, -maxAngle, maxAngle);
+
+        float distFromCurrent = Mathf.Abs(rawAngle - AngleOfStep(stepIndex));
+        if (distFromCurrent < stepAngle * (0.5f + hysteresis))
+            return stepIndex;
+
+        return Mathf.Clamp(Mathf.RoundToInt((rawAngle + maxAngle) / stepAngle), 0, stepCount);
     }
 
     private void FindSubsystem()
@@ -112,10 +147,7 @@ public class LeverHandLever : MonoBehaviour
         {
             if (lp && !prevL) LogPinch("Left", lpt);
             if (rp && !prevR) LogPinch("Right", rpt);
-        }
 
-        if (gripHand == -1)
-        {
             if (lp && Vector3.Distance(lpt, knob.position) < grabRadius) BeginGrab(0, lpt);
             else if (rp && Vector3.Distance(rpt, knob.position) < grabRadius) BeginGrab(1, rpt);
         }
@@ -137,7 +169,7 @@ public class LeverHandLever : MonoBehaviour
     {
         gripHand = hand;
         gripPoint = point;
-        grabOffset = HandAngle() - currentAngle;
+        grabOffset = HandAngle() - AngleOfStep(stepIndex);
         knob.localScale = knobBaseScale * 1.15f;
         Debug.Log("[LEVER] GRABBED with " + (hand == 0 ? "left" : "right") + " hand");
     }
@@ -147,8 +179,9 @@ public class LeverHandLever : MonoBehaviour
         gripHand = -1;
         knob.localScale = knobBaseScale;
         onReleased?.Invoke(Value01);
-        Debug.Log($"[LEVER] Released: {EfficiencyPercent}% efficiency, {NaturePercent}% nature");
+        Debug.Log($"[LEVER] Released at step {stepIndex}/{stepCount}: {EfficiencyPercent}% efficiency, {NaturePercent}% nature");
     }
+
     private float HandAngle()
     {
         Vector3 local = transform.parent != null
@@ -160,51 +193,39 @@ public class LeverHandLever : MonoBehaviour
 
         return dir.sqrMagnitude > 0.0001f
             ? Vector3.SignedAngle(Vector3.up, dir, AxisVector)
-            : currentAngle;
+            : AngleOfStep(stepIndex);
     }
 
     private void LateUpdate()
     {
         UpdateHands();
 
-        float angle;
-        bool holding = gripHand != -1;
+        if (gripHand != -1)
+            stepIndex = AngleToStep(HandAngle() - grabOffset);
 
-        if (holding)
+        float targetAngle = AngleOfStep(stepIndex);
+        if (instantSnap)
         {
-            angle = HandAngle() - grabOffset;
+            displayAngle = targetAngle;
         }
         else
         {
-            Quaternion delta = Quaternion.Inverse(restRotation) * transform.localRotation;
-            Vector3 poleDir = Vector3.ProjectOnPlane(delta * Vector3.up, AxisVector);
-            angle = poleDir.sqrMagnitude > 0.0001f
-                ? Vector3.SignedAngle(Vector3.up, poleDir, AxisVector)
-                : currentAngle;
+            displayAngle = Mathf.Lerp(displayAngle, targetAngle, 1f - Mathf.Exp(-glideSpeed * Time.deltaTime));
+            if (Mathf.Abs(displayAngle - targetAngle) < 0.05f) displayAngle = targetAngle;
         }
 
-        angle = Mathf.Clamp(angle, -maxAngle, maxAngle);
-
-        if (!holding && snapOnRelease)
-        {
-            float stepAngle = (snapStepPercent / 100f) * (2f * maxAngle);
-            float target = Mathf.Round((angle + maxAngle) / stepAngle) * stepAngle - maxAngle;
-            angle = Mathf.Lerp(angle, Mathf.Clamp(target, -maxAngle, maxAngle), Time.deltaTime * snapSpeed);
-        }
-
-        currentAngle = angle;
-
-        transform.localRotation = restRotation * Quaternion.AngleAxis(angle, AxisVector);
+        transform.localRotation = restRotation * Quaternion.AngleAxis(displayAngle, AxisVector);
         transform.localPosition = restPosition;
 
-        float value = Mathf.InverseLerp(-maxAngle, maxAngle, angle);
+        float value = (float)stepIndex / stepCount;
         if (invertDirection) value = 1f - value;
         Value01 = value;
 
-        if (Mathf.Abs(value - lastSentValue) > 0.001f)
+        if (stepIndex != lastSentStep)
         {
-            lastSentValue = value;
+            lastSentStep = stepIndex;
             onValueChanged?.Invoke(value);
+            onStepChanged?.Invoke(stepIndex);
         }
     }
 
@@ -212,7 +233,8 @@ public class LeverHandLever : MonoBehaviour
     {
         gripHand = -1;
         knob.localScale = knobBaseScale;
-        currentAngle = 0f;
-        transform.localRotation = restRotation;
+        stepIndex = stepCount / 2;
+        displayAngle = AngleOfStep(stepIndex);
+        transform.localRotation = restRotation * Quaternion.AngleAxis(displayAngle, AxisVector);
     }
 }
