@@ -1,10 +1,10 @@
 ﻿<Solution>
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.Hands.csproj" />
+  <Project Path="DroneDDW.Parks.csproj" />
   <Project Path="Unity.XR.Hands.Samples.VisualizerSample.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="DroneDDW.Parks.Editor.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
-  <Project Path="DroneDDW.Parks.csproj" />
   <Project Path="DroneDDW.FingerGrab.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.Hands.Editor.csproj" />
   <Project Path="DroneDDW.FingerGrab.Editor.csproj" />

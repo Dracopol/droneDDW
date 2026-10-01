@@ -28,9 +28,13 @@ namespace DroneDDW.Parks.Editor.Building
 		private const string MaquettePaletteFileName = "Park_Palette_Maquette.png";
 		private const string MaterialPrefix = "Park_Mat_";
 		private const string PropsKey = "Props";
+		private const string VegetationKey = "Vegetation";
+		private const string VegetationShader = "DroneDDW/Parks/Vegetation Wind";
+		private const string WaterShader = "DroneDDW/Parks/Water";
 		private const string GlowSuffix = "_Glow";
 		private const string EmissionKeyword = "_EMISSION";
 		private const string EmissionColorProperty = "_EmissionColor";
+		private const string MotionVectorsPass = "MotionVectors";
 		private const string WaterKey = "Water";
 		private const string MaquetteKey = "Maquette";
 		private const string UrpLitShader = "Universal Render Pipeline/Lit";
@@ -39,7 +43,10 @@ namespace DroneDDW.Parks.Editor.Building
 		private const float WaterSmoothness = 0.85f;
 		private const float MaquetteSmoothness = 0.05f;
 
-		private static readonly string[] MaterialKeys = { "Terrain", "Paths", "Vegetation", PropsKey, "Structures", WaterKey, MaquetteKey };
+		private static readonly string[] MaterialKeys =
+		{
+			"Terrain", "Paths", VegetationKey, PropsKey, "Structures", WaterKey, MaquetteKey,
+		};
 
 		#endregion
 
@@ -96,15 +103,16 @@ namespace DroneDDW.Parks.Editor.Building
 			{
 				string materialName = MaterialPrefix + key;
 				string path = $"{folder}/{materialName}.mat";
+				Shader keyShader = ShaderFor(key, shader);
 				Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
 				if (material == null)
 				{
-					material = new Material(shader) { name = materialName };
+					material = new Material(keyShader) { name = materialName };
 					AssetDatabase.CreateAsset(material, path);
 				}
-				else if (material.shader != shader)
+				else if (material.shader != keyShader)
 				{
-					material.shader = shader;
+					material.shader = keyShader;
 				}
 
 				bool isMaquette = key == MaquetteKey;
@@ -113,6 +121,10 @@ namespace DroneDDW.Parks.Editor.Building
 				material.color = Color.white;
 				SetFloatIfPresent(material, "_Smoothness", smoothness);
 				SetFloatIfPresent(material, "_Glossiness", smoothness);
+
+				// As URP's Lit inspector sets it (the park's own shaders use that inspector too): no material here
+				// writes motion vectors of its own
+				material.SetShaderPassEnabled(MotionVectorsPass, false);
 				EditorUtility.SetDirty(material);
 				materials.Add(materialName, material);
 			}
@@ -151,10 +163,11 @@ namespace DroneDDW.Parks.Editor.Building
 				glow.CopyPropertiesFromMaterial(props);
 			}
 
-			// Not flagged "emissive is black", so URP's material checks keep the keyword on with a black colour.
+			// URP 17 keeps emission on only while a material is flagged as emissive for GI; realtime keeps it on with a
+			// black colour (baked would be treated as "emissive is black"), and costs nothing without realtime GI.
 			glow.EnableKeyword(EmissionKeyword);
 			glow.SetColor(EmissionColorProperty, Color.black);
-			glow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+			glow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
 			EditorUtility.SetDirty(glow);
 			AssetDatabase.SaveAssets();
 			return glow;
@@ -220,6 +233,29 @@ namespace DroneDDW.Parks.Editor.Building
 		#endregion
 
 		#region Private
+
+		/// <summary>
+		/// The park's own shader for plants (they sway in the wind) and water (waves and ripples), both URP Lit with one
+		/// hook; URP Lit for everything else, and as the fallback if either is missing or doesn't compile.
+		/// </summary>
+		private static Shader ShaderFor(string key, Shader lit)
+		{
+			string name = key == VegetationKey ? VegetationShader : key == WaterKey ? WaterShader : null;
+			if (name == null)
+			{
+				return lit;
+			}
+
+			Shader custom = Shader.Find(name);
+			if (custom == null || ShaderUtil.ShaderHasError(custom))
+			{
+				Debug.LogWarning($"[Parks] Shader {name} is missing or doesn't compile, "
+					+ $"so {MaterialPrefix}{key} stays on URP Lit.");
+				return lit;
+			}
+
+			return custom;
+		}
 
 		private static void SetFloatIfPresent(Material material, string property, float value)
 		{

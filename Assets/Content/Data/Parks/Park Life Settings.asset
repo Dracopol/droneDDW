@@ -1,0 +1,381 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cce209cea4cb4c645968586687a59783, type: 3}
+  m_Name: Park Life Settings
+  m_EditorClassIdentifier: DroneDDW.Parks::DroneDDW.Parks.Life.ParkLifeSettings
+  _levelBlendSeconds: 3.5
+  _isSpatialized: 1
+  _volume: 1
+  _oneShotVoices: 12
+  _drones:
+    _sound:
+      _clips:
+      - {fileID: 8300000, guid: 2c324540a64c0d44b9829f5ea7e470b1, type: 3}
+      _volume: 0.55
+      _pitchSpread: 0.04
+      _nearMeters: 3
+      _farMeters: 90
+    _cruiseSpeedMetersPerSecond: 5
+    _climbSpeedMetersPerSecond: 2
+    _cruiseHeightMeters: 11
+    _padWaitSeconds: {x: 6, y: 16}
+    _deliveryHoverSeconds: {x: 2, y: 5}
+    _spinSeconds: 1.5
+    _bobMeters: 0.06
+    _bobHertz: 0.7
+    _tiltDegrees: 12
+    _pitchRange: {x: 0.92, y: 1.1}
+    _hoverVolume: 0.7
+  _robots:
+    _motor:
+      _clips:
+      - {fileID: 8300000, guid: c7c20a16cb385b040be3856a53aea6e2, type: 3}
+      _volume: 0.4
+      _pitchSpread: 0.03
+      _nearMeters: 1
+      _farMeters: 25
+    _beeps:
+      _clips:
+      - {fileID: 8300000, guid: 3dfc190112a030440973b87b8f6d5636, type: 3}
+      - {fileID: 8300000, guid: 50f3c93b459c9de4b83f8802fb8fed9c, type: 3}
+      _volume: 0.5
+      _pitchSpread: 0.02
+      _nearMeters: 1
+      _farMeters: 20
+    _speedMetersPerSecond: 1.1
+    _stopSeconds: {x: 3, y: 8}
+    _turnDegreesPerSecond: 120
+    _mower:
+      _clips:
+      - {fileID: 8300000, guid: 168b536f3ab8067409d9910acd91580d, type: 3}
+      _volume: 0.45
+      _pitchSpread: 0.03
+      _nearMeters: 1.5
+      _farMeters: 35
+    _mowerSpeedMetersPerSecond: 0.45
+    _stripeSpacingMeters: 0.7
+    _mowerTurnDegreesPerSecond: 60
+  _machines:
+    _chargerHum:
+      _clips:
+      - {fileID: 8300000, guid: 6d230ea33660eb84d899055bcae09912, type: 3}
+      _volume: 0.35
+      _pitchSpread: 0.02
+      _nearMeters: 0.8
+      _farMeters: 10
+    _dockHum:
+      _clips:
+      - {fileID: 8300000, guid: 6d230ea33660eb84d899055bcae09912, type: 3}
+      _volume: 0.25
+      _pitchSpread: 0.02
+      _nearMeters: 0.8
+      _farMeters: 8
+    _hubVents:
+      _clips:
+      - {fileID: 8300000, guid: 29f738eb3e630f34dbb39fd9ee924805, type: 3}
+      _volume: 0.5
+      _pitchSpread: 0.02
+      _nearMeters: 4
+      _farMeters: 45
+    _sensorPing:
+      _clips:
+      - {fileID: 8300000, guid: b6aeacd0c697e7b479d8fce2b64ae020, type: 3}
+      _volume: 0.35
+      _pitchSpread: 0.04
+      _nearMeters: 2
+      _farMeters: 35
+    _totemChime:
+      _clips:
+      - {fileID: 8300000, guid: 76c33724d06d93a4089edf0a85759303, type: 3}
+      _volume: 0.4
+      _pitchSpread: 0
+      _nearMeters: 1
+      _farMeters: 20
+    _binCompactor:
+      _clips:
+      - {fileID: 8300000, guid: 1d1024a511dbf2d40b7b7ef68f107e92, type: 3}
+      _volume: 0.45
+      _pitchSpread: 0.05
+      _nearMeters: 1
+      _farMeters: 25
+    _beaconTick:
+      _clips:
+      - {fileID: 8300000, guid: fdd4d4da09b80784c9c2ffde325d366d, type: 3}
+      _volume: 0.2
+      _pitchSpread: 0.02
+      _nearMeters: 1
+      _farMeters: 15
+    _sensorPingSeconds: {x: 12, y: 35}
+    _totemChimeSeconds: {x: 25, y: 70}
+    _binSeconds: {x: 40, y: 120}
+    _beaconBlinkSeconds: 1.2
+    _beaconGlow: 2.5
+    _sensorGlow: {x: 0.3, y: 1.2}
+    _chargerGlow: {x: 0.4, y: 1}
+    _screenGlow: 0.9
+    _padGlow: 0.35
+    _padPulseGlow: 2.5
+    _lampGlow: 0.4
+    _binGlow: 0.7
+  _sprinklers:
+    _sound:
+      _clips:
+      - {fileID: 8300000, guid: 784bdb244b943f847b60f7a4fea63824, type: 3}
+      _volume: 0.35
+      _pitchSpread: 0.04
+      _nearMeters: 1
+      _farMeters: 25
+    _rangeMeters: 32
+    _maxGroups: 2
+    _intervalSeconds: {x: 40, y: 80}
+    _durationSeconds: {x: 8, y: 12}
+    _dropletsPerSecondPerPipe: 40
+    _sprayHeightMeters: 1.1
+  _birds:
+    _songs:
+      _clips:
+      - {fileID: 8300000, guid: 2f577b21ca4375049972f4755a12224e, type: 3}
+      - {fileID: 8300000, guid: 0328a453283f4fc46abf1fb0ca9c8ab1, type: 3}
+      - {fileID: 8300000, guid: f3a71b0158f67a045bb22799dcdc4207, type: 3}
+      - {fileID: 8300000, guid: 828114192c1aa964880efa45ad35a521, type: 3}
+      _volume: 0.6
+      _pitchSpread: 0.06
+      _nearMeters: 2
+      _farMeters: 45
+    _songsPerMinute:
+      _fullNature: 14
+      _natureSkewed: 10
+      _balanced: 5
+      _efficiencySkewed: 1.5
+      _fullEfficiency: 0
+    _songDistanceMeters: {x: 8, y: 40}
+    _flightsPerMinute:
+      _fullNature: 4
+      _natureSkewed: 3
+      _balanced: 1.5
+      _efficiencySkewed: 0.5
+      _fullEfficiency: 0
+    _groundBirds:
+      _fullNature: 3
+      _natureSkewed: 2
+      _balanced: 1
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _wingFlutter:
+      _clips:
+      - {fileID: 8300000, guid: 2d823dc373d9b7545b1710074ab672eb, type: 3}
+      _volume: 0.35
+      _pitchSpread: 0.08
+      _nearMeters: 1
+      _farMeters: 15
+    _flocksPerMinute:
+      _fullNature: 1.2
+      _natureSkewed: 0.8
+      _balanced: 0.4
+      _efficiencySkewed: 0.15
+      _fullEfficiency: 0
+    _flockSize: {x: 5, y: 9}
+    _buzzard:
+      _fullNature: 1
+      _natureSkewed: 0.6
+      _balanced: 0
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _buzzardCry:
+      _clips:
+      - {fileID: 8300000, guid: 9088bce23e62cf840bc55f96b6308818, type: 3}
+      _volume: 0.5
+      _pitchSpread: 0.04
+      _nearMeters: 10
+      _farMeters: 120
+    _woodpecker:
+      _clips:
+      - {fileID: 8300000, guid: 1d3c339ab2ca6b14082ca8828dc704a0, type: 3}
+      _volume: 0.5
+      _pitchSpread: 0.04
+      _nearMeters: 3
+      _farMeters: 50
+    _drumsPerMinute:
+      _fullNature: 2
+      _natureSkewed: 1.2
+      _balanced: 0.3
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _pigeons:
+      _fullNature: 0
+      _natureSkewed: 0
+      _balanced: 1
+      _efficiencySkewed: 2
+      _fullEfficiency: 2
+    _pigeonCoo:
+      _clips:
+      - {fileID: 8300000, guid: 442b7173e264fc040b9a34fed5fd5f41, type: 3}
+      _volume: 0.45
+      _pitchSpread: 0.05
+      _nearMeters: 2
+      _farMeters: 30
+    _coosPerMinute:
+      _fullNature: 0
+      _natureSkewed: 0.2
+      _balanced: 1
+      _efficiencySkewed: 1.5
+      _fullEfficiency: 1
+    _crowCaw:
+      _clips:
+      - {fileID: 8300000, guid: 7a4ccf4e549eeea4481d6bd6258a900f, type: 3}
+      _volume: 0.45
+      _pitchSpread: 0.05
+      _nearMeters: 5
+      _farMeters: 60
+    _cawsPerMinute:
+      _fullNature: 0.2
+      _natureSkewed: 0.3
+      _balanced: 0.8
+      _efficiencySkewed: 0.8
+      _fullEfficiency: 0.4
+  _pond:
+    _ducks:
+      _fullNature: 3
+      _natureSkewed: 3
+      _balanced: 1
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _quacks:
+      _clips:
+      - {fileID: 8300000, guid: 5539dfda90d555d4a85f6617926dbe1e, type: 3}
+      - {fileID: 8300000, guid: f0ff7db35cf6e59419365d037010c08e, type: 3}
+      _volume: 0.55
+      _pitchSpread: 0.06
+      _nearMeters: 2
+      _farMeters: 45
+    _quacksPerMinutePerDuck: 2
+    _splash:
+      _clips:
+      - {fileID: 8300000, guid: bfcd4f8330a318548b078cf7fb264345, type: 3}
+      _volume: 0.5
+      _pitchSpread: 0.08
+      _nearMeters: 2
+      _farMeters: 40
+    _duckSpeedMetersPerSecond: 0.35
+    _frogCroaks:
+      _clips:
+      - {fileID: 8300000, guid: f005e45600aab364c8e4e8ad1a252a21, type: 3}
+      - {fileID: 8300000, guid: ede2c2a64f2861c459c640df4ba932dc, type: 3}
+      _volume: 0.5
+      _pitchSpread: 0.08
+      _nearMeters: 1.5
+      _farMeters: 35
+    _croaksPerMinute:
+      _fullNature: 10
+      _natureSkewed: 6
+      _balanced: 0
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _fishPlop:
+      _clips:
+      - {fileID: 8300000, guid: f33f56b84ec5cee4b9a3642fe86416ea, type: 3}
+      _volume: 0.45
+      _pitchSpread: 0.1
+      _nearMeters: 1.5
+      _farMeters: 30
+    _plopsPerMinute:
+      _fullNature: 3
+      _natureSkewed: 2
+      _balanced: 1
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _lapping:
+      _clips:
+      - {fileID: 8300000, guid: b4384febf9380ff40b69fa77d9e63e72, type: 3}
+      _volume: 0.35
+      _pitchSpread: 0.04
+      _nearMeters: 2
+      _farMeters: 25
+    _fountain:
+      _clips:
+      - {fileID: 8300000, guid: 0a0418fc311ec2844afd7fde02de50d8, type: 3}
+      _volume: 0.55
+      _pitchSpread: 0.02
+      _nearMeters: 3
+      _farMeters: 45
+    _trickle:
+      _clips:
+      - {fileID: 8300000, guid: 75a1cc88a30b94b41a95b468e451f609, type: 3}
+      _volume: 0.3
+      _pitchSpread: 0.03
+      _nearMeters: 2
+      _farMeters: 20
+  _insects:
+    _rangeMeters: 12
+    _bees:
+      _fullNature: 6
+      _natureSkewed: 5
+      _balanced: 3
+      _efficiencySkewed: 1
+      _fullEfficiency: 0
+    _beeBuzz:
+      _clips:
+      - {fileID: 8300000, guid: 00e9c3a2121d2a348ba546e07b40b182, type: 3}
+      _volume: 0.4
+      _pitchSpread: 0.08
+      _nearMeters: 0.3
+      _farMeters: 6
+    _butterflies:
+      _fullNature: 6
+      _natureSkewed: 4
+      _balanced: 2
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _dragonflies:
+      _fullNature: 3
+      _natureSkewed: 2
+      _balanced: 0
+      _efficiencySkewed: 0
+      _fullEfficiency: 0
+    _dragonflyWings:
+      _clips:
+      - {fileID: 8300000, guid: fd6cf56dd41c5bc48b04f285abb7cd46, type: 3}
+      _volume: 0.25
+      _pitchSpread: 0.1
+      _nearMeters: 0.3
+      _farMeters: 5
+    _crickets:
+      _fullNature: 1
+      _natureSkewed: 0.8
+      _balanced: 0.4
+      _efficiencySkewed: 0.2
+      _fullEfficiency: 0
+    _cricketSong:
+      _clips:
+      - {fileID: 8300000, guid: 9012c4ca6ec1c8245a52d48312c20293, type: 3}
+      _volume: 0.35
+      _pitchSpread: 0.04
+      _nearMeters: 1
+      _farMeters: 18
+  _wind:
+    _directionDegrees: 60
+    _breeze: 0.25
+    _gustStrength: 0.9
+    _gustIntervalSeconds: {x: 6, y: 14}
+    _gustSpeedMetersPerSecond: 7
+    _gustWidthMeters: 18
+    _bendMeters: 0.35
+    _swayHertz: 0.35
+    _flutter: 0.4
+    _rustle:
+      _clips:
+      - {fileID: 8300000, guid: 2da1fc84d7cba204faee74db300466a6, type: 3}
+      _volume: 0.4
+      _pitchSpread: 0.05
+      _nearMeters: 2
+      _farMeters: 25
+    _rustleTrees: 4

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DroneDDW.FingerGrab.Editor;
 using DroneDDW.Parks.Audio;
+using DroneDDW.Parks.Editor.Life;
 using DroneDDW.Parks.Experience;
 using DroneDDW.Parks.Levels;
 using DroneDDW.Parks.Table;
@@ -207,6 +208,7 @@ namespace DroneDDW.Parks.Editor.Building
 			}
 
 			List<ParkLevelElement> elements = new List<ParkLevelElement>();
+			List<ParkLifePiece> lifePieces = new List<ParkLifePiece>();
 			int missing = 0;
 			foreach (ParkLayoutEntry entry in layout.Entries)
 			{
@@ -222,6 +224,13 @@ namespace DroneDDW.Parks.Editor.Building
 					continue;
 				}
 
+				Transform body = instance.transform;
+				if (ParkLifeBuilder.IsMover(entry.Prefab))
+				{
+					// The level element goes on a wrapper, the mesh on a child the park's life moves around
+					instance = WrapMover(entry, body, parent);
+				}
+
 				Transform instanceTransform = instance.transform;
 				instanceTransform.localPosition = entry.Position;
 				instanceTransform.localRotation = Quaternion.Euler(0f, entry.RotationY, 0f);
@@ -230,12 +239,14 @@ namespace DroneDDW.Parks.Editor.Building
 				{
 					// Ground and seat platform never change: static, so they batch.
 					GameObjectUtility.SetStaticEditorFlags(instance, FixedObjectFlags);
+					lifePieces.Add(new ParkLifePiece(entry, instance, body, null));
 					continue;
 				}
 
 				ParkLevelElement element = instance.AddComponent<ParkLevelElement>();
 				element.Configure(entry.LevelMask, (ParkTransitionStyle)entry.Style, entry.LiftDepth);
 				elements.Add(element);
+				lifePieces.Add(new ParkLifePiece(entry, instance, body, element));
 			}
 
 			GameObject experience = new GameObject("Park_Experience");
@@ -249,6 +260,7 @@ namespace DroneDDW.Parks.Editor.Building
 			coordinator.Configure(controller, table.Slider, table.Preview, ambience);
 			ParkLevelDebugKeys debugKeys = experience.AddComponent<ParkLevelDebugKeys>();
 			debugKeys.Configure(controller);
+			ParkLifeBuilder.Build(lifePieces, controller, head);
 
 			string scenesFolder = ParkAssetUtility.EnsureFolder(ParkAssetUtility.ScenesFolder);
 			string scenePath = $"{scenesFolder}/{SceneName}.unity";
@@ -260,6 +272,19 @@ namespace DroneDDW.Parks.Editor.Building
 
 			Debug.Log($"[Parks] Built {scenePath}: {elements.Count} changing objects over {ParkLevels.Count} levels, starting at level {StartLevel} ({ParkLevels.GetName(StartLevel)}).");
 			return scenePath;
+		}
+
+		/// <summary>An empty named after the entry, holding the mesh as "Body" at its origin.</summary>
+		private static GameObject WrapMover(ParkLayoutEntry entry, Transform body, Transform parent)
+		{
+			GameObject wrapper = new GameObject(entry.Name);
+			wrapper.transform.SetParent(parent, false);
+			body.SetParent(wrapper.transform, false);
+			body.name = "Body";
+			body.localPosition = Vector3.zero;
+			body.localRotation = Quaternion.identity;
+			body.localScale = Vector3.one;
+			return wrapper;
 		}
 
 		private static GameObject CreateInstance(ParkLayoutEntry entry, Dictionary<string, GameObject> pieces,
