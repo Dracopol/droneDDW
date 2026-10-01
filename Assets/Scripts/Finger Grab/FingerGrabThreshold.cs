@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace DroneDDW.FingerGrab
 {
-	// How close one fingertip has to come to the thumb tip to grab, and how far apart they have to go again to let go
+	// How close the two joints of a grab pair (thumb tip and fingertip, or thumb knuckle and finger knuckle) have to come
+	// to grab, and how far apart they have to go again to let go
 	[Serializable]
 	internal struct FingerGrabThreshold
 	{
@@ -11,11 +12,11 @@ namespace DroneDDW.FingerGrab
 
 		[SerializeField] private bool _isEnabled;
 
-		[Tooltip("Thumb tip to fingertip distance that starts a grab")]
+		[Tooltip("Distance between the pair's two joints that starts a grab")]
 		[Min(0f)]
 		[SerializeField] private float _grabDistanceMeters;
 
-		[Tooltip("Thumb tip to fingertip distance that ends the grab. "
+		[Tooltip("Distance between the pair's two joints that ends the grab. "
 			+ "Larger than the grab distance, so the grab doesn't flicker at the edge.")]
 		[Min(0f)]
 		[SerializeField] private float _releaseDistanceMeters;

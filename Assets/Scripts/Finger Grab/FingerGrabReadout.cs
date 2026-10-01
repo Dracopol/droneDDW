@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace DroneDDW.FingerGrab
 {
-	// A label by the hand for tuning the finger grab on the headset: each finger's distance to the thumb against its
-	// grab and release distances, and which finger holds the grab. Shown or hidden by the Finger Grab Settings toggle.
+	// A label by the hand for tuning the finger grab on the headset: for each finger, its tip's distance to the thumb tip
+	// and its knuckle's distance to the thumb's knuckle, against their grab and release distances, and which pair holds
+	// the grab. Shown or hidden by the Finger Grab Settings toggle.
 	internal class FingerGrabReadout : MonoBehaviour
 	{
 		#region Serialized fields
@@ -28,12 +29,13 @@ namespace DroneDDW.FingerGrab
 		private const string ClosedColor = "#F2C94C";
 		private const string OffColor = "#808080";
 
-		private static readonly GrabFinger[] Fingers =
+		// One line per finger: its tip pair, then its knuckle pair
+		private static readonly (string Finger, GrabPair Tip, GrabPair Knuckle)[] Rows =
 		{
-			GrabFinger.Index,
-			GrabFinger.Middle,
-			GrabFinger.Ring,
-			GrabFinger.Little,
+			("Index", GrabPair.IndexTip, GrabPair.IndexKnuckle),
+			("Middle", GrabPair.MiddleTip, GrabPair.MiddleKnuckle),
+			("Ring", GrabPair.RingTip, GrabPair.RingKnuckle),
+			("Little", GrabPair.LittleTip, GrabPair.LittleKnuckle),
 		};
 
 		private readonly StringBuilder _text = new();
@@ -71,9 +73,13 @@ namespace DroneDDW.FingerGrab
 				return;
 			}
 
-			foreach (GrabFinger finger in Fingers)
+			_text.Append(", cm: tip | knuckle");
+			foreach ((string finger, GrabPair tip, GrabPair knuckle) in Rows)
 			{
-				AppendFinger(finger);
+				_text.Append('\n').Append(finger).Append(' ');
+				AppendPair(tip);
+				_text.Append(" | ");
+				AppendPair(knuckle);
 			}
 
 			_label.SetText(_text);
@@ -95,26 +101,24 @@ namespace DroneDDW.FingerGrab
 
 		#region Private
 
-		// "Middle 2.4 cm (3.0 / 4.5)": distance, then grab / release distance. Green while holding the grab,
-		// yellow while closed, grey when the finger is switched off.
-		private void AppendFinger(GrabFinger finger)
+		// "2.4 (3.0/4.5)": distance, then grab / release distance. Green with "holding" while the pair holds the grab,
+		// yellow while it is closed, grey "off" when it is switched off.
+		private void AppendPair(GrabPair pair)
 		{
-			FingerGrabThreshold threshold = _reader.GetThreshold(finger);
-			_text.Append('\n');
-
+			FingerGrabThreshold threshold = _reader.GetThreshold(pair);
 			if (!threshold.IsEnabled)
 			{
-				_text.Append("<color=").Append(OffColor).Append('>').Append(finger).Append(" off</color>");
+				_text.Append("<color=").Append(OffColor).Append(">off</color>");
 				return;
 			}
 
-			bool isHolding = _reader.HoldingFinger == finger;
+			bool isHolding = _reader.HoldingPair == pair;
 			string color = null;
 			if (isHolding)
 			{
 				color = HoldingColor;
 			}
-			else if (_reader.IsFingerClosed(finger))
+			else if (_reader.IsPairClosed(pair))
 			{
 				color = ClosedColor;
 			}
@@ -124,9 +128,8 @@ namespace DroneDDW.FingerGrab
 				_text.Append("<color=").Append(color).Append('>');
 			}
 
-			_text.AppendFormat("{0} {1:0.0} cm ({2:0.0} / {3:0.0})",
-				finger,
-				_reader.GetDistanceMeters(finger) * CentimetersPerMeter,
+			_text.AppendFormat("{0:0.0} ({1:0.0}/{2:0.0})",
+				_reader.GetDistanceMeters(pair) * CentimetersPerMeter,
 				threshold.GrabDistanceMeters * CentimetersPerMeter,
 				threshold.ReleaseDistanceMeters * CentimetersPerMeter);
 

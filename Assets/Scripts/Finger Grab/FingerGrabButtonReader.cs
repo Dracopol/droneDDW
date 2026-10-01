@@ -7,16 +7,17 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 
 namespace DroneDDW.FingerGrab
 {
-	// A grab button for one hand: the thumb tip against any fingertip, each finger with its own distances, so the
-	// fingertips don't have to touch. Goes in an interactor's select input as an Object Reference, like the rig's
-	// pinch reader. Reads the joints from the hand subsystem, independent of which hand visuals are active.
+	// A grab button for one hand: the thumb tip against any fingertip, or the thumb's knuckle against any finger's
+	// middle knuckle, each pair with its own distances, so nothing has to touch. Goes in an interactor's select input as
+	// an Object Reference, like the rig's pinch reader. Reads the joints from the hand subsystem, independent of which
+	// hand visuals are active.
 	[DefaultExecutionOrder(XRInteractionUpdateOrder.k_XRInputDeviceButtonReader)]
 	internal class FingerGrabButtonReader : MonoBehaviour, IXRInputButtonReader
 	{
 		#region Events
 
-		// The finger holding the grab changed, null when the grab ends
-		internal event Action<GrabFinger?> OnHoldingFingerChange;
+		// The pair holding the grab changed, null when the grab ends
+		internal event Action<GrabPair?> OnHoldingPairChange;
 
 		#endregion
 
@@ -34,22 +35,40 @@ namespace DroneDDW.FingerGrab
 
 		#region Fields
 
-		private const int FingerCount = 4;
+		private const int PairCount = 8;
 		private const float MinimumDistanceMeters = 0.001f;
 
-		private static readonly XRHandJointID[] FingertipJoints =
+		// Each pair's two joints, in GrabPair order: the thumb tip with the fingertips, then the thumb's middle joint
+		// (where it bends) with the fingers' middle knuckles
+		private static readonly XRHandJointID[] ThumbJoints =
+		{
+			XRHandJointID.ThumbTip,
+			XRHandJointID.ThumbTip,
+			XRHandJointID.ThumbTip,
+			XRHandJointID.ThumbTip,
+			XRHandJointID.ThumbDistal,
+			XRHandJointID.ThumbDistal,
+			XRHandJointID.ThumbDistal,
+			XRHandJointID.ThumbDistal,
+		};
+
+		private static readonly XRHandJointID[] FingerJoints =
 		{
 			XRHandJointID.IndexTip,
 			XRHandJointID.MiddleTip,
 			XRHandJointID.RingTip,
 			XRHandJointID.LittleTip,
+			XRHandJointID.IndexIntermediate,
+			XRHandJointID.MiddleIntermediate,
+			XRHandJointID.RingIntermediate,
+			XRHandJointID.LittleIntermediate,
 		};
 
 		private static readonly List<XRHandSubsystem> Subsystems = new();
 
-		private readonly float[] _distancesMeters = new float[FingerCount];
-		private readonly Vector3[] _fingertipPositions = new Vector3[FingerCount];
-		private readonly bool[] _isFingerClosed = new bool[FingerCount];
+		private readonly float[] _distancesMeters = new float[PairCount];
+		private readonly Vector3[] _grabCenters = new Vector3[PairCount];
+		private readonly bool[] _isPairClosed = new bool[PairCount];
 		private XRHandSubsystem _subsystem;
 		private FingerGrabSettings _fallbackSettings;
 		private Vector3 _thumbTipPosition;
@@ -58,8 +77,8 @@ namespace DroneDDW.FingerGrab
 		private bool _wasPerformedThisFrame;
 		private bool _wasCompletedThisFrame;
 		private float _value;
-		private GrabFinger? _holdingFinger;
-		private GrabFinger _closestFinger;
+		private GrabPair? _holdingPair;
+		private GrabPair _closestPair;
 
 		#endregion
 
@@ -89,11 +108,11 @@ namespace DroneDDW.FingerGrab
 			}
 		}
 
-		// The finger holding the current grab, null while not grabbing
-		internal GrabFinger? HoldingFinger => _holdingFinger;
+		// The pair holding the current grab, null while not grabbing
+		internal GrabPair? HoldingPair => _holdingPair;
 
-		// The finger nearest to grabbing, measured against its own grab distance
-		internal GrabFinger ClosestFinger => _closestFinger;
+		// The pair nearest to grabbing, measured against its own grab distance
+		internal GrabPair ClosestPair => _closestPair;
 
 		// World space, updated every frame while the hand is tracked
 		internal Vector3 ThumbTipPosition => _thumbTipPosition;
@@ -118,10 +137,10 @@ namespace DroneDDW.FingerGrab
 		{
 			bool wasPerformed = _isPerformed;
 			_isTracked = TryReadJoints();
-			UpdateFingers();
-			UpdateHoldingFinger();
+			UpdatePairs();
+			UpdateHoldingPair();
 
-			_isPerformed = _holdingFinger.HasValue;
+			_isPerformed = _holdingPair.HasValue;
 			_wasPerformedThisFrame = !wasPerformed && _isPerformed;
 			_wasCompletedThisFrame = wasPerformed && !_isPerformed;
 		}
@@ -145,7 +164,7 @@ namespace DroneDDW.FingerGrab
 			return _wasCompletedThisFrame;
 		}
 
-		// 1 while a finger is closed, otherwise how near the nearest finger is to grabbing (0 at its release distance)
+		// 1 while a pair is closed, otherwise how near the nearest pair is to grabbing (0 at its release distance)
 		public float ReadValue()
 		{
 			return _value;
@@ -161,25 +180,25 @@ namespace DroneDDW.FingerGrab
 
 		#region Internal
 
-		internal FingerGrabThreshold GetThreshold(GrabFinger finger)
+		internal FingerGrabThreshold GetThreshold(GrabPair pair)
 		{
-			return Settings.GetThreshold(finger);
+			return Settings.GetThreshold(pair);
 		}
 
-		internal float GetDistanceMeters(GrabFinger finger)
+		internal float GetDistanceMeters(GrabPair pair)
 		{
-			return _distancesMeters[(int)finger];
+			return _distancesMeters[(int)pair];
 		}
 
-		internal bool IsFingerClosed(GrabFinger finger)
+		internal bool IsPairClosed(GrabPair pair)
 		{
-			return _isFingerClosed[(int)finger];
+			return _isPairClosed[(int)pair];
 		}
 
-		// World space, updated every frame while the hand is tracked
-		internal Vector3 GetFingertipPosition(GrabFinger finger)
+		// Midway between the pair's two joints, world space, updated every frame while the hand is tracked
+		internal Vector3 GetGrabCenter(GrabPair pair)
 		{
-			return _fingertipPositions[(int)finger];
+			return _grabCenters[(int)pair];
 		}
 
 		internal void Configure(Handedness handedness, Transform trackingSpace, FingerGrabSettingsHolder settingsHolder)
@@ -207,86 +226,87 @@ namespace DroneDDW.FingerGrab
 			}
 
 			_thumbTipPosition = ToWorld(thumbTip.position);
-			for (int index = 0; index < FingerCount; index++)
+			for (int index = 0; index < PairCount; index++)
 			{
 				// Distances between the raw joint poses are real-world meters, whatever the rig's scale
-				if (hand.GetJoint(FingertipJoints[index]).TryGetPose(out Pose fingertip))
+				if (hand.GetJoint(ThumbJoints[index]).TryGetPose(out Pose thumbJoint)
+					&& hand.GetJoint(FingerJoints[index]).TryGetPose(out Pose fingerJoint))
 				{
-					_distancesMeters[index] = Vector3.Distance(thumbTip.position, fingertip.position);
-					_fingertipPositions[index] = ToWorld(fingertip.position);
+					_distancesMeters[index] = Vector3.Distance(thumbJoint.position, fingerJoint.position);
+					_grabCenters[index] = ToWorld((thumbJoint.position + fingerJoint.position) * 0.5f);
 				}
 				else
 				{
 					_distancesMeters[index] = float.PositiveInfinity;
-					_fingertipPositions[index] = _thumbTipPosition;
+					_grabCenters[index] = _thumbTipPosition;
 				}
 			}
 
 			return true;
 		}
 
-		// A finger closes below its grab distance and opens again only above its release distance
-		private void UpdateFingers()
+		// A pair closes below its grab distance and opens again only above its release distance
+		private void UpdatePairs()
 		{
 			float closestRatio = float.PositiveInfinity;
 			float closeness = 0f;
 
-			for (int index = 0; index < FingerCount; index++)
+			for (int index = 0; index < PairCount; index++)
 			{
-				FingerGrabThreshold threshold = GetThreshold((GrabFinger)index);
+				FingerGrabThreshold threshold = GetThreshold((GrabPair)index);
 				if (!_isTracked || !threshold.IsEnabled)
 				{
-					_isFingerClosed[index] = false;
+					_isPairClosed[index] = false;
 					continue;
 				}
 
 				float distanceMeters = _distancesMeters[index];
-				float limitMeters = _isFingerClosed[index] ? threshold.ReleaseDistanceMeters : threshold.GrabDistanceMeters;
-				_isFingerClosed[index] = distanceMeters <= limitMeters;
+				float limitMeters = _isPairClosed[index] ? threshold.ReleaseDistanceMeters : threshold.GrabDistanceMeters;
+				_isPairClosed[index] = distanceMeters <= limitMeters;
 
 				float ratio = GetGrabRatio(index);
 				if (ratio < closestRatio)
 				{
 					closestRatio = ratio;
-					_closestFinger = (GrabFinger)index;
+					_closestPair = (GrabPair)index;
 				}
 
-				float fingerCloseness = _isFingerClosed[index]
+				float pairCloseness = _isPairClosed[index]
 					? 1f
 					: Mathf.InverseLerp(threshold.ReleaseDistanceMeters, threshold.GrabDistanceMeters, distanceMeters);
-				closeness = Mathf.Max(closeness, fingerCloseness);
+				closeness = Mathf.Max(closeness, pairCloseness);
 			}
 
 			_value = closeness;
 		}
 
-		// The holding finger keeps the grab while it stays closed. If it opens while another finger is still closed,
-		// that finger takes over, so the grab doesn't drop.
-		private void UpdateHoldingFinger()
+		// The holding pair keeps the grab while it stays closed. If it opens while another pair is still closed, that
+		// pair takes over, so the grab doesn't drop (a pinch can close into a fist, or a fist open into a pinch).
+		private void UpdateHoldingPair()
 		{
-			GrabFinger? holdingFinger = _holdingFinger;
-			if (!holdingFinger.HasValue || !_isFingerClosed[(int)holdingFinger.Value])
+			GrabPair? holdingPair = _holdingPair;
+			if (!holdingPair.HasValue || !_isPairClosed[(int)holdingPair.Value])
 			{
-				holdingFinger = FindMostClosedFinger();
+				holdingPair = FindMostClosedPair();
 			}
 
-			if (holdingFinger == _holdingFinger)
+			if (holdingPair == _holdingPair)
 			{
 				return;
 			}
 
-			_holdingFinger = holdingFinger;
-			OnHoldingFingerChange?.Invoke(holdingFinger);
+			_holdingPair = holdingPair;
+			OnHoldingPairChange?.Invoke(holdingPair);
 		}
 
-		private GrabFinger? FindMostClosedFinger()
+		private GrabPair? FindMostClosedPair()
 		{
-			GrabFinger? mostClosedFinger = null;
+			GrabPair? mostClosedPair = null;
 			float smallestRatio = float.PositiveInfinity;
 
-			for (int index = 0; index < FingerCount; index++)
+			for (int index = 0; index < PairCount; index++)
 			{
-				if (!_isFingerClosed[index])
+				if (!_isPairClosed[index])
 				{
 					continue;
 				}
@@ -295,17 +315,17 @@ namespace DroneDDW.FingerGrab
 				if (ratio < smallestRatio)
 				{
 					smallestRatio = ratio;
-					mostClosedFinger = (GrabFinger)index;
+					mostClosedPair = (GrabPair)index;
 				}
 			}
 
-			return mostClosedFinger;
+			return mostClosedPair;
 		}
 
-		// Below 1 while the finger is inside its grab distance
+		// Below 1 while the pair is inside its grab distance
 		private float GetGrabRatio(int index)
 		{
-			float grabDistanceMeters = Mathf.Max(GetThreshold((GrabFinger)index).GrabDistanceMeters, MinimumDistanceMeters);
+			float grabDistanceMeters = Mathf.Max(GetThreshold((GrabPair)index).GrabDistanceMeters, MinimumDistanceMeters);
 			return _distancesMeters[index] / grabDistanceMeters;
 		}
 

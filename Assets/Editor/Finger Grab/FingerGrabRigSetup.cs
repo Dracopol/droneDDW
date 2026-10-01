@@ -12,11 +12,11 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
 
 namespace DroneDDW.FingerGrab.Editor
 {
-	// Switches a scene's hand rig to the finger grab: thumb plus any finger selects, grabs attach and near hovering
-	// happen between the fingers, and there are no far (ray) grabs. Both hands read their thresholds from one
-	// "Finger Grab Settings" object, which points at the shared settings asset. The rig's pinch reader stays in the
-	// scene unused, so going back is one select input reference per hand. Public because the park builder, in another
-	// assembly, applies it to the rig it copies.
+	// Switches a scene's hand rig to the finger grab: the thumb with any finger selects (tip to tip, or knuckle to
+	// knuckle), grabs attach and near hovering happen between the fingers, and there are no far (ray) grabs. Both
+	// hands read their thresholds from one "Finger Grab Settings" object, which points at the shared settings asset.
+	// The rig's pinch reader stays in the scene unused, so going back is one select input reference per hand. Public
+	// because the park builder, in another assembly, applies it to the rig it copies.
 	public static class FingerGrabRigSetup
 	{
 		#region Fields
