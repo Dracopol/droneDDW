@@ -1,0 +1,57 @@
+using System;
+using System.Collections.Generic;
+using DroneDDW.Core;
+using UnityEngine;
+
+namespace DroneDDW.Tutorial
+{
+	[Serializable]
+	internal class TutorialStep
+	{
+		#region Serialized fields
+
+		[Tooltip("Label in the step list and in logs")]
+		[SerializeField] private string _name;
+
+		[Tooltip("Appear when the step starts, and stay for the rest of the tutorial")]
+		[SerializeField] private Revealable[] _revealedObjects;
+
+		[Tooltip("Disappear when the step starts, e.g. props from an earlier step")]
+		[SerializeField] private Revealable[] _hiddenObjects;
+		[SerializeField] private AudioClip _promptClip;
+
+		[Tooltip("Leave empty for steps that only talk, like the intro and outro")]
+		[SerializeField] private StepCondition _condition;
+
+		[Tooltip("One per result the condition can return")]
+		[SerializeField] private StepOutcome[] _outcomes;
+		[SerializeField] private AudioClip _stuckClip;
+		[SerializeField] private HintTarget _hintTarget;
+
+		#endregion
+
+		#region Properties
+
+		internal string Name => _name;
+		internal IReadOnlyList<Revealable> RevealedObjects => _revealedObjects;
+		internal IReadOnlyList<Revealable> HiddenObjects => _hiddenObjects;
+		internal AudioClip PromptClip => _promptClip;
+		internal StepCondition Condition => _condition;
+		internal bool HasCondition => _condition != null;
+		internal IReadOnlyList<StepOutcome> Outcomes => _outcomes;
+		internal AudioClip StuckClip => _stuckClip;
+		internal HintTarget HintTarget => _hintTarget;
+
+		#endregion
+
+		#region Internal
+
+		// Null for steps without outcomes, like the intro and outro
+		internal StepOutcome GetOutcome(int outcomeIndex)
+		{
+			return _outcomes.Length == 0 ? null : _outcomes[outcomeIndex];
+		}
+
+		#endregion
+	}
+}

@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf1f2d4d068a0374d98cc2a8180724c9, type: 3}
+  m_Name: Droney Captions
+  m_EditorClassIdentifier: Assembly-CSharp::DroneDDW.Droney.DroneyCaptionTable
+  _entries:
+  - _clip: {fileID: 8300000, guid: 812e1b440f3ebbd45aa26216f73f389c, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: ec0941f3411b988499192b01ad71e0ca, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 56eecba7a0037d645a99cbdb8b59e29f, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: dcf1fa10d05d7f64a93797c58634e469, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: b575edaf90d66f546b7ffe90aa38dc8b, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: cc2845cffc756c746aaf33526c1dd689, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 9c3271cfaa83a374fa38b647e202bb8e, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: f1a7b3ae246e7204b93abd63bf387c30, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 5ece1e097e3c24745b7d65b706baed17, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 2989f0cbd64066543a0deb29e13729fa, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 526e29583b63ffb42a1dc9e29207dc1f, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 5c057ebc1c6916040b141afef5e159c9, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 85b82a6639f8ee24ba0f62c98d8c2150, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: ad9dd7b2022e8a44a975ca94824683b8, type: 3}
+    _text: 
+  - _clip: {fileID: 8300000, guid: 1c9713d3f140f2b4d90d1cb170ea4d37, type: 3}
+    _text: 

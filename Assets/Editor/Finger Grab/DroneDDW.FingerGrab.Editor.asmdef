@@ -1,0 +1,23 @@
+{
+    "name": "DroneDDW.FingerGrab.Editor",
+    "rootNamespace": "DroneDDW.FingerGrab.Editor",
+    "references": [
+        "DroneDDW.FingerGrab",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
