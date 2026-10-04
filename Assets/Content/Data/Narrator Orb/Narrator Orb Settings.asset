@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1da9c575e70930a4799e25b4367696b0, type: 3}
+  m_Name: Narrator Orb Settings
+  m_EditorClassIdentifier: DroneDDW.NarratorOrb::DroneDDW.NarratorOrb.Settings.NarratorOrbSettings
+  _voice:
+    _hopSeconds: 0.01
+    _gateDecibels: 30
+    _vowelRangeDecibels: 24
+    _hissLowDecibels: -16
+    _hissHighDecibels: -4
+    _onsetOnThreshold: 0.1
+    _onsetOffThreshold: 0.04
+    _onsetMinGapSeconds: 0.11
+    _leadSeconds: 0.04
+  _reaction:
+    _swell: 0.06
+    _glow: 1.4
+    _ripples: 1
+    _wisps: 1
+    _sparkle: 1.2
+    _smoothing: 1
+  _timeConstants:
+    _levelAttackSeconds: 0.03
+    _levelReleaseSeconds: 0.22
+    _hissAttackSeconds: 0.015
+    _hissReleaseSeconds: 0.14
+    _wispAttackSeconds:
+    - 0.05
+    - 0.07
+    - 0.09
+    - 0.06
+    _wispReleaseSeconds:
+    - 0.3
+    - 0.38
+    - 0.46
+    - 0.34
+    _pulseDecayPerSecond: 7
+  _ripple:
+    _speedRadiansPerSecond: 2.4
+    _widthRadians: 0.32
+    _lifeSeconds: 1.1
+    _spreadFromFront: 0.55
+  _morph:
+    _step: 2
+    _smoothTimeSeconds: 0.45
+    _wispsLead: 1
+    _steps:
+    - -1
+    - -0.5
+    - 0
+    - 0.5
+    - 1
+  _look:
+    _shapeA: 1
+    _colorA:
+      serializedVersion: 2
+      rgba: 4286829637
+    _shapeB: 3
+    _colorB:
+      serializedVersion: 2
+      rgba: 4282621951
+  _rendering:
+    _isWebBlendOn: 1
+    _intensity: 3
+    _particleSizeMultiplier: 4
+    _minParticlePixels: 0
+    _alphaMode: 0
+    _alphaGain: 1

@@ -1,0 +1,17 @@
+{
+    "name": "DroneDDW.NarratorOrb",
+    "rootNamespace": "DroneDDW.NarratorOrb",
+    "references": [
+        "UniTask",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

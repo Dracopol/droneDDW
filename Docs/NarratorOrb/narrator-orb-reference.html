@@ -1,0 +1,1282 @@
+<!--
+Narrator Orb: source of the web preview, used as the reference for the Unity port.
+Where things are:
+  - Voice analysis: the plain <script> before the module (VOICE_DEFAULTS, VoiceBands, mapBands, OnsetDetector, analyzeClip, LiveVoice).
+  - Settings: the S object at the top of the module. These defaults are the tuned values.
+  - Particle layout: seeded RNG and the four layers (shell, haze, dust, wisps).
+  - Shaders: SHAPE_GLSL, RIPPLE_GLSL, PARTICLE_VS / PARTICLE_FS, RING_VS / RING_FS, GLOW_VS / GLOW_FS.
+  - Colours: NEUTRAL palette, derivePalette, applyPalette (bodyW and leadW).
+  - Per-frame behaviour: frame() near the end (smoothing, breathing, rotations, wisps, halos, morph, facing).
+The sample clip embedded in the live page was removed here; it is narrator_sample.wav.
+-->
+<title>Narrator Orb</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Martian+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-height orb stage beside a control rail; stacks under the stage on narrow screens.
+   Single dark look on purpose: the orb is additive light and only reads on a dark ground. */
+:root {
+	--void: #04061a;
+	--rail: #080c27;
+	--raised: #111743;
+	--line: #222a62;
+	--ink: #e3e7ff;
+	--dim: #8e98d0;
+	--ice: #a3b4ff;
+	--ice-strong: #5b74ff;
+	--pink: #ffb0ea;
+	--pole-a: #45d483;
+	--pole-b: #ff9f43;
+	--font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+	--font-mono: "Martian Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+	margin: 0;
+	box-sizing: border-box;
+	padding-inline: 16px;
+	padding-block: 16px;
+	background: var(--void);
+	color: var(--ink);
+	font: 14px/1.45 var(--font-display);
+}
+*, *::before, *::after { box-sizing: inherit; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 16px; height: 100%; }
+
+/* stage */
+.stage {
+	position: relative; min-width: 0; min-height: 0; overflow: hidden;
+	border: 1px solid var(--line); border-radius: 18px;
+	background: var(--void);
+}
+#orb { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#orb:active { cursor: grabbing; }
+.brand { position: absolute; top: 18px; left: 20px; pointer-events: none; }
+.brand h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; font-variation-settings: "opsz" 48; }
+.brand p { margin: 2px 0 0; font: 11px/1.4 var(--font-mono); color: var(--dim); text-transform: lowercase; }
+.caption {
+	position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%);
+	width: max-content; max-width: min(88%, 620px); text-align: center; text-wrap: balance;
+	padding: 8px 16px; border-radius: 10px;
+	background: color-mix(in srgb, var(--void) 78%, transparent);
+	font-size: 17px; line-height: 1.35; color: var(--ink);
+	opacity: 0; transition: opacity 180ms ease;
+	pointer-events: none;
+}
+.caption.on { opacity: 1; }
+@media (hover: none) { .hint .desk { display: none; } }
+.hint { position: absolute; left: 20px; bottom: 16px; margin: 0; font: 10.5px/1.4 var(--font-mono); color: var(--dim); text-transform: lowercase; pointer-events: none; }
+
+/* rail */
+.rail {
+	min-width: 0; overflow-y: auto; overscroll-behavior: contain;
+	border: 1px solid var(--line); border-radius: 18px; background: var(--rail);
+	display: flex; flex-direction: column;
+}
+.block { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); }
+.block:first-child { border-top: 0; }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.block h2 { margin: 0; font-size: 15px; font-weight: 620; letter-spacing: 0.005em; }
+.note { margin: 0; font: 10.5px/1.5 var(--font-mono); color: var(--dim); text-transform: lowercase; }
+
+/* transport */
+.transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+	border: 1px solid var(--line); background: var(--raised); border-radius: 9px;
+	padding: 7px 14px; cursor: pointer; font-weight: 560;
+}
+.btn:hover { border-color: var(--ice); }
+.btn.primary { background: var(--ice-strong); border-color: var(--ice-strong); color: #fff; min-width: 86px; }
+.btn.primary:hover { background: #6b82ff; }
+.clock { font: 12px/1 var(--font-mono); color: var(--dim); font-variant-numeric: tabular-nums; }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); margin-left: auto; cursor: pointer; }
+.check input { accent-color: var(--ice-strong); }
+
+.timeline { position: relative; height: 74px; border-radius: 9px; background: var(--raised); overflow: hidden; cursor: pointer; }
+.timeline canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.playhead { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; background: var(--ink); opacity: 0.85; transform: translateX(-4px); pointer-events: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; font: 10.5px/1.4 var(--font-mono); color: var(--dim); }
+.legend i { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend .k-level { background: var(--ice); }
+.legend .k-hiss { background: var(--pink); }
+.legend .k-syl { background: var(--ink); width: 2px; height: 9px; }
+
+.drop {
+	display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; text-align: center;
+	padding: 10px 12px; border: 1px dashed var(--line); border-radius: 9px; color: var(--dim); font-size: 13px; cursor: pointer;
+}
+.drop:hover, .drop.over { border-color: var(--ice); color: var(--ink); }
+.drop u { text-decoration-color: var(--ice); text-underline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.status { margin: 0; font-size: 12.5px; color: var(--pink); }
+
+/* meters */
+.meters { display: grid; grid-template-columns: 74px minmax(0, 1fr) 40px; gap: 7px 10px; align-items: center; }
+.meters span { font: 10.5px/1 var(--font-mono); color: var(--dim); text-transform: lowercase; }
+.meters i { height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; display: block; }
+.meters b { display: block; height: 100%; width: 100%; transform-origin: left center; transform: scaleX(0); border-radius: 3px; }
+.meters .m-level { background: var(--ice); }
+.meters .m-vowel { background: var(--ice-strong); }
+.meters .m-hiss { background: var(--pink); }
+.meters .m-pulse { background: var(--ink); }
+.meters output { font: 11px/1 var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* steps */
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.step {
+	display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0;
+	padding: 8px 8px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--raised);
+	cursor: pointer; text-align: left;
+}
+.step:hover { border-color: var(--ice); }
+.step[aria-checked="true"] { border-color: var(--ice); background: color-mix(in srgb, var(--ice-strong) 22%, var(--raised)); }
+.step .sw { width: 100%; height: 5px; border-radius: 3px; }
+.step b { font: 500 10px/1 var(--font-mono); color: var(--dim); }
+.step span { font-size: 12.5px; line-height: 1.15; font-weight: 560; overflow-wrap: anywhere; }
+.api { display: flex; justify-content: space-between; gap: 10px; margin: 0; font: 11px/1.4 var(--font-mono); color: var(--dim); }
+.api code { font: inherit; color: var(--ice); }
+
+.poles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pole { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 6px 6px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--raised); }
+.pole label { font: 500 11px/1 var(--font-mono); }
+.pole-a label { color: var(--pole-a); }
+.pole-b label { color: var(--pole-b); }
+.pole select { flex: 1; min-width: 0; background: transparent; border: 0; padding: 4px 2px; cursor: pointer; }
+.pole select option { background: var(--raised); }
+.pole input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+
+/* sliders */
+.sliders { display: flex; flex-direction: column; gap: 11px; }
+.slider { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: baseline; }
+.slider label { font-size: 13px; }
+.slider output { font: 10.5px/1 var(--font-mono); color: var(--dim); font-variant-numeric: tabular-nums; }
+.slider input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--ice-strong); }
+.group-label { margin: 6px 0 -3px; font: 500 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+
+/* export */
+.json {
+	margin: 0; max-height: 210px; overflow: auto; padding: 10px 12px;
+	border-radius: 9px; background: var(--raised); border: 1px solid var(--line);
+	font: 10.5px/1.55 var(--font-mono); color: var(--ink); white-space: pre;
+}
+.export-row { display: flex; align-items: center; gap: 10px; }
+.export-row .status { color: var(--ice); }
+
+@media (max-width: 860px) {
+	html, body { height: auto; }
+	.app { grid-template-columns: minmax(0, 1fr); height: auto; }
+	.stage { height: min(66vh, 560px); min-height: 340px; }
+	.rail { overflow: visible; }
+	.caption { font-size: 15px; bottom: 44px; }
+}
+@media (max-width: 420px) {
+	.step { padding: 7px 6px 8px; }
+	.step span { font-size: 11.5px; }
+	.poles { grid-template-columns: 1fr; }
+}
+</style>
+<script type="importmap">
+{
+	"imports": {
+		"three": "https://unpkg.com/three@0.184.0/build/three.module.js",
+		"three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js"
+	},
+	"integrity": {
+		"https://unpkg.com/three@0.184.0/build/three.module.js": "sha384-8FCZ1eVO6it4+pbec2aDtnTrwjWXZLJRC+MAGCIPDgsYnUrl/E0A2YlF8ioMKI/J",
+		"https://unpkg.com/three@0.184.0/build/three.core.js": "sha384-dw2ooPewaEIrAgl6oFDBmmBWCE9oW9LxRGcfwZ0hLvEprzo202wXl7vCYHRlSnOT",
+		"https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-4rziNxOBZKQ69i+w+f89KJ55TCYquwchVbByQwmaOeIOXdOU2PLDn3kOfXHwIJC9"
+	}
+}
+</script>
+
+<div class="app">
+	<section class="stage" aria-label="Orb preview">
+		<canvas id="orb" aria-label="Animated particle orb that reacts to the narrator's voice"></canvas>
+		<header class="brand">
+			<h1>Narrator Orb</h1>
+			<p>voice preview · reference for the unity port</p>
+		</header>
+		<p class="caption" id="caption" aria-live="polite"></p>
+		<p class="hint">drag to orbit, it turns to face you · scroll to zoom<span class="desk"> · hover to poke · space plays · keys 0 to 4 change steps</span></p>
+	</section>
+
+	<aside class="rail" aria-label="Controls">
+		<section class="block" aria-labelledby="h-voice">
+			<div class="block-head">
+				<h2 id="h-voice">Voice</h2>
+				<p class="note" id="source">sample narration · 28 s</p>
+			</div>
+			<div class="transport">
+				<button class="btn primary" id="play" type="button">Play</button>
+				<span class="clock" id="clock">00:00.0 / 00:28.0</span>
+				<label class="check" for="loop"><input type="checkbox" id="loop"> Loop</label>
+			</div>
+			<div class="timeline" id="timeline" role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0" aria-valuemax="28" aria-valuenow="0">
+				<canvas id="timelineCanvas"></canvas>
+				<div class="playhead" id="playhead"></div>
+			</div>
+			<div class="legend">
+				<span><i class="k-level"></i>loudness</span>
+				<span><i class="k-hiss"></i>hiss</span>
+				<span><i class="k-syl"></i>syllable</span>
+				<span id="syllableCount"></span>
+			</div>
+			<div class="meters" aria-label="Live voice features">
+				<span>loudness</span><i><b id="mLevel" class="m-level"></b></i><output id="vLevel">0.00</output>
+				<span>vowels</span><i><b id="mVowel" class="m-vowel"></b></i><output id="vVowel">0.00</output>
+				<span>hiss</span><i><b id="mHiss" class="m-hiss"></b></i><output id="vHiss">0.00</output>
+				<span>syllable</span><i><b id="mPulse" class="m-pulse"></b></i><output id="vPulse">0</output>
+			</div>
+			<label class="drop" id="drop" for="file">
+				<input class="sr" type="file" id="file" accept="audio/*">
+				<span>Drop your own narration here or <u>choose a file</u></span>
+			</label>
+			<p class="status" id="audioStatus" role="status" hidden></p>
+		</section>
+
+		<section class="block" aria-labelledby="h-steps">
+			<div class="block-head">
+				<h2 id="h-steps">Shape and colour</h2>
+				<p class="note">placeholders for a and b</p>
+			</div>
+			<div class="steps" id="steps" role="radiogroup" aria-labelledby="h-steps"></div>
+			<p class="api"><code id="api">orb.SetStep(2)</code><span id="morphVal">morph 0.00</span></p>
+			<div class="poles">
+				<div class="pole pole-a">
+					<label for="shapeA">A</label>
+					<select id="shapeA" aria-label="Shape A"></select>
+					<input type="color" id="colorA" aria-label="Colour A">
+				</div>
+				<div class="pole pole-b">
+					<label for="shapeB">B</label>
+					<select id="shapeB" aria-label="Shape B"></select>
+					<input type="color" id="colorB" aria-label="Colour B">
+				</div>
+			</div>
+		</section>
+
+		<section class="block" aria-labelledby="h-react">
+			<div class="block-head">
+				<h2 id="h-react">Reaction</h2>
+				<p class="note">what the voice drives</p>
+			</div>
+			<div class="sliders" id="sliders"></div>
+		</section>
+
+		<section class="block" aria-labelledby="h-export">
+			<div class="block-head">
+				<h2 id="h-export">Settings for Unity</h2>
+				<p class="note">paste these back to me</p>
+			</div>
+			<pre class="json" id="json" tabindex="0" aria-label="Current settings as JSON"></pre>
+			<div class="export-row">
+				<button class="btn" id="copy" type="button">Copy settings</button>
+				<p class="status" id="copyStatus" role="status"></p>
+			</div>
+		</section>
+	</aside>
+</div>
+
+<script id="captions" type="application/json">{
+ "lines": [
+  {
+   "start": 0.45,
+   "end": 2.844,
+   "text": "Hi there! I'm your guide for the next few minutes."
+  },
+  {
+   "start": 3.694,
+   "end": 7.03,
+   "text": "First, hold both hands up in front of you, so I can see them."
+  },
+  {
+   "start": 8.08,
+   "end": 11.312,
+   "text": "Perfect. See the stamp on the table? Reach out and grab it."
+  },
+  {
+   "start": 12.362,
+   "end": 15.607,
+   "text": "Nice grip. Now press it down firmly on the blank paper."
+  },
+  {
+   "start": 16.557,
+   "end": 17.834,
+   "text": "Yes! Just like that."
+  },
+  {
+   "start": 18.834,
+   "end": 23.045,
+   "text": "Quick practice: two papers, blue or yellow. Stamp the one you like best."
+  },
+  {
+   "start": 24.095,
+   "end": 27.431,
+   "text": "Great choice. You're ready, so let's step into the real thing."
+  }
+ ]
+}</script>
+<script id="clip" type="text/plain">(removed, see narrator_sample.wav)</script>
+<script>
+// Voice analysis for the narrator orb. Pure JS, no Web Audio dependency, so the
+// exact same steps can be ported to C# (clip pre-analysis, plus a live fallback).
+//
+// Per 10 ms hop it measures four bands (after an 80 Hz high-pass):
+//   full  : everything            -> loudness
+//   low   : 80-300 Hz             -> voicing (only used for the hiss ratio)
+//   mid   : 300-3000 Hz           -> vowels / formants
+//   high  : 4000 Hz and up        -> s, sh, t, f hiss
+// and turns them into 0..1 features: level, vowel, hiss, plus syllable onsets.
+
+const VOICE_DEFAULTS = {
+	hopSeconds: 0.01,
+	gateDb: 30,          // range below the clip's loud parts that still counts as voice
+	vowelRangeDb: 24,    // same idea for the vowel band
+	hissLowDb: -16,      // high/(low+mid) ratio where hiss starts to show
+	hissHighDb: -4,      // ...and where it is full on
+	onsetOn: 0.1,        // fast-minus-slow vowel envelope needed to fire a syllable
+	onsetOff: 0.04,      // re-arm once it drops below this
+	onsetMinGap: 0.11,   // seconds between syllables, at most ~9 per second
+};
+
+function makeBiquad(type, f0, q, sr) {
+	const f = Math.min(f0, sr * 0.45);
+	const w0 = 2 * Math.PI * f / sr, c = Math.cos(w0), al = Math.sin(w0) / (2 * q);
+	let b0, b1, b2;
+	if (type === 'lp') { b0 = (1 - c) / 2; b1 = 1 - c; b2 = (1 - c) / 2; }
+	else { b0 = (1 + c) / 2; b1 = -(1 + c); b2 = (1 + c) / 2; }
+	const a0 = 1 + al, a1 = -2 * c, a2 = 1 - al;
+	const k = { b0: b0 / a0, b1: b1 / a0, b2: b2 / a0, a1: a1 / a0, a2: a2 / a0, z1: 0, z2: 0 };
+	k.step = (x) => {
+		const y = k.b0 * x + k.z1;
+		k.z1 = k.b1 * x - k.a1 * y + k.z2;
+		k.z2 = k.b2 * x - k.a2 * y;
+		return y;
+	};
+	return k;
+}
+
+// Streams samples in, emits one { full, low, mid, high } (dB) per hop.
+class VoiceBands {
+	constructor(sampleRate, hopSeconds = VOICE_DEFAULTS.hopSeconds) {
+		const sr = sampleRate;
+		this.hop = Math.max(1, Math.round(sr * hopSeconds));
+		this.hp80 = makeBiquad('hp', 80, 0.707, sr);
+		this.lp300 = makeBiquad('lp', 300, 0.707, sr);
+		this.hp300 = makeBiquad('hp', 300, 0.707, sr);
+		this.lp3k = makeBiquad('lp', 3000, 0.707, sr);
+		this.hp4k = makeBiquad('hp', 4000, 0.707, sr);
+		this.n = 0; this.sF = 0; this.sL = 0; this.sM = 0; this.sH = 0;
+	}
+	push(samples, onHop) {
+		for (let i = 0; i < samples.length; i++) {
+			const x = this.hp80.step(samples[i]);
+			const l = this.lp300.step(x), m = this.lp3k.step(this.hp300.step(x)), h = this.hp4k.step(x);
+			this.sF += x * x; this.sL += l * l; this.sM += m * m; this.sH += h * h;
+			if (++this.n === this.hop) {
+				const inv = 1 / this.n, db = (v) => 10 * Math.log10(v * inv + 1e-12);
+				onHop({ full: db(this.sF), low: db(this.sL), mid: db(this.sM), high: db(this.sH) });
+				this.n = 0; this.sF = this.sL = this.sM = this.sH = 0;
+			}
+		}
+	}
+}
+
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smooth01 = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+
+// Raw band dB -> 0..1 features, given reference levels (the "loud speech" level).
+function mapBands(b, refFull, refMid, s) {
+	const level = clamp01((b.full - (refFull - s.gateDb)) / s.gateDb);
+	const vowel = level > 0 ? clamp01((b.mid - (refMid - s.vowelRangeDb)) / s.vowelRangeDb) : 0;
+	const lowMid = Math.pow(10, b.low / 10) + Math.pow(10, b.mid / 10);
+	const tilt = b.high - 10 * Math.log10(lowMid + 1e-12);
+	const hiss = level > 0.12 ? smooth01(s.hissLowDb, s.hissHighDb, tilt) : 0;
+	return { level, vowel, hiss };
+}
+
+// Syllable onsets: rising edges of the vowel envelope (fast follower vs slow follower).
+class OnsetDetector {
+	constructor(hopSeconds, s) {
+		const k = (tau) => 1 - Math.exp(-hopSeconds / tau);
+		this.aF = k(0.008); this.rF = k(0.04); this.aS = k(0.09); this.rS = k(0.2);
+		this.fast = 0; this.slow = 0; this.armed = true; this.since = 1e9; this.dt = hopSeconds; this.s = s;
+	}
+	step(vowel, level) {
+		this.fast += (vowel - this.fast) * (vowel > this.fast ? this.aF : this.rF);
+		this.slow += (vowel - this.slow) * (vowel > this.slow ? this.aS : this.rS);
+		this.since += this.dt;
+		const d = this.fast - this.slow;
+		if (!this.armed && d < this.s.onsetOff) this.armed = true;
+		if (this.armed && d > this.s.onsetOn && level > 0.2 && this.since >= this.s.onsetMinGap) {
+			this.armed = false; this.since = 0;
+			return Math.min(1, Math.max(0.3, d / 0.35));
+		}
+		return 0;
+	}
+}
+
+function percentile(arr, p) {
+	const v = arr.slice().sort((a, b) => a - b);
+	return v.length ? v[Math.min(v.length - 1, Math.floor(p * v.length))] : -60;
+}
+
+// Whole-clip analysis (what the Unity version does when a clip starts playing).
+function analyzeClip(samples, sampleRate, settings = {}) {
+	const s = { ...VOICE_DEFAULTS, ...settings };
+	const bands = new VoiceBands(sampleRate, s.hopSeconds), raw = [];
+	bands.push(samples, (b) => raw.push(b));
+	const fulls = raw.map((b) => b.full).filter((d) => d > -70);
+	const mids = raw.map((b) => b.mid).filter((d) => d > -75);
+	const refFull = percentile(fulls, 0.95), refMid = percentile(mids, 0.95);
+	const n = raw.length, level = new Float32Array(n), vowel = new Float32Array(n), hiss = new Float32Array(n);
+	const onsets = [], det = new OnsetDetector(s.hopSeconds, s);
+	for (let i = 0; i < n; i++) {
+		const f = mapBands(raw[i], refFull, refMid, s);
+		level[i] = f.level; vowel[i] = f.vowel; hiss[i] = f.hiss;
+		const o = det.step(f.vowel, f.level);
+		if (o > 0) onsets.push({ t: (i + 1) * s.hopSeconds, s: o });
+	}
+	return { hop: s.hopSeconds, level, vowel, hiss, onsets, refFull, refMid, duration: samples.length / sampleRate };
+}
+
+// Live analysis (mic, or any source that cannot be read ahead). Reference levels
+// follow the loudest recent speech and slowly relax, so it adapts to any input gain.
+class LiveVoice {
+	constructor(sampleRate, settings = {}) {
+		this.s = { ...VOICE_DEFAULTS, ...settings };
+		this.bands = new VoiceBands(sampleRate, this.s.hopSeconds);
+		this.det = new OnsetDetector(this.s.hopSeconds, this.s);
+		this.refFull = -30; this.refMid = -34;
+		this.latest = { level: 0, vowel: 0, hiss: 0 }; this.pendingOnsets = [];
+	}
+	push(samples) {
+		const relax = 2.5 * this.s.hopSeconds; // dB per hop, i.e. 2.5 dB per second
+		this.bands.push(samples, (b) => {
+			this.refFull = Math.max(b.full, Math.max(-45, this.refFull - relax));
+			this.refMid = Math.max(b.mid, Math.max(-50, this.refMid - relax));
+			const f = mapBands(b, this.refFull, this.refMid, this.s);
+			this.latest = f;
+			const o = this.det.step(f.vowel, f.level);
+			if (o > 0) this.pendingOnsets.push(o);
+		});
+	}
+	takeOnsets() { const o = this.pendingOnsets; this.pendingOnsets = []; return o; }
+}
+
+if (typeof module !== 'undefined') module.exports = { VOICE_DEFAULTS, analyzeClip, LiveVoice, VoiceBands, mapBands, OnsetDetector };
+
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ───────────────────────── settings (everything the Unity port should copy) ─────────────────────────
+const S = {
+	voice: { ...VOICE_DEFAULTS, leadSeconds: 0.04 },
+	reaction: { swell: 0.06, glow: 1.4, ripples: 1.0, wisps: 1.0, sparkle: 1.2, smoothing: 1.0 },
+	timeConstants: {                       // seconds; release values get multiplied by reaction.smoothing
+		levelAttack: 0.03, levelRelease: 0.22,
+		hissAttack: 0.015, hissRelease: 0.14,
+		wispAttack: [0.05, 0.07, 0.09, 0.06], wispRelease: [0.3, 0.38, 0.46, 0.34],
+		pulseDecayPerSecond: 7,
+	},
+	ripple: { speed: 2.4, width: 0.32, life: 1.1, spreadFromFront: 0.55 },
+	morph: { step: 2, smoothTime: 0.45, wispsLead: 1, steps: [-1, -0.5, 0, 0.5, 1] },
+	look: { shapeA: 'bloom', colorA: '#45d483', shapeB: 'cube', colorB: '#ff9f43' },
+};
+const SHAPES = ['sphere', 'bloom', 'pebble', 'cube', 'crystal', 'star'];
+const STEP_NAMES = ['A', 'semi A', 'neutral', 'semi B', 'B'];
+
+// ───────────────────────── particle layout (same seeded layout as the original orb) ─────────────────────────
+const R = 0.12, WN = 3200;
+const AXES = [[0.3, 1, 0.2], [1, 0.25, -0.4], [-0.5, 0.4, 1], [0.2, -0.8, 0.7]];
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+const randDir = () => { const u = rnd() * 2 - 1, t = rnd() * Math.PI * 2, s = Math.sqrt(1 - u * u); return [s * Math.cos(t), u, s * Math.sin(t)]; };
+let seed2 = 1013;                                        // separate stream for new per-particle values
+const rnd2 = () => (seed2 = (seed2 * 48271) % 2147483647) / 2147483647;
+
+const COUNT = 22000 + 2600 + 420 + 4 * WN;
+const aPos = new Float32Array(COUNT * 3), aDir = new Float32Array(COUNT * 3), aRad = new Float32Array(COUNT);
+const aRand = new Float32Array(COUNT * 4), aLayer = new Float32Array(COUNT), aSeed = new Float32Array(COUNT * 3);
+let pi = 0;
+function addParticle(d, rad, r4, layer, s3) {
+	aDir.set(d, pi * 3); aRad[pi] = rad; aRand.set(r4, pi * 4); aLayer[pi] = layer; aSeed.set(s3, pi * 3);
+	aPos.set([d[0] * R * rad, d[1] * R * rad, d[2] * R * rad], pi * 3);
+	pi++;
+}
+// layer 0: shell, dense particles on the surface
+for (let i = 0; i < 22000; i++) {
+	const d = randDir(), rad = 1 + gauss() * 0.01, mixR = rnd(), iceR = rnd();
+	addParticle(d, rad, [mixR, iceR, rnd2(), rnd2()], 0, [0, 0, 0]);
+}
+// layer 1: interior haze, layer 2: outer dust
+for (let i = 0; i < 2600; i++) {
+	const d = randDir(), rad = Math.cbrt(rnd()) * 0.95, mixR = rnd();
+	addParticle(d, rad, [mixR, 1, rnd2(), rnd2()], 1, [0, 0, 0]);
+}
+for (let i = 0; i < 420; i++) {
+	const d = randDir(), rad = 1.03 + Math.pow(rnd(), 2.5) * 0.18, mixR = rnd();
+	addParticle(d, rad, [mixR, 1, rnd2(), rnd2()], 2, [0, 0, 0]);
+}
+// layers 3 to 6: the four wisps, particles streaming along great-circle paths
+const wispN = [], wispU = [], wispV = [], wispA0 = new THREE.Vector4(), wispSpan = new THREE.Vector4();
+AXES.forEach((ax, k) => {
+	const n = new THREE.Vector3(...ax).normalize();
+	const u = new THREE.Vector3(0, 1, 0).cross(n); if (u.lengthSq() < 1e-3) u.set(1, 0, 0); u.normalize();
+	const v = n.clone().cross(u);
+	wispN.push(n); wispU.push(u); wispV.push(v);
+	for (let i = 0; i < WN; i++) {
+		const sT = rnd(), sS = gauss(), sR = Math.abs(gauss());
+		addParticle([0, 1, 0], 1, [rnd2(), 1, rnd2(), rnd2()], 3 + k, [sT, sS, sR]);
+	}
+	wispA0.setComponent(k, k * 1.7);
+	wispSpan.setComponent(k, 2.3 + rnd() * 0.6);
+});
+
+// ───────────────────────── shaders ─────────────────────────
+// Shapes are radial functions: radius multiplier for a direction from the centre.
+// In Unity, any mesh can be baked into this same lookup (direction -> radius) for A and B.
+const SHAPE_GLSL = /* glsl */`
+uniform float uMorph;
+uniform float uShapeA;
+uniform float uShapeB;
+const float PHI = 1.61803399;
+const vec3 ICO[12] = vec3[12](
+	vec3(0.0, 1.0, PHI), vec3(0.0, -1.0, PHI), vec3(0.0, 1.0, -PHI), vec3(0.0, -1.0, -PHI),
+	vec3(1.0, PHI, 0.0), vec3(-1.0, PHI, 0.0), vec3(1.0, -PHI, 0.0), vec3(-1.0, -PHI, 0.0),
+	vec3(PHI, 0.0, 1.0), vec3(-PHI, 0.0, 1.0), vec3(PHI, 0.0, -1.0), vec3(-PHI, 0.0, -1.0));
+float shapeRadius(vec3 d, float s) {
+	if (s < 0.5) return 1.0;                                                     // sphere
+	if (s < 1.5) {                                                               // bloom, five petals facing the viewer (+Z)
+		float ph = atan(d.y, d.x + 1e-6);
+		float side = 1.0 - d.z * d.z;
+		float p = 0.5 + 0.5 * cos(5.0 * ph - 7.8539816);
+		return (0.93 + (0.3 * p * p + 0.04 * sin(3.0 * ph + 2.0 * d.z)) * side) * (1.0 - 0.18 * d.z * d.z);
+	}
+	if (s < 2.5) {                                                               // pebble
+		vec3 q = d / vec3(1.2, 0.74, 1.02);
+		return inversesqrt(dot(q, q)) + 0.03 * sin(5.0 * d.x + 3.0 * d.z);
+	}
+	if (s < 3.5) {                                                               // cube
+		vec3 a = pow(abs(d) + 1e-5, vec3(7.0));
+		return 0.84 * pow(a.x + a.y + a.z, -1.0 / 7.0);
+	}
+	if (s < 4.5) {                                                               // crystal
+		vec3 a = pow(abs(vec3(d.x, d.y * 0.86, d.z)) + 1e-5, vec3(1.25));
+		return 1.12 * pow(a.x + a.y + a.z, -0.8);
+	}
+	float m = 0.0;                                                               // star
+	for (int i = 0; i < 12; i++) m = max(m, dot(d, ICO[i]) * 0.5257311);
+	return 0.86 + 0.5 * pow(m, 14.0);
+}
+// -1 = full A, 0 = neutral sphere, +1 = full B
+float shapeMix(vec3 d) {
+	float wA = clamp(-uMorph, 0.0, 1.0), wB = clamp(uMorph, 0.0, 1.0);
+	float r = 1.0;
+	if (wA > 0.0) r += wA * (shapeRadius(d, uShapeA) - 1.0);
+	if (wB > 0.0) r += wB * (shapeRadius(d, uShapeB) - 1.0);
+	return r;
+}`;
+
+const RIPPLE_GLSL = /* glsl */`
+uniform vec4 uRip[6];
+uniform float uRipS[6];
+uniform vec3 uRipShape;
+// Syllable ripples: rings that travel over the surface from a point near the front.
+// .w is the ring strength; .xyz pushes particles along the surface, away from the origin,
+// so they bunch up at the leading edge (bright) and thin out behind it (dark).
+vec4 ripple(vec3 d) {
+	vec4 acc = vec4(0.0);
+	for (int i = 0; i < 6; i++) {
+		float s = uRipS[i];
+		float age = uTime - uRip[i].w;
+		if (s <= 0.0 || age < 0.0 || age > uRipShape.z) continue;
+		vec3 o = uRip[i].xyz;
+		float c = clamp(dot(d, o), -1.0, 1.0);
+		float x = (acos(c) - age * uRipShape.x) / uRipShape.y;
+		float fade = 1.0 - age / uRipShape.z;
+		float k = exp(-x * x) * fade * fade * s;
+		vec3 t = d - o * c;
+		float tl = length(t);
+		if (tl > 1e-4) acc.xyz += t * (k * 0.15 / tl);
+		acc.w += k;
+	}
+	return acc;
+}`;
+
+const PARTICLE_VS = /* glsl */`
+attribute vec3 aDir;
+attribute float aRad;
+attribute vec4 aRand;
+attribute float aLayer;
+attribute vec3 aSeed;
+varying vec3 vColor;
+varying float vAlpha;
+
+uniform float uTime;
+uniform float uR;
+uniform float uScale;
+uniform float uBreathe;
+uniform float uLevel;
+uniform float uHiss;
+uniform float uSparkle;
+uniform float uRipAmp;
+uniform mat3 uRotShell;
+uniform mat3 uRotDust;
+uniform vec3 uNDeep;
+uniform vec3 uNMid;
+uniform vec3 uNIce;
+uniform vec3 uNAccent;
+uniform vec3 uNFaint;
+uniform vec3 uPDeep;
+uniform vec3 uPMid;
+uniform vec3 uPIce;
+uniform vec3 uPAccent;
+uniform vec3 uPFaint;
+uniform float uBodyW;   // shell, haze and glow: how far the body has turned to the pole colour
+uniform float uLeadW;   // wisps and dust reach the pole colour first, so semi steps read as two-tone
+uniform vec3 uWN[4];
+uniform vec3 uWU[4];
+uniform vec3 uWV[4];
+uniform vec4 uWA0;
+uniform vec4 uWSpan;
+uniform vec4 uWPhase;
+uniform vec4 uWLevel;
+uniform vec4 uPoke;
+uniform float uPokeSpeed;
+${SHAPE_GLSL}
+
+${RIPPLE_GLSL}
+
+// Pointer (later: fingertip) push, the original scatter without per-particle springs.
+vec3 pokeOffset(vec3 p) {
+	float amt = uPoke.w;
+	if (amt <= 0.001) return vec3(0.0);
+	vec3 dl = p - uPoke.xyz;
+	float dd = length(dl);
+	if (dd > 0.1 || dd < 1e-6) return vec3(0.0);
+	float f = pow(1.0 - dd / 0.1, 2.0) * 0.07 * amt / dd;
+	float k = 0.6 * f * dd / max(length(p), 1e-6);
+	float sw = 1.6 + uPokeSpeed * 3.0;
+	float n = 0.35 * sin(p.x * 140.0 + uTime * 6.0) * cos(p.z * 140.0 - uTime * 5.0);
+	return vec3(
+		dl.x * f * (1.0 + n) + p.x * k - dl.z * f * sw,
+		dl.y * f * (1.0 + n) + p.y * k + sin(uTime * 4.0 + p.x * 90.0) * f * dd * 0.6,
+		dl.z * f * (1.0 - n) + p.z * k + dl.x * f * sw);
+}
+
+void main() {
+	int layer = int(aLayer + 0.5);
+	// shell and haze follow the body weight, dust and wisps lead
+	float cw = layer <= 1 ? uBodyW : uLeadW;
+	vec3 cDeep = mix(uNDeep, uPDeep, cw), cMid = mix(uNMid, uPMid, cw), cIce = mix(uNIce, uPIce, cw);
+	vec3 cAccent = mix(uNAccent, uPAccent, cw), cFaint = mix(uNFaint, uPFaint, cw);
+	float flash = pow(0.5 + 0.5 * sin(uTime * 29.0 + aRand.z * 60.0), 10.0);
+	vec3 pos;
+	vec3 col;
+	float size;
+	float alpha;
+	float pokeK = 1.0;
+	if (layer == 0) {
+		vec3 d0 = uRotShell * aDir;
+		vec4 rp = ripple(d0);
+		float rip = rp.w;
+		vec3 d = normalize(d0 + rp.xyz * uRipAmp);
+		pos = d * (uR * aRad * shapeMix(d) * uBreathe * (1.0 + uRipAmp * 0.06 * rip));
+		float ice = step(aRand.y, 0.1);
+		col = mix(cDeep, cMid, aRand.x);
+		col = mix(col, mix(col, cIce, 0.7), ice);
+		float ring = clamp(rip * uRipAmp, 0.0, 1.0);
+		col = mix(col, cIce, ring * 0.7) * (1.0 + 0.12 * uLevel + 1.4 * ring + ice * uSparkle * uHiss * flash * 2.0);
+		size = 0.0028 * (1.0 + 0.6 * ring);
+		alpha = 0.6;
+	} else if (layer <= 2) {
+		vec3 d = uRotDust * aDir;
+		float sm = shapeMix(d);
+		if (layer == 1) {
+			pos = d * (uR * aRad * sm * uBreathe);
+			col = mix(cDeep, cMid, aRand.x) * (1.0 + 0.35 * uLevel);
+		} else {
+			pos = d * (uR * aRad * sm * (1.0 + 0.05 * uLevel + 0.03 * uSparkle * uHiss * flash));
+			col = mix(cMid, cIce, aRand.x * 0.8) * (1.0 + uSparkle * uHiss * flash * 4.0);
+		}
+		size = 0.0026;
+		alpha = 0.75;
+	} else {
+		int k = layer - 3;
+		float kk = float(k);
+		float t = fract(aSeed.x + uWPhase[k]);
+		float ang = uWA0[k] + t * uWSpan[k];
+		float taper = sin(3.14159265 * t);
+		float s = aSeed.y * 0.26 * taper + 0.2 * sin(ang * 3.0 + kk + uTime * 0.9);
+		vec3 d = normalize(uWU[k] * cos(ang) + uWV[k] * sin(ang) + uWN[k] * s);
+		float rr = 1.01 + aSeed.z * 0.035 * taper + 0.04 * sin(t * 9.0 + kk + uTime * 1.4) * taper;
+		pos = d * (uR * rr * shapeMix(d) * uBreathe);
+		float lvl = uWLevel[k];
+		col = mix(cIce, cAccent, pow(t, 1.3)) * ((0.25 + 0.5 * taper) * lvl) + cFaint * ((1.0 - lvl) * 0.9 * taper);
+		size = 0.0036;
+		alpha = 1.0;
+		pokeK = 1.8;
+	}
+	pos += pokeOffset(pos) * pokeK;
+	vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+	gl_Position = projectionMatrix * mv;
+	gl_PointSize = size * uScale / -mv.z;
+	vColor = col;
+	vAlpha = alpha;
+}`;
+
+const PARTICLE_FS = /* glsl */`
+varying vec3 vColor;
+varying float vAlpha;
+void main() {
+	float r = length(gl_PointCoord - 0.5) * 2.0;
+	if (r > 1.0) discard;
+	float a = r < 0.35 ? mix(1.0, 0.55, r / 0.35) : mix(0.55, 0.0, (r - 0.35) / 0.65);   // the original soft-dot sprite
+	gl_FragColor = vec4(vColor, vAlpha * a);
+	#include <colorspace_fragment>
+}`;
+
+const RING_VS = /* glsl */`
+uniform float uR;
+uniform float uBreathe;
+varying vec3 vDir;
+${SHAPE_GLSL}
+void main() {
+	vDir = normalize(position);
+	gl_Position = projectionMatrix * modelViewMatrix * vec4(vDir * (uR * 1.012 * shapeMix(vDir) * uBreathe), 1.0);
+}`;
+const RING_FS = /* glsl */`
+uniform float uTime;
+uniform float uRipAmp;
+uniform vec3 uColor;
+varying vec3 vDir;
+${RIPPLE_GLSL}
+void main() {
+	float k = clamp(ripple(normalize(vDir)).w * uRipAmp, 0.0, 1.5);
+	gl_FragColor = vec4(uColor, k * 0.3);
+	#include <colorspace_fragment>
+}`;
+
+const GLOW_VS = /* glsl */`
+uniform float uR;
+uniform float uK;
+uniform float uBreathe;
+${SHAPE_GLSL}
+void main() {
+	vec3 d = normalize(position);
+	gl_Position = projectionMatrix * modelViewMatrix * vec4(d * (uR * uK * shapeMix(d) * uBreathe), 1.0);
+}`;
+const GLOW_FS = /* glsl */`
+uniform vec3 uColor;
+uniform float uOpacity;
+void main() {
+	gl_FragColor = vec4(uColor, uOpacity);
+	#include <colorspace_fragment>
+}`;
+
+// ───────────────────────── scene ─────────────────────────
+const canvas = document.getElementById('orb');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x04061a, 1);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 20);
+camera.position.set(0.12, 0.06, 0.62);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = 0.3;
+controls.maxDistance = 1.8;
+const faceDummy = new THREE.Object3D();                  // the orb turns to face the viewer, as it will face the player's head
+
+const shared = {
+	uR: { value: R }, uBreathe: { value: 1 }, uMorph: { value: 0 },
+	uShapeA: { value: SHAPES.indexOf(S.look.shapeA) }, uShapeB: { value: SHAPES.indexOf(S.look.shapeB) },
+};
+const col = (h) => new THREE.Color(h);
+const NEUTRAL = { deep: col(0x3050ff), mid: col(0x5a86ff), ice: col(0xb4e0ff), accent: col(0xffb0ea), faint: col(0x2a3cb0), rim: col(0x4a6bff), inner: col(0x2440d0) };
+const pole = { deep: col(0), mid: col(0), ice: col(0), accent: col(0), faint: col(0) };   // palette of the pole being approached
+const live = { rim: col(0), inner: col(0), ring: col(0) };                                              // blended colours for the glow shells
+
+const ripData = Array.from({ length: 6 }, () => new THREE.Vector4(0, 0, 1, -100));
+const ripS = new Array(6).fill(0);
+const pu = {
+	...shared,
+	uTime: { value: 0 }, uScale: { value: 400 }, uLevel: { value: 0 }, uHiss: { value: 0 },
+	uSparkle: { value: S.reaction.sparkle }, uRipAmp: { value: S.reaction.ripples },
+	uRip: { value: ripData }, uRipS: { value: ripS }, uRipShape: { value: new THREE.Vector3(S.ripple.speed, S.ripple.width, S.ripple.life) },
+	uRotShell: { value: new THREE.Matrix3() }, uRotDust: { value: new THREE.Matrix3() },
+	uNDeep: { value: NEUTRAL.deep }, uNMid: { value: NEUTRAL.mid }, uNIce: { value: NEUTRAL.ice }, uNAccent: { value: NEUTRAL.accent }, uNFaint: { value: NEUTRAL.faint },
+	uPDeep: { value: pole.deep }, uPMid: { value: pole.mid }, uPIce: { value: pole.ice }, uPAccent: { value: pole.accent }, uPFaint: { value: pole.faint },
+	uBodyW: { value: 0 }, uLeadW: { value: 0 },
+	uWN: { value: wispN }, uWU: { value: wispU }, uWV: { value: wispV },
+	uWA0: { value: wispA0 }, uWSpan: { value: wispSpan }, uWPhase: { value: new THREE.Vector4() }, uWLevel: { value: new THREE.Vector4(0.1, 0.1, 0.1, 0.1) },
+	uPoke: { value: new THREE.Vector4(0, 0, 0, 0) }, uPokeSpeed: { value: 0 },
+};
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(aPos, 3));
+geo.setAttribute('aDir', new THREE.BufferAttribute(aDir, 3));
+geo.setAttribute('aRad', new THREE.BufferAttribute(aRad, 1));
+geo.setAttribute('aRand', new THREE.BufferAttribute(aRand, 4));
+geo.setAttribute('aLayer', new THREE.BufferAttribute(aLayer, 1));
+geo.setAttribute('aSeed', new THREE.BufferAttribute(aSeed, 3));
+const points = new THREE.Points(geo, new THREE.ShaderMaterial({
+	uniforms: pu, vertexShader: PARTICLE_VS, fragmentShader: PARTICLE_FS,
+	transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+}));
+points.frustumCulled = false;
+
+const sphere = new THREE.SphereGeometry(1, 64, 48);
+const glowMat = (k, color, side) => new THREE.ShaderMaterial({
+	uniforms: { ...shared, uK: { value: k }, uColor: { value: color }, uOpacity: { value: 0 } },
+	vertexShader: GLOW_VS, fragmentShader: GLOW_FS,
+	transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side,
+});
+const halos = [[1.015, 0.1], [1.03, 0.07], [1.05, 0.05], [1.075, 0.035], [1.1, 0.025], [1.13, 0.015]].map(([k, o]) => {
+	const m = new THREE.Mesh(sphere, glowMat(k, live.rim, THREE.BackSide)); m.userData.base = o; m.frustumCulled = false; return m;
+});
+const inner = new THREE.Mesh(sphere, glowMat(0.97, live.inner, THREE.FrontSide));
+inner.frustumCulled = false;
+const ringLayer = new THREE.Mesh(sphere, new THREE.ShaderMaterial({
+	uniforms: { ...shared, uTime: pu.uTime, uRipAmp: pu.uRipAmp, uRip: pu.uRip, uRipS: pu.uRipS, uRipShape: pu.uRipShape, uColor: { value: live.ring } },
+	vertexShader: RING_VS, fragmentShader: RING_FS,
+	transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
+}));
+ringLayer.frustumCulled = false;
+const orb = new THREE.Group();
+orb.add(...halos, inner, ringLayer, points);
+scene.add(orb);
+
+function resize() {
+	const w = canvas.clientWidth, h = canvas.clientHeight;
+	if (!w || !h) return;
+	renderer.setSize(w, h, false);
+	camera.aspect = w / h; camera.updateProjectionMatrix();
+	const v = new THREE.Vector2(); renderer.getDrawingBufferSize(v);
+	pu.uScale.value = v.y * 0.5;                            // same point scaling as THREE.PointsMaterial
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+// ───────────────────────── colours ─────────────────────────
+function derivePalette(hex) {
+	const base = new THREE.Color(hex), hsl = {};
+	base.getHSL(hsl, THREE.SRGBColorSpace);
+	const c01 = (v) => Math.min(1, Math.max(0, v));
+	const mk = (h, s, l) => new THREE.Color().setHSL(((h % 1) + 1) % 1, c01(s), c01(l), THREE.SRGBColorSpace);
+	return {
+		deep: mk(hsl.h - 0.02, hsl.s, hsl.l * 0.62),
+		mid: base.clone(),
+		ice: base.clone().lerp(new THREE.Color(1, 1, 1), 0.6),
+		accent: mk(hsl.h - 0.12, hsl.s * 0.9, Math.max(0.78, hsl.l)),
+		faint: mk(hsl.h, hsl.s * 0.75, hsl.l * 0.38),
+		rim: mk(hsl.h, hsl.s, hsl.l * 0.8),
+		inner: mk(hsl.h, hsl.s, hsl.l * 0.45),
+	};
+}
+let palA = derivePalette(S.look.colorA), palB = derivePalette(S.look.colorB);
+// w is how far the morph is towards the pole (0.5 at a semi step, 1 at full).
+// With wispsLead = 1 the body is 40% there at a semi step while dust and wisps are already fully there.
+function applyPalette(m) {
+	const w = Math.min(1, Math.abs(m)), src = m < 0 ? palA : palB, lead = S.morph.wispsLead;
+	const bodyW = w + lead * ((w < 0.5 ? w * 0.8 : 0.4 + (w - 0.5) * 1.2) - w);
+	const leadW = w + lead * (Math.min(1, w * 2) - w);
+	for (const key in pole) pole[key].copy(src[key]);
+	pu.uBodyW.value = bodyW; pu.uLeadW.value = leadW;
+	live.rim.copy(NEUTRAL.rim).lerp(src.rim, bodyW);
+	live.inner.copy(NEUTRAL.inner).lerp(src.inner, bodyW);
+	live.ring.copy(NEUTRAL.ice).lerp(src.ice, bodyW);
+}
+
+// ───────────────────────── voice: clip analysis + playback ─────────────────────────
+const captions = JSON.parse(document.getElementById('captions').textContent);
+const $ = (id) => document.getElementById(id);
+let clip = null;                                            // { buffer, name, analysis, captions, mono }
+let actx = null, src = null, playing = false, startCtx = 0, startOffset = 0, pausedAt = 0, onsetIdx = 0;
+
+function toMono(buf) {
+	if (buf.numberOfChannels === 1) return buf.getChannelData(0);
+	const out = new Float32Array(buf.length);
+	for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < out.length; i++) out[i] += d[i] / buf.numberOfChannels; }
+	return out;
+}
+async function loadClip(bytes, name, caps) {
+	const off = new OfflineAudioContext(1, 1, 48000);
+	const buffer = await off.decodeAudioData(bytes);
+	stop(true);
+	const mono = toMono(buffer);
+	clip = { buffer, name, captions: caps, mono, analysis: analyzeClip(mono, buffer.sampleRate, S.voice) };
+	pausedAt = 0;
+	$('source').textContent = `${name} · ${buffer.duration.toFixed(1)} s`;
+	$('timeline').setAttribute('aria-valuemax', buffer.duration.toFixed(1));
+	drawTimeline();
+	updateClock(0);
+}
+function reanalyze() {
+	if (!clip) return;
+	clip.analysis = analyzeClip(clip.mono, clip.buffer.sampleRate, S.voice);
+	onsetIdx = firstOnsetAfter(position());
+	drawTimeline();
+}
+function outputTime() {
+	const ts = actx.getOutputTimestamp ? actx.getOutputTimestamp() : null;
+	if (ts && ts.contextTime > 0) return ts.contextTime;
+	return Math.max(0, actx.currentTime - (actx.outputLatency || actx.baseLatency || 0));
+}
+function position() {
+	if (!playing || !actx) return pausedAt;
+	return Math.min(clip.buffer.duration, startOffset + Math.max(0, outputTime() - startCtx));
+}
+function firstOnsetAfter(t) { const o = clip ? clip.analysis.onsets : []; let i = 0; while (i < o.length && o[i].t < t) i++; return i; }
+async function play() {
+	if (!clip) return;
+	if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+	if (actx.state === 'suspended') await actx.resume();
+	const node = actx.createBufferSource();
+	node.buffer = clip.buffer;
+	node.connect(actx.destination);
+	startOffset = pausedAt >= clip.buffer.duration - 0.05 ? 0 : pausedAt;
+	startCtx = actx.currentTime + 0.03;
+	node.start(startCtx, startOffset);
+	node.onended = () => {
+		if (src !== node || !playing) return;
+		playing = false; pausedAt = clip.buffer.duration; src = null; setPlayLabel();
+		if ($('loop').checked) setTimeout(() => { if (!playing && $('loop').checked) { pausedAt = 0; play(); } }, 900);
+	};
+	src = node; playing = true; onsetIdx = firstOnsetAfter(startOffset);
+	setPlayLabel();
+}
+function stop(keepPosition) {
+	if (src) { const n = src; src = null; try { n.stop(); } catch (e) { /* already stopped */ } }
+	if (playing && keepPosition) pausedAt = position();
+	playing = false; setPlayLabel();
+}
+function seek(t) {
+	if (!clip) return;
+	const wasPlaying = playing;
+	stop(false);
+	pausedAt = Math.max(0, Math.min(clip.buffer.duration, t));
+	onsetIdx = firstOnsetAfter(pausedAt);
+	if (wasPlaying) play(); else updateClock(pausedAt);
+}
+function setPlayLabel() { $('play').textContent = playing ? 'Pause' : (pausedAt > 0 && clip && pausedAt < clip.buffer.duration - 0.05 ? 'Resume' : 'Play'); }
+$('play').addEventListener('click', () => (playing ? stop(true) : play()));
+
+function sampleFeatures(t) {
+	const A = clip.analysis, x = t / A.hop - 0.5, i = Math.floor(x), f = x - i, n = A.level.length;
+	const at = (arr, j) => arr[Math.max(0, Math.min(n - 1, j))];
+	const g = (arr) => at(arr, i) + (at(arr, i + 1) - at(arr, i)) * f;
+	return { level: g(A.level), vowel: g(A.vowel), hiss: g(A.hiss) };
+}
+
+// own audio files
+const statusEl = $('audioStatus');
+async function loadFile(file) {
+	if (!file) return;
+	statusEl.hidden = true;
+	try {
+		await loadClip(await file.arrayBuffer(), file.name, null);
+	} catch (err) {
+		statusEl.textContent = `Couldn't read ${file.name}. Try a WAV, MP3 or OGG file.`;
+		statusEl.hidden = false;
+	}
+}
+$('file').addEventListener('change', (e) => loadFile(e.target.files[0]));
+const drop = $('drop');
+window.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+window.addEventListener('dragleave', (e) => { if (!e.relatedTarget) drop.classList.remove('over'); });
+window.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+
+// ───────────────────────── timeline ─────────────────────────
+const tl = $('timeline'), tlc = $('timelineCanvas'), playhead = $('playhead');
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function drawTimeline() {
+	if (!clip) return;
+	const dpr = Math.min(window.devicePixelRatio || 1, 2), w = tl.clientWidth, h = tl.clientHeight;
+	tlc.width = Math.round(w * dpr); tlc.height = Math.round(h * dpr);
+	const g = tlc.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+	const A = clip.analysis, n = A.level.length, dur = clip.buffer.duration, base = h - 14, top = 12;
+	if (clip.captions) {
+		g.fillStyle = cssVar('--line');
+		for (const c of clip.captions.lines) g.fillRect(c.start / dur * w, h - 4, (c.end - c.start) / dur * w, 2);
+	}
+	g.beginPath(); g.moveTo(0, base);
+	for (let x = 0; x <= w; x++) {
+		const i0 = Math.floor(x / w * n), i1 = Math.max(i0 + 1, Math.floor((x + 1) / w * n));
+		let m = 0; for (let i = i0; i < i1 && i < n; i++) m = Math.max(m, A.level[i]);
+		g.lineTo(x, base - m * (base - top));
+	}
+	g.lineTo(w, base); g.closePath();
+	g.fillStyle = cssVar('--ice'); g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
+	g.fillStyle = cssVar('--pink');
+	for (let x = 0; x < w; x++) {
+		const i0 = Math.floor(x / w * n), i1 = Math.max(i0 + 1, Math.floor((x + 1) / w * n));
+		let m = 0; for (let i = i0; i < i1 && i < n; i++) m = Math.max(m, A.hiss[i]);
+		if (m > 0.5) g.fillRect(x, 4, 1, 4);
+	}
+	g.fillStyle = cssVar('--ink'); g.globalAlpha = 0.8;
+	for (const o of A.onsets) g.fillRect(Math.round(o.t / dur * w), base + 2, 1, 6 * o.s + 2);
+	g.globalAlpha = 1;
+	$('syllableCount').textContent = `${A.onsets.length} syllables found`;
+}
+new ResizeObserver(drawTimeline).observe(tl);
+function seekFromEvent(e) { const r = tl.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * clip.buffer.duration); }
+tl.addEventListener('pointerdown', (e) => { if (!clip) return; seekFromEvent(e); tl.setPointerCapture(e.pointerId); });
+tl.addEventListener('pointermove', (e) => { if (e.buttons && clip && tl.hasPointerCapture(e.pointerId)) { pausedAt = Math.max(0, Math.min(clip.buffer.duration, (e.clientX - tl.getBoundingClientRect().left) / tl.clientWidth * clip.buffer.duration)); if (!playing) updateClock(pausedAt); } });
+tl.addEventListener('pointerup', (e) => { if (clip && tl.hasPointerCapture(e.pointerId)) seekFromEvent(e); });
+tl.addEventListener('keydown', (e) => {
+	if (!clip) return;
+	if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); seek(position() + (e.key === 'ArrowRight' ? 2 : -2)); }
+});
+const fmt = (t) => { const m = Math.floor(t / 60), s = t - m * 60; return `${String(m).padStart(2, '0')}:${s.toFixed(1).padStart(4, '0')}`; };
+function updateClock(t) {
+	if (!clip) return;
+	$('clock').textContent = `${fmt(t)} / ${fmt(clip.buffer.duration)}`;
+	playhead.style.transform = `translateX(${(t / clip.buffer.duration) * tl.clientWidth - 1}px)`;
+	tl.setAttribute('aria-valuenow', t.toFixed(1));
+}
+
+// ───────────────────────── steps, shapes, colours ─────────────────────────
+const stepsEl = $('steps');
+const stepButtons = STEP_NAMES.map((name, i) => {
+	const b = document.createElement('button');
+	b.type = 'button'; b.className = 'step'; b.setAttribute('role', 'radio'); b.dataset.step = i;
+	b.innerHTML = `<i class="sw"></i><b>${i}</b><span>${name}</span>`;
+	b.addEventListener('click', () => setStep(i));
+	stepsEl.appendChild(b);
+	return b;
+});
+function setStep(i) {
+	S.morph.step = i;
+	stepButtons.forEach((b, j) => { b.setAttribute('aria-checked', j === i ? 'true' : 'false'); b.tabIndex = j === i ? 0 : -1; });
+	$('api').textContent = `orb.SetStep(${i})`;
+	writeJson();
+}
+stepsEl.addEventListener('keydown', (e) => {
+	const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+	if (!d) return;
+	e.preventDefault();
+	const next = Math.max(0, Math.min(4, S.morph.step + d)); setStep(next); stepButtons[next].focus();
+});
+function paintSwatches() {
+	const n = new THREE.Color(NEUTRAL.mid), a = new THREE.Color(S.look.colorA), b = new THREE.Color(S.look.colorB);
+	const ws = [[a, 1], [a, 0.5], [n, 0], [b, 0.5], [b, 1]];
+	const hex = (c) => '#' + c.getHexString();
+	stepButtons.forEach((btn, i) => {
+		const [p, w] = ws[i], sw = btn.querySelector('.sw');
+		sw.style.background = w === 0 ? hex(n) : w === 1 ? hex(p) : `linear-gradient(90deg, ${hex(n)} 0 50%, ${hex(p)} 50% 100%)`;
+	});
+	document.documentElement.style.setProperty('--pole-a', S.look.colorA);
+	document.documentElement.style.setProperty('--pole-b', S.look.colorB);
+}
+for (const pole of ['A', 'B']) {
+	const sel = $('shape' + pole), inp = $('color' + pole);
+	SHAPES.forEach((s) => { const o = document.createElement('option'); o.value = s; o.textContent = s[0].toUpperCase() + s.slice(1); sel.appendChild(o); });
+	sel.value = S.look['shape' + pole]; inp.value = S.look['color' + pole];
+	sel.addEventListener('change', () => { S.look['shape' + pole] = sel.value; shared['uShape' + pole].value = SHAPES.indexOf(sel.value); writeJson(); });
+	inp.addEventListener('input', () => {
+		S.look['color' + pole] = inp.value;
+		if (pole === 'A') palA = derivePalette(inp.value); else palB = derivePalette(inp.value);
+		paintSwatches(); writeJson();
+	});
+}
+
+// ───────────────────────── sliders ─────────────────────────
+const SLIDERS = [
+	{ group: 'Loudness and voice', path: ['reaction', 'swell'], label: 'Swell', min: 0, max: 0.15, step: 0.005, show: (v) => `+${(v * 100).toFixed(1)}% size` },
+	{ path: ['reaction', 'glow'], label: 'Glow', min: 0, max: 3, step: 0.05, show: (v) => `×${v.toFixed(2)} rim` },
+	{ path: ['reaction', 'ripples'], label: 'Syllable ripples', min: 0, max: 2, step: 0.05, show: (v) => v.toFixed(2) },
+	{ path: ['reaction', 'wisps'], label: 'Wisps on vowels', min: 0, max: 1.5, step: 0.05, show: (v) => v.toFixed(2) },
+	{ path: ['reaction', 'sparkle'], label: 'Sparkle on hiss', min: 0, max: 3, step: 0.05, show: (v) => v.toFixed(2) },
+	{ path: ['reaction', 'smoothing'], label: 'Smoothing', min: 0.4, max: 2.5, step: 0.05, show: (v) => `×${v.toFixed(2)} release` },
+	{ group: 'Detection', path: ['voice', 'gateDb'], label: 'Noise gate', min: 16, max: 44, step: 1, show: (v) => `${v} dB under peak`, reanalyze: true },
+	{ path: ['voice', 'onsetOn'], label: 'Syllable threshold', min: 0.04, max: 0.25, step: 0.01, show: (v) => `${v.toFixed(2)} (lower finds more)`, reanalyze: true },
+	{ group: 'Morph', path: ['morph', 'smoothTime'], label: 'Morph ease', min: 0.1, max: 1.5, step: 0.05, show: (v) => `${v.toFixed(2)} s smooth time` },
+	{ path: ['morph', 'wispsLead'], label: 'Wisps lead the colour', min: 0, max: 1, step: 0.05, show: (v) => (v === 0 ? 'off, one blend' : v.toFixed(2)) },
+];
+let reanalyzeTimer = 0;
+const slidersEl = $('sliders');
+for (const d of SLIDERS) {
+	if (d.group) { const g = document.createElement('p'); g.className = 'group-label'; g.textContent = d.group; slidersEl.appendChild(g); }
+	const id = 's-' + d.path.join('-');
+	const row = document.createElement('div'); row.className = 'slider';
+	row.innerHTML = `<label for="${id}">${d.label}</label><output for="${id}"></output><input type="range" id="${id}" min="${d.min}" max="${d.max}" step="${d.step}">`;
+	const input = row.querySelector('input'), out = row.querySelector('output');
+	input.value = S[d.path[0]][d.path[1]];
+	out.textContent = d.show(+input.value);
+	input.addEventListener('input', () => {
+		const v = +input.value; S[d.path[0]][d.path[1]] = v; out.textContent = d.show(v);
+		if (d.reanalyze) { clearTimeout(reanalyzeTimer); reanalyzeTimer = setTimeout(reanalyze, 120); }
+		writeJson();
+	});
+	slidersEl.appendChild(row);
+}
+
+// ───────────────────────── settings export ─────────────────────────
+function writeJson() {
+	const r = (v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v);
+	const out = JSON.parse(JSON.stringify(S, (k, v) => (Array.isArray(v) ? v.map(r) : r(v))));
+	$('json').textContent = JSON.stringify(out, null, 2);
+}
+$('copy').addEventListener('click', async () => {
+	const msg = $('copyStatus'), text = $('json').textContent;
+	try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied'; }
+	catch (e) {
+		const range = document.createRange(); range.selectNodeContents($('json'));
+		const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+		msg.textContent = 'Selected, press Ctrl+C or Cmd+C';
+	}
+	setTimeout(() => { msg.textContent = ''; }, 2500);
+});
+
+// ───────────────────────── pointer poke ─────────────────────────
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), lastHit = new THREE.Vector3();
+const hitSphere = new THREE.Sphere(new THREE.Vector3(), R * 1.15);
+const pokeTarget = new THREE.Vector3();
+let hovering = false, hoverAmt = 0, pokeSpeed = 0;
+canvas.addEventListener('pointermove', (e) => {
+	const r = canvas.getBoundingClientRect();
+	ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+	ray.setFromCamera(ndc, camera);
+	hovering = !!ray.ray.intersectSphere(hitSphere, hit);
+	if (hovering) { pokeSpeed = Math.min(1.5, pokeSpeed + hit.distanceTo(lastHit) * 25); lastHit.copy(hit); orb.worldToLocal(pokeTarget.copy(hit)); }
+});
+canvas.addEventListener('pointerleave', () => { hovering = false; });
+
+// ───────────────────────── keyboard ─────────────────────────
+window.addEventListener('keydown', (e) => {
+	const tag = (e.target.tagName || '').toLowerCase();
+	if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+	if (e.key === ' ' && tag !== 'button') { e.preventDefault(); playing ? stop(true) : play(); }
+	if (/^[0-4]$/.test(e.key)) setStep(+e.key);
+});
+
+// ───────────────────────── frame loop ─────────────────────────
+// Unity's Mathf.SmoothDamp, line for line, so the morph eases the same in both.
+function smoothDamp(current, target, vel, smoothTime, dt) {
+	smoothTime = Math.max(0.0001, smoothTime);
+	const omega = 2 / smoothTime, x = omega * dt, e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+	const change = current - target, temp = (vel.v + omega * change) * dt;
+	vel.v = (vel.v - omega * temp) * e;
+	let out = target + (change + temp) * e;
+	if ((target - current > 0) === (out > target)) { out = target; vel.v = (out - target) / dt; }
+	return out;
+}
+const follow = (cur, target, atk, rel, dt) => cur + (target - cur) * (1 - Math.exp(-dt / Math.max(1e-4, target > cur ? atk : rel)));
+
+const vis = { level: 0, hiss: 0, pulse: 0, wisps: [0, 0, 0, 0] };
+const morphVel = { v: 0 };
+let morph = 0, lastT = performance.now() / 1000, elapsed = 0, lastCaption = '';
+let timeScale = 1;                                         // debug: slow motion for inspecting ripples
+const rotM = new THREE.Matrix4(), euler = new THREE.Euler(), frontDir = new THREE.Vector3(), jitter = new THREE.Vector3();
+let ripHead = 0;
+function spawnRipple(strength) {
+	orb.worldToLocal(frontDir.copy(camera.position)).normalize();
+	jitter.set(rnd2() * 2 - 1, rnd2() * 2 - 1, rnd2() * 2 - 1);
+	frontDir.addScaledVector(jitter, S.ripple.spreadFromFront).normalize();
+	ripData[ripHead].set(frontDir.x, frontDir.y, frontDir.z, elapsed);
+	ripS[ripHead] = strength;
+	ripHead = (ripHead + 1) % ripData.length;
+	vis.pulse = Math.max(vis.pulse, strength);
+}
+const meter = { level: $('mLevel'), vowel: $('mVowel'), hiss: $('mHiss'), pulse: $('mPulse') };
+const meterOut = { level: $('vLevel'), vowel: $('vVowel'), hiss: $('vHiss'), pulse: $('vPulse') };
+let syllables = 0;
+
+function frame() {
+	const now = performance.now() / 1000, dt = Math.min(0.05, Math.max(0.0001, now - lastT)) * timeScale;
+	lastT = now; elapsed += dt;
+	const t = elapsed, TC = S.timeConstants, sm = S.reaction.smoothing;
+
+	// voice features at the moment that is being heard
+	let f = { level: 0, vowel: 0, hiss: 0 };
+	if (clip && playing) {
+		const p = position(), ahead = p + S.voice.leadSeconds;
+		f = sampleFeatures(ahead);
+		const ons = clip.analysis.onsets;
+		while (onsetIdx < ons.length && ons[onsetIdx].t <= ahead) { spawnRipple(ons[onsetIdx].s); syllables++; onsetIdx++; }
+		updateClock(p);
+		const line = clip.captions ? clip.captions.lines.find((c) => p >= c.start - 0.05 && p <= c.end + 0.35) : null;
+		const text = line ? line.text : '';
+		if (text !== lastCaption) { lastCaption = text; const cap = $('caption'); if (text) cap.textContent = text; cap.classList.toggle('on', !!text); }
+	} else if (lastCaption) { lastCaption = ''; $('caption').classList.remove('on'); }
+
+	vis.level = follow(vis.level, f.level, TC.levelAttack, TC.levelRelease * sm, dt);
+	vis.hiss = follow(vis.hiss, f.hiss, TC.hissAttack, TC.hissRelease * sm, dt);
+	vis.pulse *= Math.exp(-TC.pulseDecayPerSecond * dt);
+	for (let k = 0; k < 4; k++) {
+		vis.wisps[k] = follow(vis.wisps[k], f.vowel, TC.wispAttack[k], TC.wispRelease[k] * sm, dt);
+		const lvl = 0.1 + 0.9 * Math.min(1, vis.wisps[k] * S.reaction.wisps);
+		pu.uWLevel.value.setComponent(k, lvl);
+		pu.uWPhase.value.setComponent(k, (pu.uWPhase.value.getComponent(k) + dt * (0.05 + 0.13 * lvl)) % 1);
+	}
+
+	// idle breathing plus the voice swell
+	const breathe = 1 + 0.02 * Math.sin(t * 1.3) + 0.006 * Math.sin(t * 3.7) + S.reaction.swell * vis.level + 0.015 * vis.pulse;
+	shared.uBreathe.value = breathe;
+	pu.uTime.value = t; pu.uLevel.value = vis.level; pu.uHiss.value = vis.hiss;
+	pu.uSparkle.value = S.reaction.sparkle; pu.uRipAmp.value = S.reaction.ripples;
+	pu.uRipShape.value.set(S.ripple.speed, S.ripple.width, S.ripple.life);
+	pu.uRotShell.value.setFromMatrix4(rotM.makeRotationFromEuler(euler.set(Math.sin(t * 0.3) * 0.12, t * 0.09, 0)));
+	pu.uRotDust.value.setFromMatrix4(rotM.makeRotationFromEuler(euler.set(Math.sin(t * 0.25) * 0.2, -t * 0.07, 0)));
+	for (const h of halos) h.material.uniforms.uOpacity.value = h.userData.base * (1 + 0.15 * Math.sin(t * 1.1) + S.reaction.glow * vis.level + 0.8 * vis.pulse);
+	inner.material.uniforms.uOpacity.value = 0.18 * (1 + 0.5 * vis.level);
+
+	// morph between A, neutral and B
+	morph = smoothDamp(morph, S.morph.steps[S.morph.step], morphVel, S.morph.smoothTime, dt);
+	shared.uMorph.value = morph;
+	applyPalette(morph);
+	$('morphVal').textContent = `morph ${morph >= 0 ? ' ' : ''}${morph.toFixed(2)}`;
+
+	// poke
+	hoverAmt += ((hovering ? 1 : 0) - hoverAmt) * Math.min(1, dt * 6);
+	pokeSpeed *= Math.pow(0.94, dt * 60);
+	pu.uPoke.value.x += (pokeTarget.x - pu.uPoke.value.x) * Math.min(1, dt * 14);
+	pu.uPoke.value.y += (pokeTarget.y - pu.uPoke.value.y) * Math.min(1, dt * 14);
+	pu.uPoke.value.z += (pokeTarget.z - pu.uPoke.value.z) * Math.min(1, dt * 14);
+	pu.uPoke.value.w = hoverAmt;
+	pu.uPokeSpeed.value = pokeSpeed;
+
+	// meters
+	const wispAvg = (vis.wisps[0] + vis.wisps[1] + vis.wisps[2] + vis.wisps[3]) / 4;
+	meter.level.style.transform = `scaleX(${vis.level.toFixed(3)})`; meterOut.level.textContent = vis.level.toFixed(2);
+	meter.vowel.style.transform = `scaleX(${Math.min(1, wispAvg).toFixed(3)})`; meterOut.vowel.textContent = wispAvg.toFixed(2);
+	meter.hiss.style.transform = `scaleX(${vis.hiss.toFixed(3)})`; meterOut.hiss.textContent = vis.hiss.toFixed(2);
+	meter.pulse.style.transform = `scaleX(${Math.min(1, vis.pulse).toFixed(3)})`; meterOut.pulse.textContent = String(syllables);
+
+	controls.update();
+	faceDummy.lookAt(camera.position);
+	orb.quaternion.slerp(faceDummy.quaternion, 1 - Math.exp(-dt * 3));
+	renderer.render(scene, camera);
+	requestAnimationFrame(frame);
+}
+
+// ───────────────────────── boot ─────────────────────────
+paintSwatches();
+setStep(S.morph.step);
+writeJson();
+applyPalette(0);
+requestAnimationFrame(frame);
+(async () => {
+	try {
+		const b64 = document.getElementById('clip').textContent.trim();
+		const bin = atob(b64), bytes = new Uint8Array(bin.length);
+		for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+		await loadClip(bytes.buffer, 'sample narration', captions);
+	} catch (err) {
+		statusEl.textContent = 'The sample narration could not be decoded in this browser. Drop a WAV or MP3 to try your own.';
+		statusEl.hidden = false;
+	}
+})();
+window.__orb = { S, setStep, seek, play, stop, position, spawnRipple, set timeScale(v) { timeScale = v; }, get clip() { return clip; }, get morph() { return morph; } };
+</script>

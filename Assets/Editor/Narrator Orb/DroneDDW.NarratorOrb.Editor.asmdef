@@ -1,0 +1,21 @@
+{
+    "name": "DroneDDW.NarratorOrb.Editor",
+    "rootNamespace": "DroneDDW.NarratorOrb.Editor",
+    "references": [
+        "DroneDDW.NarratorOrb",
+        "Unity.XR.CoreUtils",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Oculus.VR"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
