@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c9480540adcf864c82bd017b7895222, type: 3}
+  m_Name: Admin Menu Settings
+  m_EditorClassIdentifier: DroneDDW.Admin::DroneDDW.Admin.AdminMenuSettings
+  _distanceMeters: 0.85
+  _dropMeters: 0.08
+  _lockSmoothSeconds: 0.05
+  _millimetersPerPixel: 0.5
+  _stickPressThreshold: 0.6
+  _stickReleaseThreshold: 0.35
+  _repeatDelaySeconds: 0.4
+  _repeatIntervalSeconds: 0.13
+  _fadeSeconds: 0.15
+  _hoverSeconds: 0.08
+  _hoverScale: 1.015
+  _pressScale: 0.96
+  _pressSeconds: 0.14
+  _scrollSmoothSeconds: 0.08
+  _dimOpacity: 0.6
+  _dimSeconds: 0.25
+  _hoverHapticAmplitude: 0.15
+  _hoverHapticSeconds: 0.02
+  _clickHapticAmplitude: 0.4
+  _clickHapticSeconds: 0.04
+  _sessionsFolder: Sessions
+  _sessionsFileName: Sessions.csv
+  _deletedSessionsFileName: Deleted Sessions.csv
+  _separator: 59
+  _buttonFillColor: {r: 0.11764706, g: 0.16470589, b: 0.22745098, a: 1}
+  _buttonBorderColor: {r: 0.20392157, g: 0.25882354, b: 0.33333334, a: 1}
+  _buttonTextColor: {r: 0.9490196, g: 0.9647059, b: 0.9882353, a: 1}
+  _buttonIconColor: {r: 0.7254902, g: 0.8392157, b: 1, a: 1}
+  _tonalFillColor: {r: 0.14117648, g: 0.23137255, b: 0.3372549, a: 1}
+  _tonalTextColor: {r: 0.7254902, g: 0.8392157, b: 1, a: 1}
+  _hoverFillColor: {r: 0.7254902, g: 0.8392157, b: 1, a: 1}
+  _hoverTextColor: {r: 0.07058824, g: 0.14901961, b: 0.24705882, a: 1}
+  _hoverRowColor: {r: 0.14117648, g: 0.19215687, b: 0.26666668, a: 1}

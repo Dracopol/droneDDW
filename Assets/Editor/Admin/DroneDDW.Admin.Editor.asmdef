@@ -1,0 +1,23 @@
+{
+    "name": "DroneDDW.Admin.Editor",
+    "rootNamespace": "DroneDDW.Admin.Editor",
+    "references": [
+        "DroneDDW.Admin",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.CoreUtils",
+        "Oculus.VR"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
