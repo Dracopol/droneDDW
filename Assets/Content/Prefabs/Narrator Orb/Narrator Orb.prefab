@@ -236,7 +236,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 102780ada77e5ac43897905dddeee211, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: DroneDDW.NarratorOrb::DroneDDW.NarratorOrb.NarratorOrbLiveTap
+  m_EditorClassIdentifier: DroneDDW.Voice::DroneDDW.Voice.VoiceLiveTap
 --- !u!114 &3526073484880593329
 MonoBehaviour:
   m_ObjectHideFlags: 0

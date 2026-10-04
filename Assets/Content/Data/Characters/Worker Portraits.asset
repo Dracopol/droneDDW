@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09bfa141242fd624ab8b459ce1b3e0c0, type: 3}
+  m_Name: Worker Portraits
+  m_EditorClassIdentifier: DroneDDW.Characters::DroneDDW.Characters.CharacterPortraitSet
+  _displayName: Worker
+  _accentColor: {r: 0.9019608, g: 0.49411765, b: 0.13333334, a: 1}
+  _emotions:
+  - _closed: {fileID: 2800000, guid: 3f1d0b3270043664f8a63ff136cd38e7, type: 3}
+    _open: {fileID: 2800000, guid: 7e41ab4b7884117439ebe19ee441b008, type: 3}
+  - _closed: {fileID: 2800000, guid: a64bab5ffdb747149afa3ce1eaa47d69, type: 3}
+    _open: {fileID: 2800000, guid: 42f2badccb8646d47818ec5deed30edd, type: 3}
+  - _closed: {fileID: 2800000, guid: bbeaef437d3bae14eac9e62ef7263c01, type: 3}
+    _open: {fileID: 2800000, guid: cc52e797d9b4f4744a767ae99f522ea4, type: 3}
+  _cropRect:
+    serializedVersion: 2
+    x: 0.20885417
+    y: 0
+    width: 0.5625
+    height: 0.76923084
+  _mouthRect:
+    serializedVersion: 2
+    x: 0.46197918
+    y: 0.3175926
+    width: 0.0546875
+    height: 0.037037037

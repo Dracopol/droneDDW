@@ -1,5 +1,5 @@
 using System;
-using DroneDDW.NarratorOrb.Voice;
+using DroneDDW.Voice;
 using UnityEngine;
 
 namespace DroneDDW.NarratorOrb.Settings

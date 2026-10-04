@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81e639858bf238e4ebb376ad6d0b871a, type: 3}
+  m_Name: Character Portrait Settings
+  m_EditorClassIdentifier: DroneDDW.Characters::DroneDDW.Characters.CharacterPortraitSettings
+  _leadSeconds: 0.04
+  _mouthStyle: 0
+  _attackSeconds: 0.02
+  _releaseSeconds: 0.06
+  _openThreshold: 0.3
+  _closeThreshold: 0.18
+  _minOpenSeconds: 0.07
+  _minClosedSeconds: 0.05
+  _syllableFlapSeconds: 0.12
+  _smoothGain: 1.5
+  _highlightScale: 1.08
+  _highlightForwardMeters: 0.06
+  _dimBrightness: 0.6
+  _highlightSmoothSeconds: 0.2
+  _bounceAmount: 0.04
+  _bounceDecayPerSecond: 9
+  _hoverAmplitudeMeters: 0.01
+  _hoverPeriodSeconds: 4
+  _isAutoCycleOn: 1
+  _pauseBetweenLinesSeconds: 0.8
+  _cardDistanceMeters: 1.1
+  _cardSpacingMeters: 0.38
+  _cardDropMeters: 0.08

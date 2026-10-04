@@ -1,0 +1,23 @@
+{
+    "name": "DroneDDW.Characters.Editor",
+    "rootNamespace": "DroneDDW.Characters.Editor",
+    "references": [
+        "DroneDDW.Characters",
+        "DroneDDW.Voice",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.CoreUtils",
+        "Oculus.VR"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,6 +1,6 @@
 using System;
 using DroneDDW.NarratorOrb.Settings;
-using DroneDDW.NarratorOrb.Voice;
+using DroneDDW.Voice;
 using UnityEditor;
 using UnityEngine;
 
@@ -89,19 +89,19 @@ namespace DroneDDW.NarratorOrb.Editor
 			EditorGUI.ProgressBar(rect, Mathf.Clamp01(value), value.ToString("0.00"));
 		}
 
-		private static string DescribeVoice(NarratorOrbVoiceStatus status, VoiceAnalysis analysis)
+		private static string DescribeVoice(VoiceStatus status, VoiceAnalysis analysis)
 		{
 			switch (status)
 			{
-				case NarratorOrbVoiceStatus.Idle:
+				case VoiceStatus.Idle:
 					return "Not playing";
-				case NarratorOrbVoiceStatus.Analysing:
+				case VoiceStatus.Analysing:
 					return "Analysing the clip";
-				case NarratorOrbVoiceStatus.ClipAnalysis:
+				case VoiceStatus.ClipAnalysis:
 					return analysis == null
 						? "Clip analysed ahead"
 						: $"Clip analysed ahead, loud speech at {analysis.ReferenceFullDecibels:0.0} dB";
-				case NarratorOrbVoiceStatus.LiveFallback:
+				case VoiceStatus.LiveFallback:
 					return "Following the live output (the clip can't be read ahead)";
 				default:
 					throw new ArgumentOutOfRangeException(nameof(status), status, null);

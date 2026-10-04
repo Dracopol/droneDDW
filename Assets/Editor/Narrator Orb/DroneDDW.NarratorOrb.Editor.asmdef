@@ -3,6 +3,7 @@
     "rootNamespace": "DroneDDW.NarratorOrb.Editor",
     "references": [
         "DroneDDW.NarratorOrb",
+        "DroneDDW.Voice",
         "Unity.XR.CoreUtils",
         "Unity.RenderPipelines.Universal.Runtime",
         "Oculus.VR"

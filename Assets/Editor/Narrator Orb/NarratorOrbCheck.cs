@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DroneDDW.NarratorOrb.Voice;
+using DroneDDW.Voice;
 using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEditor.SceneManagement;
@@ -26,7 +26,7 @@ namespace DroneDDW.NarratorOrb.Editor
 		private const string RunningKey = "DroneDDW.NarratorOrb.NarratorOrbCheck.Running";
 		private const string ShadersFolder = "Assets/Content/Shaders/Narrator Orb";
 		private const float TotalSeconds = 12f;
-		private const int ExpectedSyllables = 64;
+		private const int ExpectedSyllables = 21;
 		private const float MorphTolerance = 0.05f;
 
 		// When to ask for each step, when to look, and the morph each look expects

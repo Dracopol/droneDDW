@@ -1,5 +1,6 @@
 using DroneDDW.NarratorOrb.Rendering;
 using DroneDDW.NarratorOrb.Settings;
+using DroneDDW.Voice;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -9,7 +10,8 @@ using UnityEngine.SceneManagement;
 namespace DroneDDW.NarratorOrb.Editor
 {
 	// Menu: DroneDDW > Narrator Orb > Build Orb Assets. Safe to run again: every asset keeps its GUID.
-	// 1. Imports Narrator Sample.wav as PCM, Decompress On Load, at its own rate, so its samples match the preview's
+	// 1. Imports the test narration (Narrator_TestSample.wav) as PCM, Decompress On Load, at its own rate, so its
+	//    samples match the preview's
 	// 2. Creates the settings asset if it is missing (never overwrites it)
 	// 3. Creates the layout asset if it is missing and bakes its meshes (at the layout's particle count scale)
 	// 4. Creates the four materials if they are missing
@@ -18,7 +20,7 @@ namespace DroneDDW.NarratorOrb.Editor
 	{
 		#region Fields
 
-		internal const string SampleClipPath = "Assets/Content/Audio/Voice/Narrator Orb/Narrator Sample.wav";
+		internal const string SampleClipPath = "Assets/Content/Audio/Voice/Narrator Orb/Narrator_TestSample.wav";
 		internal const string SettingsPath = "Assets/Content/Data/Narrator Orb/Narrator Orb Settings.asset";
 		internal const string LayoutPath = "Assets/Content/Models/Narrator Orb/Narrator Orb Layout.asset";
 		internal const string PrefabPath = "Assets/Content/Prefabs/Narrator Orb/Narrator Orb.prefab";
@@ -226,7 +228,7 @@ namespace DroneDDW.NarratorOrb.Editor
 				voice.playOnAwake = false;
 				voice.spatialBlend = 1f;
 				voice.dopplerLevel = 0f;
-				NarratorOrbLiveTap liveTap = root.AddComponent<NarratorOrbLiveTap>();
+				VoiceLiveTap liveTap = root.AddComponent<VoiceLiveTap>();
 				NarratorOrbController controller = root.AddComponent<NarratorOrbController>();
 				controller.Configure(settings, voice, liveTap,
 					AddPart(previewScene, root.transform, "Particles", layout.Particles, particles),

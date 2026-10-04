@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09bfa141242fd624ab8b459ce1b3e0c0, type: 3}
+  m_Name: Grandma Portraits
+  m_EditorClassIdentifier: DroneDDW.Characters::DroneDDW.Characters.CharacterPortraitSet
+  _displayName: Grandma
+  _accentColor: {r: 0.9137255, g: 0.7529412, b: 0.30980393, a: 1}
+  _emotions:
+  - _closed: {fileID: 2800000, guid: d499dfad311323341a66fdf49da8f82d, type: 3}
+    _open: {fileID: 2800000, guid: 4fcd7e11e5336f646995b0705ab0373f, type: 3}
+  - _closed: {fileID: 2800000, guid: 47c03c18791b44941b84c236689783c9, type: 3}
+    _open: {fileID: 2800000, guid: 862f7868e6e219e498367b2f3ab347b9, type: 3}
+  - _closed: {fileID: 2800000, guid: 34e7ed76e60c41243b6ec2424a85d22f, type: 3}
+    _open: {fileID: 2800000, guid: ffcbe0269079fd04cbc56361aced0365, type: 3}
+  _cropRect:
+    serializedVersion: 2
+    x: 0.20729166
+    y: 0
+    width: 0.56145835
+    height: 0.7678063
+  _mouthRect:
+    serializedVersion: 2
+    x: 0.45989582
+    y: 0.3351852
+    width: 0.0546875
+    height: 0.037962962

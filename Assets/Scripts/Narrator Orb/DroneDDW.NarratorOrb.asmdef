@@ -2,6 +2,7 @@
     "name": "DroneDDW.NarratorOrb",
     "rootNamespace": "DroneDDW.NarratorOrb",
     "references": [
+        "DroneDDW.Voice",
         "UniTask",
         "Unity.InputSystem"
     ],

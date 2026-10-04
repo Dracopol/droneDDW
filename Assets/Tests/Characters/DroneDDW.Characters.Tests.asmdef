@@ -1,0 +1,26 @@
+{
+    "name": "DroneDDW.Characters.Tests",
+    "rootNamespace": "DroneDDW.Characters.Tests",
+    "references": [
+        "DroneDDW.Characters",
+        "DroneDDW.Characters.Editor",
+        "DroneDDW.Voice",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

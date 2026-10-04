@@ -1,7 +1,7 @@
 using System;
 using DroneDDW.NarratorOrb.Rendering;
 using DroneDDW.NarratorOrb.Settings;
-using DroneDDW.NarratorOrb.Voice;
+using DroneDDW.Voice;
 using UnityEngine;
 
 namespace DroneDDW.NarratorOrb
@@ -22,7 +22,7 @@ namespace DroneDDW.NarratorOrb
 		[SerializeField] private AudioSource _voice;
 
 		[Tooltip("On the voice's object: follows the live output when a clip can't be read ahead")]
-		[SerializeField] private NarratorOrbLiveTap _liveTap;
+		[SerializeField] private VoiceLiveTap _liveTap;
 
 		[Tooltip("The player's head: the orb turns to face it and starts its ripples on that side")]
 		[SerializeField] private Transform _head;
@@ -52,7 +52,7 @@ namespace DroneDDW.NarratorOrb
 		private readonly float[] _wispEnvelopes = new float[WispCount];
 		private readonly Vector4[] _shellRows = new Vector4[3];
 		private readonly Vector4[] _dustRows = new Vector4[3];
-		private NarratorOrbVoiceReader _voiceReader;
+		private VoiceReader _voiceReader;
 		private NarratorOrbMaterials _materials;
 		private Transform _transform;
 		private Transform _headOverride;
@@ -96,7 +96,7 @@ namespace DroneDDW.NarratorOrb
 		internal int SyllableCount => _syllableCount;
 		internal float Morph => _morph;
 		internal int Step => _step;
-		internal NarratorOrbVoiceStatus VoiceStatus => _voiceReader?.Status ?? NarratorOrbVoiceStatus.Idle;
+		internal VoiceStatus VoiceStatus => _voiceReader?.Status ?? VoiceStatus.Idle;
 
 		// The analysis of the clip being followed, or null
 		internal VoiceAnalysis Analysis => _voiceReader?.Analysis;
@@ -118,7 +118,7 @@ namespace DroneDDW.NarratorOrb
 
 			_settings.Validate();
 			_materials = new NarratorOrbMaterials(_particles, _halos, _innerGlow, _rippleRings);
-			_voiceReader = new NarratorOrbVoiceReader(_voice, _liveTap, _settings.Voice);
+			_voiceReader = new VoiceReader(_voice, _liveTap);
 			_voiceReader.OnSyllable += HandleSyllable;
 			_neutral = NarratorOrbPalette.Neutral;
 			_step = _settings.Morph.Step;
@@ -152,7 +152,9 @@ namespace DroneDDW.NarratorOrb
 			FollowSettingsStep();
 
 			// The voice at the moment being heard; the syllables it passed fire ripples through HandleSyllable
-			VoiceFeatures features = _voiceReader.Read(Time.unscaledDeltaTime);
+			NarratorOrbVoiceSettings voice = _settings.Voice;
+			VoiceFeatures features = _voiceReader.Read(voice.ToAnalysisSettings(), voice.LeadSeconds,
+				Time.unscaledDeltaTime);
 			_loudness = Follow(_loudness, (float)features.Level, timeConstants.LevelAttackSeconds,
 				timeConstants.LevelReleaseSeconds * smoothing, deltaSeconds);
 			_hiss = Follow(_hiss, (float)features.Hiss, timeConstants.HissAttackSeconds,
@@ -264,7 +266,7 @@ namespace DroneDDW.NarratorOrb
 			}
 		}
 
-		internal void Configure(NarratorOrbSettings settings, AudioSource voice, NarratorOrbLiveTap liveTap,
+		internal void Configure(NarratorOrbSettings settings, AudioSource voice, VoiceLiveTap liveTap,
 			MeshRenderer particles, MeshRenderer halos, MeshRenderer innerGlow, MeshRenderer rippleRings)
 		{
 			_settings = settings;

@@ -3,6 +3,7 @@
     "rootNamespace": "DroneDDW.NarratorOrb.Tests",
     "references": [
         "DroneDDW.NarratorOrb",
+        "DroneDDW.Voice",
         "DroneDDW.NarratorOrb.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

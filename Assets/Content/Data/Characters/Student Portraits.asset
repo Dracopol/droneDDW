@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09bfa141242fd624ab8b459ce1b3e0c0, type: 3}
+  m_Name: Student Portraits
+  m_EditorClassIdentifier: DroneDDW.Characters::DroneDDW.Characters.CharacterPortraitSet
+  _displayName: Student
+  _accentColor: {r: 0.35686275, g: 0.60784316, b: 0.8352941, a: 1}
+  _emotions:
+  - _closed: {fileID: 2800000, guid: 60620d4d882d83c4f904e36f3056e107, type: 3}
+    _open: {fileID: 2800000, guid: 2e0089e31b73cbd46b21d30076efb3f1, type: 3}
+  - _closed: {fileID: 2800000, guid: 783847fe9a0b76b4abde2e72cdc0913c, type: 3}
+    _open: {fileID: 2800000, guid: 408af93026a759f44bf2411c4f94a2f9, type: 3}
+  - _closed: {fileID: 2800000, guid: a7adf950d68007f41a9ac728b7fb80e8, type: 3}
+    _open: {fileID: 2800000, guid: 42a7b73fc1add5948a8485384674a5f9, type: 3}
+  _cropRect:
+    serializedVersion: 2
+    x: 0.23541667
+    y: 0
+    width: 0.5151042
+    height: 0.704416
+  _mouthRect:
+    serializedVersion: 2
+    x: 0.45885417
+    y: 0.27592593
+    width: 0.0546875
+    height: 0.037962962
