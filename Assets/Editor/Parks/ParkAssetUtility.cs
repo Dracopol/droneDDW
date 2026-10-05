@@ -3,6 +3,7 @@ using System.IO;
 using DroneDDW.Parks.Editor.Import;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DroneDDW.Parks.Editor.Building
 {
@@ -37,6 +38,10 @@ namespace DroneDDW.Parks.Editor.Building
 		private const string MotionVectorsPass = "MotionVectors";
 		private const string WaterKey = "Water";
 		private const string MaquetteKey = "Maquette";
+		private const string HandSpheresKey = "HandSpheres";
+		private const string TransparentKeyword = "_SURFACE_TYPE_TRANSPARENT";
+		private const string ShadowCasterPass = "ShadowCaster";
+		private const string UrpUnlitShader = "Universal Render Pipeline/Unlit";
 		private const string UrpLitShader = "Universal Render Pipeline/Lit";
 		private const string BuiltInLitShader = "Standard";
 		private const float MatteSmoothness = 0.1f;
@@ -171,6 +176,49 @@ namespace DroneDDW.Parks.Editor.Building
 			EditorUtility.SetDirty(glow);
 			AssetDatabase.SaveAssets();
 			return glow;
+		}
+
+		/// <summary>
+		/// A see-through URP Unlit material with GPU instancing (Park_Mat_HandSpheres), for the testing view of the
+		/// hands' push spheres. Being used in the scene keeps its shader variant in the Quest build. Null without URP.
+		/// </summary>
+		internal static Material CreateHandSpheresMaterial()
+		{
+			Shader shader = Shader.Find(UrpUnlitShader);
+			if (shader == null)
+			{
+				Debug.LogWarning("[Parks] URP Unlit shader not found, so the hand spheres can't be shown.");
+				return null;
+			}
+
+			string materialName = MaterialPrefix + HandSpheresKey;
+			string path = $"{EnsureFolder(MaterialsFolder)}/{materialName}.mat";
+			Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+			if (material == null)
+			{
+				material = new Material(shader) { name = materialName };
+				AssetDatabase.CreateAsset(material, path);
+			}
+
+			// Transparent, as URP's Unlit inspector sets it; the view gives each sphere its colour
+			material.shader = shader;
+			SetFloatIfPresent(material, "_Surface", 1f);
+			SetFloatIfPresent(material, "_Blend", 0f);
+			SetFloatIfPresent(material, "_SrcBlend", (float)BlendMode.SrcAlpha);
+			SetFloatIfPresent(material, "_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+			SetFloatIfPresent(material, "_SrcBlendAlpha", (float)BlendMode.One);
+			SetFloatIfPresent(material, "_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
+			SetFloatIfPresent(material, "_ZWrite", 0f);
+			material.EnableKeyword(TransparentKeyword);
+			material.SetOverrideTag("RenderType", "Transparent");
+			material.renderQueue = (int)RenderQueue.Transparent;
+			material.SetShaderPassEnabled(ShadowCasterPass, false);
+			material.SetShaderPassEnabled(MotionVectorsPass, false);
+			material.color = Color.white;
+			material.enableInstancing = true;
+			EditorUtility.SetDirty(material);
+			AssetDatabase.SaveAssets();
+			return material;
 		}
 
 		internal static void RemapModels(Dictionary<string, Material> materials)

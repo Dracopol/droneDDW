@@ -14,51 +14,77 @@ namespace DroneDDW.Parks.Table
 	[AddComponentMenu("DroneDDW/Parks/Park Hand Bones")]
 	public sealed class ParkHandBones : MonoBehaviour
 	{
+		#region Entities
+
+		private enum Thickness
+		{
+			Wrist,
+			Palm,
+			ThumbBase,
+			FingerBase,
+			FingerMiddle,
+			FingerTip,
+		}
+
+		#endregion
+
 		#region Serialized fields
 
 		[SerializeField, Tooltip("The XR Origin's camera offset. Hand joints are relative to it.")]
 		private Transform _trackingSpace;
 
+		[Header("Bone radii (the push adds its touch margin on top)")]
+		[SerializeField, Min(0f), Tooltip("Wrist to palm centre.")]
+		private float _wristRadiusMeters = 0.02f;
+
+		[SerializeField, Min(0f), Tooltip("The four segments fanning across the palm.")]
+		private float _palmRadiusMeters = 0.015f;
+
+		[SerializeField, Min(0f), Tooltip("The thumb's first segment, from the wrist.")]
+		private float _thumbBaseRadiusMeters = 0.013f;
+
+		[SerializeField, Min(0f), Tooltip("Each finger's first segment, and the thumb's middle one.")]
+		private float _fingerBaseRadiusMeters = 0.01f;
+
+		[SerializeField, Min(0f), Tooltip("Each finger's middle segment.")]
+		private float _fingerMiddleRadiusMeters = 0.009f;
+
+		[SerializeField, Min(0f), Tooltip("Each finger's and the thumb's last segment, up to the tip.")]
+		private float _fingerTipRadiusMeters = 0.008f;
+
 		#endregion
 
 		#region Fields
 
-		private const float WristRadiusMeters = 0.02f;
-		private const float PalmRadiusMeters = 0.015f;
-		private const float ThumbBaseRadiusMeters = 0.013f;
-		private const float FingerBaseRadiusMeters = 0.01f;
-		private const float FingerMiddleRadiusMeters = 0.009f;
-		private const float FingerTipRadiusMeters = 0.008f;
-
 		// The metacarpal joints sit near the wrist, so the metacarpal segments fan out across the palm
-		private static readonly (XRHandJointID Start, XRHandJointID End, float RadiusMeters)[] BoneDefinitions =
+		private static readonly (XRHandJointID Start, XRHandJointID End, Thickness Thickness)[] BoneDefinitions =
 		{
-			(XRHandJointID.Wrist, XRHandJointID.Palm, WristRadiusMeters),
+			(XRHandJointID.Wrist, XRHandJointID.Palm, Thickness.Wrist),
 
-			(XRHandJointID.IndexMetacarpal, XRHandJointID.IndexProximal, PalmRadiusMeters),
-			(XRHandJointID.MiddleMetacarpal, XRHandJointID.MiddleProximal, PalmRadiusMeters),
-			(XRHandJointID.RingMetacarpal, XRHandJointID.RingProximal, PalmRadiusMeters),
-			(XRHandJointID.LittleMetacarpal, XRHandJointID.LittleProximal, PalmRadiusMeters),
+			(XRHandJointID.IndexMetacarpal, XRHandJointID.IndexProximal, Thickness.Palm),
+			(XRHandJointID.MiddleMetacarpal, XRHandJointID.MiddleProximal, Thickness.Palm),
+			(XRHandJointID.RingMetacarpal, XRHandJointID.RingProximal, Thickness.Palm),
+			(XRHandJointID.LittleMetacarpal, XRHandJointID.LittleProximal, Thickness.Palm),
 
-			(XRHandJointID.ThumbMetacarpal, XRHandJointID.ThumbProximal, ThumbBaseRadiusMeters),
-			(XRHandJointID.ThumbProximal, XRHandJointID.ThumbDistal, FingerBaseRadiusMeters),
-			(XRHandJointID.ThumbDistal, XRHandJointID.ThumbTip, FingerTipRadiusMeters),
+			(XRHandJointID.ThumbMetacarpal, XRHandJointID.ThumbProximal, Thickness.ThumbBase),
+			(XRHandJointID.ThumbProximal, XRHandJointID.ThumbDistal, Thickness.FingerBase),
+			(XRHandJointID.ThumbDistal, XRHandJointID.ThumbTip, Thickness.FingerTip),
 
-			(XRHandJointID.IndexProximal, XRHandJointID.IndexIntermediate, FingerBaseRadiusMeters),
-			(XRHandJointID.IndexIntermediate, XRHandJointID.IndexDistal, FingerMiddleRadiusMeters),
-			(XRHandJointID.IndexDistal, XRHandJointID.IndexTip, FingerTipRadiusMeters),
+			(XRHandJointID.IndexProximal, XRHandJointID.IndexIntermediate, Thickness.FingerBase),
+			(XRHandJointID.IndexIntermediate, XRHandJointID.IndexDistal, Thickness.FingerMiddle),
+			(XRHandJointID.IndexDistal, XRHandJointID.IndexTip, Thickness.FingerTip),
 
-			(XRHandJointID.MiddleProximal, XRHandJointID.MiddleIntermediate, FingerBaseRadiusMeters),
-			(XRHandJointID.MiddleIntermediate, XRHandJointID.MiddleDistal, FingerMiddleRadiusMeters),
-			(XRHandJointID.MiddleDistal, XRHandJointID.MiddleTip, FingerTipRadiusMeters),
+			(XRHandJointID.MiddleProximal, XRHandJointID.MiddleIntermediate, Thickness.FingerBase),
+			(XRHandJointID.MiddleIntermediate, XRHandJointID.MiddleDistal, Thickness.FingerMiddle),
+			(XRHandJointID.MiddleDistal, XRHandJointID.MiddleTip, Thickness.FingerTip),
 
-			(XRHandJointID.RingProximal, XRHandJointID.RingIntermediate, FingerBaseRadiusMeters),
-			(XRHandJointID.RingIntermediate, XRHandJointID.RingDistal, FingerMiddleRadiusMeters),
-			(XRHandJointID.RingDistal, XRHandJointID.RingTip, FingerTipRadiusMeters),
+			(XRHandJointID.RingProximal, XRHandJointID.RingIntermediate, Thickness.FingerBase),
+			(XRHandJointID.RingIntermediate, XRHandJointID.RingDistal, Thickness.FingerMiddle),
+			(XRHandJointID.RingDistal, XRHandJointID.RingTip, Thickness.FingerTip),
 
-			(XRHandJointID.LittleProximal, XRHandJointID.LittleIntermediate, FingerBaseRadiusMeters),
-			(XRHandJointID.LittleIntermediate, XRHandJointID.LittleDistal, FingerMiddleRadiusMeters),
-			(XRHandJointID.LittleDistal, XRHandJointID.LittleTip, FingerTipRadiusMeters),
+			(XRHandJointID.LittleProximal, XRHandJointID.LittleIntermediate, Thickness.FingerBase),
+			(XRHandJointID.LittleIntermediate, XRHandJointID.LittleDistal, Thickness.FingerMiddle),
+			(XRHandJointID.LittleDistal, XRHandJointID.LittleTip, Thickness.FingerTip),
 		};
 
 		private static readonly List<XRHandSubsystem> Subsystems = new List<XRHandSubsystem>();
@@ -105,13 +131,27 @@ namespace DroneDDW.Parks.Table
 				return;
 			}
 
-			foreach ((XRHandJointID start, XRHandJointID end, float radiusMeters) in BoneDefinitions)
+			foreach ((XRHandJointID start, XRHandJointID end, Thickness thickness) in BoneDefinitions)
 			{
 				if (hand.GetJoint(start).TryGetPose(out Pose startPose)
 					&& hand.GetJoint(end).TryGetPose(out Pose endPose))
 				{
-					_bones.Add(new ParkHandBone(ToWorld(startPose.position), ToWorld(endPose.position), radiusMeters));
+					_bones.Add(new ParkHandBone(ToWorld(startPose.position), ToWorld(endPose.position),
+						GetRadiusMeters(thickness)));
 				}
+			}
+		}
+
+		private float GetRadiusMeters(Thickness thickness)
+		{
+			switch (thickness)
+			{
+				case Thickness.Wrist: return _wristRadiusMeters;
+				case Thickness.Palm: return _palmRadiusMeters;
+				case Thickness.ThumbBase: return _thumbBaseRadiusMeters;
+				case Thickness.FingerBase: return _fingerBaseRadiusMeters;
+				case Thickness.FingerMiddle: return _fingerMiddleRadiusMeters;
+				default: return _fingerTipRadiusMeters;
 			}
 		}
 

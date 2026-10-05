@@ -29,18 +29,18 @@ namespace DroneDDW.Parks.Editor.Building
 	///    tagged with the levels it belongs to, a level controller that runs the wave transition,
 	///    the seat anchor with a copy of the project's XR rig (taken from the main scene, hands set up
 	///    as in the Interaction Tests scenes, grabbing with the finger grab and its shared settings),
-	///    the table with the five-detent slider (pushed by any part of a hand, grabbed once the fingers close, with
-	///    its sounds, lights and level name label) and the five miniatures, two ambience sources playing the
-	///    Content/Audio/Ambience loops and a realtime sun.
+	///    the floating board that follows the head, with the five-detent slider (pushed by any part of a hand, grabbed
+	///    once the fingers close, with its sounds, lights and level name label) and the five miniatures, two ambience
+	///    sources playing the Content/Audio/Ambience loops and a realtime sun.
 	/// Safe to run again: materials and prefabs keep their GUIDs, the scene is rebuilt.
 	/// </summary>
 	internal static class ParkLevelSceneBuilder
 	{
 		#region Entities
 
-		private readonly struct TableParts
+		private readonly struct BoardParts
 		{
-			public TableParts(ParkLevelSlider slider, ParkModelPreview preview)
+			public BoardParts(ParkLevelSlider slider, ParkModelPreview preview)
 			{
 				Slider = slider;
 				Preview = preview;
@@ -75,11 +75,18 @@ namespace DroneDDW.Parks.Editor.Building
 		private const string NotchPrefix = "Rig_Detent_";
 		private const string NatureGlyphName = "Rig_Glyph_Nature";
 		private const string EfficiencyGlyphName = "Rig_Glyph_Efficiency";
+		private const string TableName = "Rig_Table";
+		private const string BoardName = "Park_Board";
 		private const int StartLevel = 2;
+
+		// Testing aid: draws the spheres the hands push the slider with
+		private const bool ShowHandSpheres = true;
 		private const float SeatHeight = 0.12f;
 		private const float EyeHeight = 1.2f;
 		private const float FarClipPlane = 300f;
-		private const float TableDistance = 0.75f;
+		private const float BoardDistance = 0.75f;
+		private const float BoardDrop = 0.48f;
+		private const float BoardThickness = 0.03f;
 		private const float SliderHalfTravel = 0.3f;
 		private const float SunIntensity = 1.1f;
 		private const float SoundMinDistance = 0.3f;
@@ -87,7 +94,10 @@ namespace DroneDDW.Parks.Editor.Building
 		private const float LabelFontSize = 0.13f;
 
 		private static readonly string[] GroupNames = { "Terrain", "Paths", "Vegetation", "Props", "Structures" };
-		private static readonly string[] RigParts = { "Rig_Slider", "Rig_Handle", "Rig_ModelRoot", "Rig_ViewCone" };
+		private static readonly string[] RigParts =
+		{
+			TableName, "Rig_Slider", "Rig_Handle", "Rig_ModelRoot", "Rig_ViewCone",
+		};
 		private static readonly Vector3 HandleColliderCenter = new Vector3(0f, 0.03f, 0f);
 		private static readonly Vector3 HandleColliderSize = new Vector3(0.08f, 0.07f, 0.08f);
 		private static readonly Vector3 LabelOffsetMeters = new Vector3(0f, 0.1f, 0.06f);
@@ -254,10 +264,10 @@ namespace DroneDDW.Parks.Editor.Building
 			controller.Configure(elements.ToArray(), seat.transform, StartLevel);
 			controller.ShowLevelInEditor(StartLevel);
 
-			TableParts table = BuildTable(rigModel, levelModels, world.transform, head, trackingSpace, controller);
+			BoardParts board = BuildBoard(rigModel, levelModels, world.transform, head, trackingSpace, controller);
 			ParkAmbience ambience = BuildAmbience(experience.transform);
 			ParkExperience coordinator = experience.AddComponent<ParkExperience>();
-			coordinator.Configure(controller, table.Slider, table.Preview, ambience);
+			coordinator.Configure(controller, board.Slider, board.Preview, ambience);
 			ParkLevelDebugKeys debugKeys = experience.AddComponent<ParkLevelDebugKeys>();
 			debugKeys.Configure(controller);
 			ParkLifeBuilder.Build(lifePieces, controller, head);
@@ -442,13 +452,16 @@ namespace DroneDDW.Parks.Editor.Building
 			target.gameObject.SetActive(isActive);
 		}
 
-		private static TableParts BuildTable(GameObject rigModel, GameObject levelModels, Transform parkRoot,
+		/// <summary>
+		/// The rig's slider and miniature on a floating board that follows the head, in place of the rig's table, so
+		/// it suits any height, sitting or standing, facing any way. The miniature turns with the board.
+		/// </summary>
+		private static BoardParts BuildBoard(GameObject rigModel, GameObject levelModels, Transform parkRoot,
 			Transform head, Transform trackingSpace, ParkLevelController controller)
 		{
 			GameObject rig = (GameObject)PrefabUtility.InstantiatePrefab(rigModel);
 			PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-			rig.name = "Park_Table";
-			rig.transform.SetPositionAndRotation(new Vector3(0f, SeatHeight, TableDistance), Quaternion.identity);
+			rig.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
 			Dictionary<string, Transform> parts = new Dictionary<string, Transform>();
 			foreach (string partName in RigParts)
@@ -456,11 +469,17 @@ namespace DroneDDW.Parks.Editor.Building
 				Transform part = FindDeep(rig.transform, partName);
 				if (part == null)
 				{
-					Debug.LogError($"[Parks] {RigName}.fbx has no {partName}; the table is incomplete.");
-					return new TableParts(null, null);
+					Debug.LogError($"[Parks] {RigName}.fbx has no {partName}; the board is incomplete.");
+					return new BoardParts(null, null);
 				}
 
 				parts.Add(partName, part);
+			}
+
+			Transform board = ReplaceTableWithBoard(rig.transform, parts[TableName]);
+			if (board == null)
+			{
+				return new BoardParts(null, null);
 			}
 
 			Transform slider = parts["Rig_Slider"];
@@ -486,7 +505,75 @@ namespace DroneDDW.Parks.Editor.Building
 
 			AddHandInput(levelSlider, handle.gameObject, trackingSpace);
 			AddSliderFeedback(levelSlider, rig.transform, modelRoot, controller, head);
-			return new TableParts(levelSlider, preview);
+			ParkBoardFollow follow = board.gameObject.AddComponent<ParkBoardFollow>();
+			follow.Configure(head, levelSlider, new Vector3(0f, -BoardDrop, BoardDistance));
+			return new BoardParts(levelSlider, preview);
+		}
+
+		/// <summary>
+		/// Swaps the rig's table (top and legs) for a slab of the same footprint, flush with the old top, under a new
+		/// root whose origin is the middle of the top: the point the follow keeps in front of the head. The board
+		/// starts where the table top was, in front of the seat.
+		/// </summary>
+		private static Transform ReplaceTableWithBoard(Transform rig, Transform table)
+		{
+			if (!table.TryGetComponent(out MeshRenderer tableRenderer) || !table.TryGetComponent(out MeshFilter tableFilter))
+			{
+				Debug.LogError($"[Parks] {RigName}.fbx's {TableName} has no mesh to size the board from.");
+				return null;
+			}
+
+			// The rig sits at the origin, so its world bounds are in rig space
+			Bounds tableBounds = tableRenderer.bounds;
+			Vector3 top = new Vector3(tableBounds.center.x, tableBounds.max.y, tableBounds.center.z);
+			Transform board = new GameObject(BoardName).transform;
+			board.position = top;
+			rig.SetParent(board, true);
+
+			GameObject slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+			slab.name = "Board";
+			Object.DestroyImmediate(slab.GetComponent<Collider>());
+			slab.transform.SetParent(board, false);
+			slab.transform.localPosition = new Vector3(0f, -BoardThickness * 0.5f, 0f);
+			slab.transform.localScale = new Vector3(tableBounds.size.x, BoardThickness, tableBounds.size.z);
+			MeshFilter slabMesh = slab.GetComponent<MeshFilter>();
+			slabMesh.sharedMesh = CreateSwatchMesh(slabMesh.sharedMesh, tableFilter.sharedMesh);
+			slab.GetComponent<MeshRenderer>().sharedMaterial = tableRenderer.sharedMaterial;
+
+			Object.DestroyImmediate(table.gameObject);
+			board.position = new Vector3(0f, SeatHeight, BoardDistance) + top;
+			return board;
+		}
+
+		/// <summary>
+		/// A copy of the box mesh painted with the table top's palette swatch: every UV points at the UV of the
+		/// table's highest vertex, so the board keeps the table's colour from the shared palette texture.
+		/// </summary>
+		private static Mesh CreateSwatchMesh(Mesh box, Mesh table)
+		{
+			Vector3[] tableVertices = table.vertices;
+			Vector2[] tableUVs = table.uv;
+			Vector2 swatch = Vector2.zero;
+			float highest = float.NegativeInfinity;
+			for (int i = 0; i < tableVertices.Length && i < tableUVs.Length; i++)
+			{
+				if (tableVertices[i].y > highest)
+				{
+					highest = tableVertices[i].y;
+					swatch = tableUVs[i];
+				}
+			}
+
+			Mesh mesh = Object.Instantiate(box);
+			mesh.name = "Park_Board_Slab";
+			Vector2[] uvs = new Vector2[mesh.vertexCount];
+			for (int i = 0; i < uvs.Length; i++)
+			{
+				uvs[i] = swatch;
+			}
+
+			mesh.uv = uvs;
+			return mesh;
 		}
 
 		private static GameObject[] AttachMiniatures(GameObject levelModels, Transform modelRoot)
@@ -532,11 +619,30 @@ namespace DroneDDW.Parks.Editor.Building
 			handBones.Configure(trackingSpace);
 			ParkSliderHandDriver driver = slider.gameObject.AddComponent<ParkSliderHandDriver>();
 			driver.Configure(slider, interactable, handleMesh, handBones);
+			AddHandSpheresView(driver);
 #else
 			Debug.LogWarning("[Parks] XR Interaction Toolkit is not installed, so the slider has no XR input yet. "
 				+ "Install it and run this menu again, or call ParkLevelSlider.BeginDrag / DragTo / EndDrag from your own input.");
 #endif
 		}
+
+#if PARKS_XRI
+		/// <summary>
+		/// The testing view of the spheres the hands push with, on the slider. Shown while
+		/// <see cref="ShowHandSpheres"/> is on; switch its component on or off in Play mode to compare.
+		/// </summary>
+		private static void AddHandSpheresView(ParkSliderHandDriver driver)
+		{
+			Material material = ParkAssetUtility.CreateHandSpheresMaterial();
+			GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			Mesh sphereMesh = sphere.GetComponent<MeshFilter>().sharedMesh;
+			Object.DestroyImmediate(sphere);
+
+			ParkHandSpheresView view = driver.gameObject.AddComponent<ParkHandSpheresView>();
+			view.Configure(driver, sphereMesh, material);
+			view.enabled = ShowHandSpheres;
+		}
+#endif
 
 		/// <summary>
 		/// What the slider gives back, since hands feel no haptics: sounds from the knob, the glow material on the

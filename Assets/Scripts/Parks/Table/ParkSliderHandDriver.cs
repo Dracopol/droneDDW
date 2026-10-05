@@ -1,4 +1,5 @@
 #if PARKS_XRI
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 #if PARKS_XRI_3
@@ -71,6 +72,7 @@ namespace DroneDDW.Parks.Table
 
 		#region Fields
 
+		private readonly List<ParkHandSphere> _spheres = new List<ParkHandSphere>();
 		private Transform _transform;
 		private HoldMode _mode;
 		private float _lastHoldTime;
@@ -167,6 +169,12 @@ namespace DroneDDW.Parks.Table
 			_handBones = handBones;
 		}
 
+		/// <summary>The spheres the push tests right now, for <see cref="ParkHandSpheresView"/>.</summary>
+		internal void CollectSpheres(List<ParkHandSphere> spheres)
+		{
+			SampleSpheres(spheres, out _, out _);
+		}
+
 		#endregion
 
 		#region Private
@@ -203,47 +211,31 @@ namespace DroneDDW.Parks.Table
 		private bool TryGetPushTarget(out Vector3 targetPoint)
 		{
 			targetPoint = default;
-			if (_handleMesh == null || _handleMesh.sharedMesh == null)
+			if (!SampleSpheres(_spheres, out Vector3 boxCenter, out Vector3 halfSize))
 			{
 				return false;
 			}
 
-			_handBones.Refresh();
-			Transform handle = _handleMesh.transform;
-			Bounds bounds = _handleMesh.sharedMesh.bounds;
-			Vector3 boxCenter = handle.localPosition + bounds.center;
-			Vector3 halfSize = bounds.extents;
 			float lowestCenterX = float.NegativeInfinity;
 			float highestCenterX = float.PositiveInfinity;
 			bool isTouched = false;
-
-			foreach (ParkHandBone bone in _handBones.Bones)
+			foreach (ParkHandSphere sphere in _spheres)
 			{
-				float radiusMeters = bone.RadiusMeters + _touchMarginMeters;
-				float clearanceMeters = halfSize.x + radiusMeters;
-				float lengthMeters = Vector3.Distance(bone.Start, bone.End);
-				int segmentCount = Mathf.Max(1, Mathf.CeilToInt(lengthMeters / _sampleSpacingMeters));
-
-				for (int sample = 0; sample <= segmentCount; sample++)
+				if (!sphere.IsTouching)
 				{
-					Vector3 worldPoint = Vector3.Lerp(bone.Start, bone.End, (float)sample / segmentCount);
-					Vector3 point = _transform.InverseTransformPoint(worldPoint);
-					bool isLevel = Mathf.Abs(point.y - boxCenter.y) <= halfSize.y + radiusMeters
-						&& Mathf.Abs(point.z - boxCenter.z) <= halfSize.z + radiusMeters;
-					if (!isLevel || Mathf.Abs(point.x - boxCenter.x) >= clearanceMeters)
-					{
-						continue;
-					}
+					continue;
+				}
 
-					isTouched = true;
-					if (point.x < boxCenter.x)
-					{
-						lowestCenterX = Mathf.Max(lowestCenterX, point.x + clearanceMeters);
-					}
-					else
-					{
-						highestCenterX = Mathf.Min(highestCenterX, point.x - clearanceMeters);
-					}
+				isTouched = true;
+				float x = sphere.SliderPosition.x;
+				float clearanceMeters = halfSize.x + sphere.RadiusMeters;
+				if (x < boxCenter.x)
+				{
+					lowestCenterX = Mathf.Max(lowestCenterX, x + clearanceMeters);
+				}
+				else
+				{
+					highestCenterX = Mathf.Min(highestCenterX, x - clearanceMeters);
 				}
 			}
 
@@ -255,7 +247,44 @@ namespace DroneDDW.Parks.Table
 			float centerX = lowestCenterX > highestCenterX
 				? (lowestCenterX + highestCenterX) * 0.5f
 				: Mathf.Clamp(boxCenter.x, lowestCenterX, highestCenterX);
-			targetPoint = _transform.TransformPoint(new Vector3(centerX - bounds.center.x, 0f, 0f));
+			targetPoint = _transform.TransformPoint(new Vector3(centerX - _handleMesh.sharedMesh.bounds.center.x, 0f, 0f));
+			return true;
+		}
+
+		/// <summary>
+		/// Samples spheres along every hand bone, sized with the touch margin, and marks the ones touching the handle's
+		/// mesh box, which it hands out in the slider's space. False when the handle has no mesh.
+		/// </summary>
+		private bool SampleSpheres(List<ParkHandSphere> spheres, out Vector3 boxCenter, out Vector3 halfSize)
+		{
+			spheres.Clear();
+			boxCenter = default;
+			halfSize = default;
+			if (_handleMesh == null || _handleMesh.sharedMesh == null)
+			{
+				return false;
+			}
+
+			_handBones.Refresh();
+			Bounds bounds = _handleMesh.sharedMesh.bounds;
+			boxCenter = _handleMesh.transform.localPosition + bounds.center;
+			halfSize = bounds.extents;
+			foreach (ParkHandBone bone in _handBones.Bones)
+			{
+				float radiusMeters = bone.RadiusMeters + _touchMarginMeters;
+				float lengthMeters = Vector3.Distance(bone.Start, bone.End);
+				int segmentCount = Mathf.Max(1, Mathf.CeilToInt(lengthMeters / _sampleSpacingMeters));
+				for (int sample = 0; sample <= segmentCount; sample++)
+				{
+					Vector3 worldPoint = Vector3.Lerp(bone.Start, bone.End, (float)sample / segmentCount);
+					Vector3 point = _transform.InverseTransformPoint(worldPoint);
+					bool isTouching = Mathf.Abs(point.y - boxCenter.y) <= halfSize.y + radiusMeters
+						&& Mathf.Abs(point.z - boxCenter.z) <= halfSize.z + radiusMeters
+						&& Mathf.Abs(point.x - boxCenter.x) < halfSize.x + radiusMeters;
+					spheres.Add(new ParkHandSphere(worldPoint, point, radiusMeters, isTouching));
+				}
+			}
+
 			return true;
 		}
 
