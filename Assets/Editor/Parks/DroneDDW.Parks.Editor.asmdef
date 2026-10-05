@@ -9,7 +9,8 @@
         "Unity.XR.CoreUtils",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "Oculus.VR"
     ],
     "includePlatforms": [
         "Editor"

@@ -16,6 +16,8 @@ namespace DroneDDW.Parks.Table
 	/// instead, keeping its offset. Pushing and grabbing are one drag: it ends, and the level is committed, only once
 	/// nothing has touched or held the handle for a short moment, so a touch that flickers mid-push doesn't commit
 	/// early. Every frame it also tells the slider how a hand touches the handle (for its sounds, lights and label).
+	/// How the hands meet the handle comes from the shared push settings, read every frame: the spheres' margin and
+	/// spacing, the padding of the box they push against, and the grab box, which it keeps the handle's BoxCollider on.
 	/// Plays a haptic tick on every detent and a firmer one on commit while grabbing (nothing with hands).
 	/// Compiled only when the XR Interaction Toolkit package is installed.
 	/// </summary>
@@ -47,16 +49,13 @@ namespace DroneDDW.Parks.Table
 
 		[SerializeField] private ParkHandBones _handBones;
 
+		[SerializeField, Tooltip("The shared push settings: sphere margin and spacing, push box padding and grab box. "
+			+ "Uses the defaults when empty.")]
+		private ParkPushSettings _settings;
+
 		[Header("Push")]
 		[SerializeField, Tooltip("Any part of a hand pushes the handle. Off leaves grabbing only.")]
 		private bool _isPushEnabled = true;
-
-		[SerializeField, Min(0f), Tooltip("How close a hand counts as touching, "
-			+ "so resting against the handle keeps holding it.")]
-		private float _touchMarginMeters = 0.005f;
-
-		[SerializeField, Min(0.002f), Tooltip("Spacing of the spheres sampled along each hand bone.")]
-		private float _sampleSpacingMeters = 0.01f;
 
 		[SerializeField, Min(0f), Tooltip("How long nothing may touch or hold the handle "
 			+ "before the level is committed.")]
@@ -72,8 +71,12 @@ namespace DroneDDW.Parks.Table
 
 		#region Fields
 
+		// Keeps the sphere count sane whatever the settings say
+		private const float MinSampleSpacingMeters = 0.002f;
+
 		private readonly List<ParkHandSphere> _spheres = new List<ParkHandSphere>();
 		private Transform _transform;
+		private BoxCollider _handleCollider;
 		private HoldMode _mode;
 		private float _lastHoldTime;
 		private IXRSelectInteractor _dragger;
@@ -86,6 +89,10 @@ namespace DroneDDW.Parks.Table
 		private void Awake()
 		{
 			_transform = transform;
+			if (_handleMesh != null)
+			{
+				_handleMesh.TryGetComponent(out _handleCollider);
+			}
 		}
 
 		private void OnEnable()
@@ -115,6 +122,8 @@ namespace DroneDDW.Parks.Table
 
 		private void Update()
 		{
+			ApplyGrabBox();
+
 			// The contact is reported before dragging: the slider's soft detents only apply to a grab
 			IXRSelectInteractor interactor = _interactable.isSelected ? _interactable.firstInteractorSelecting : null;
 			if (interactor != null)
@@ -161,18 +170,46 @@ namespace DroneDDW.Parks.Table
 		#region Internal
 
 		internal void Configure(ParkLevelSlider slider, XRBaseInteractable interactable, MeshFilter handleMesh,
-			ParkHandBones handBones)
+			ParkHandBones handBones, ParkPushSettings settings)
 		{
 			_slider = slider;
 			_interactable = interactable;
 			_handleMesh = handleMesh;
 			_handBones = handBones;
+			_settings = settings;
 		}
 
 		/// <summary>The spheres the push tests right now, for <see cref="ParkHandSpheresView"/>.</summary>
 		internal void CollectSpheres(List<ParkHandSphere> spheres)
 		{
 			SampleSpheres(spheres, out _, out _);
+		}
+
+		/// <summary>The box the spheres push against, as a world matrix of a 1 m cube, for drawing it.</summary>
+		internal bool TryGetPushBoxMatrix(out Matrix4x4 matrix)
+		{
+			matrix = default;
+			if (!TryGetPushBox(out Vector3 boxCenter, out Vector3 halfSize))
+			{
+				return false;
+			}
+
+			matrix = _transform.localToWorldMatrix * Matrix4x4.TRS(boxCenter, Quaternion.identity, halfSize * 2f);
+			return true;
+		}
+
+		/// <summary>The handle's BoxCollider, which the finger grab reaches for, as a world matrix of a 1 m cube.</summary>
+		internal bool TryGetGrabBoxMatrix(out Matrix4x4 matrix)
+		{
+			matrix = default;
+			if (_handleCollider == null)
+			{
+				return false;
+			}
+
+			matrix = _handleCollider.transform.localToWorldMatrix
+				* Matrix4x4.TRS(_handleCollider.center, Quaternion.identity, _handleCollider.size);
+			return true;
 		}
 
 		#endregion
@@ -252,28 +289,25 @@ namespace DroneDDW.Parks.Table
 		}
 
 		/// <summary>
-		/// Samples spheres along every hand bone, sized with the touch margin, and marks the ones touching the handle's
-		/// mesh box, which it hands out in the slider's space. False when the handle has no mesh.
+		/// Samples spheres along every hand bone, sized with the touch margin, and marks the ones touching the push box,
+		/// which it hands out in the slider's space. False when the handle has no mesh.
 		/// </summary>
 		private bool SampleSpheres(List<ParkHandSphere> spheres, out Vector3 boxCenter, out Vector3 halfSize)
 		{
 			spheres.Clear();
-			boxCenter = default;
-			halfSize = default;
-			if (_handleMesh == null || _handleMesh.sharedMesh == null)
+			if (!TryGetPushBox(out boxCenter, out halfSize))
 			{
 				return false;
 			}
 
 			_handBones.Refresh();
-			Bounds bounds = _handleMesh.sharedMesh.bounds;
-			boxCenter = _handleMesh.transform.localPosition + bounds.center;
-			halfSize = bounds.extents;
+			ParkPushSettings settings = ParkPushSettings.OrDefaults(_settings);
+			float spacingMeters = Mathf.Max(MinSampleSpacingMeters, settings.SampleSpacingMeters);
 			foreach (ParkHandBone bone in _handBones.Bones)
 			{
-				float radiusMeters = bone.RadiusMeters + _touchMarginMeters;
+				float radiusMeters = bone.RadiusMeters + settings.TouchMarginMeters;
 				float lengthMeters = Vector3.Distance(bone.Start, bone.End);
-				int segmentCount = Mathf.Max(1, Mathf.CeilToInt(lengthMeters / _sampleSpacingMeters));
+				int segmentCount = Mathf.Max(1, Mathf.CeilToInt(lengthMeters / spacingMeters));
 				for (int sample = 0; sample <= segmentCount; sample++)
 				{
 					Vector3 worldPoint = Vector3.Lerp(bone.Start, bone.End, (float)sample / segmentCount);
@@ -286,6 +320,47 @@ namespace DroneDDW.Parks.Table
 			}
 
 			return true;
+		}
+
+		/// <summary>
+		/// The box the spheres push against, in the slider's space: the handle's visible mesh box, grown on every side by
+		/// the settings' padding (shrunk when negative). False when the handle has no mesh.
+		/// </summary>
+		private bool TryGetPushBox(out Vector3 boxCenter, out Vector3 halfSize)
+		{
+			boxCenter = default;
+			halfSize = default;
+			if (_handleMesh == null || _handleMesh.sharedMesh == null)
+			{
+				return false;
+			}
+
+			Bounds bounds = _handleMesh.sharedMesh.bounds;
+			float paddingMeters = ParkPushSettings.OrDefaults(_settings).PushBoxPaddingMeters;
+			boxCenter = _handleMesh.transform.localPosition + bounds.center;
+			halfSize = Vector3.Max(bounds.extents + Vector3.one * paddingMeters, Vector3.zero);
+			return true;
+		}
+
+		/// <summary>Keeps the handle's BoxCollider on the settings' grab box, so tuning it applies at once.</summary>
+		private void ApplyGrabBox()
+		{
+			if (_handleCollider == null)
+			{
+				return;
+			}
+
+			ParkPushSettings settings = ParkPushSettings.OrDefaults(_settings);
+			Vector3 size = Vector3.Max(settings.GrabBoxSize, Vector3.zero);
+			if (_handleCollider.center != settings.GrabBoxCenter)
+			{
+				_handleCollider.center = settings.GrabBoxCenter;
+			}
+
+			if (_handleCollider.size != size)
+			{
+				_handleCollider.size = size;
+			}
 		}
 
 		private Vector3 GetAttachPoint(IXRSelectInteractor interactor)

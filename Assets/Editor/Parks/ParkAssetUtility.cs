@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using DroneDDW.Parks.Editor.Import;
+using DroneDDW.Parks.Table;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -25,6 +26,7 @@ namespace DroneDDW.Parks.Editor.Building
 		internal const string PrefabsFolder = "Assets/Content/Prefabs/Parks";
 		internal const string ScenesFolder = "Assets/Scenes";
 
+		private const string PushSettingsPath = LayoutsFolder + "/Park Push Settings.asset";
 		private const string PaletteFileName = "Park_Palette.png";
 		private const string MaquettePaletteFileName = "Park_Palette_Maquette.png";
 		private const string MaterialPrefix = "Park_Mat_";
@@ -88,6 +90,45 @@ namespace DroneDDW.Parks.Editor.Building
 		internal static GameObject LoadModel(string fileName)
 		{
 			return AssetDatabase.LoadAssetAtPath<GameObject>($"{ModelsFolder}/{fileName}.fbx");
+		}
+
+		/// <summary>
+		/// The push settings shared by every park slider (Content/Data/Parks/Park Push Settings.asset): created with the
+		/// defaults the first time, never overwritten after, so tuning survives every rebuild.
+		/// </summary>
+		internal static ParkPushSettings LoadOrCreatePushSettings()
+		{
+			ParkPushSettings settings = AssetDatabase.LoadAssetAtPath<ParkPushSettings>(PushSettingsPath);
+			if (settings != null)
+			{
+				return settings;
+			}
+
+			EnsureFolder(LayoutsFolder);
+			settings = ScriptableObject.CreateInstance<ParkPushSettings>();
+			AssetDatabase.CreateAsset(settings, PushSettingsPath);
+			AssetDatabase.SaveAssets();
+			return settings;
+		}
+
+		/// <summary>Editor-time lookup of a node by name (the Blender build script's nodes, the rig's hand visuals).</summary>
+		internal static Transform FindDeep(Transform parent, string name)
+		{
+			foreach (Transform child in parent)
+			{
+				if (child.name == name)
+				{
+					return child;
+				}
+
+				Transform found = FindDeep(child, name);
+				if (found != null)
+				{
+					return found;
+				}
+			}
+
+			return null;
 		}
 
 		/// <summary>One URP Lit material per category, all sampling the palette (the maquette its paler copy).</summary>

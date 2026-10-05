@@ -6,8 +6,9 @@ namespace DroneDDW.Parks.Table
 {
 	/// <summary>
 	/// Both tracked hands as thick bone segments in world space, read straight from the hand subsystem, so they don't
-	/// depend on which hand visuals the rig has switched on. Same bones and thicknesses as the Push Slider Test's hand
-	/// skeleton. A hand that isn't tracked has no bones, so a lost hand can't keep pushing.
+	/// depend on which hand visuals the rig has switched on. Same bones as the Push Slider Test's hand skeleton; their
+	/// thicknesses come from the shared push settings, read on every refresh, so tuning them applies at once. A hand that
+	/// isn't tracked has no bones, so a lost hand can't keep pushing.
 	/// Refreshed by whoever reads it (<see cref="ParkSliderHandDriver"/>), right before use.
 	/// </summary>
 	[DisallowMultipleComponent]
@@ -33,24 +34,8 @@ namespace DroneDDW.Parks.Table
 		[SerializeField, Tooltip("The XR Origin's camera offset. Hand joints are relative to it.")]
 		private Transform _trackingSpace;
 
-		[Header("Bone radii (the push adds its touch margin on top)")]
-		[SerializeField, Min(0f), Tooltip("Wrist to palm centre.")]
-		private float _wristRadiusMeters = 0.02f;
-
-		[SerializeField, Min(0f), Tooltip("The four segments fanning across the palm.")]
-		private float _palmRadiusMeters = 0.015f;
-
-		[SerializeField, Min(0f), Tooltip("The thumb's first segment, from the wrist.")]
-		private float _thumbBaseRadiusMeters = 0.013f;
-
-		[SerializeField, Min(0f), Tooltip("Each finger's first segment, and the thumb's middle one.")]
-		private float _fingerBaseRadiusMeters = 0.01f;
-
-		[SerializeField, Min(0f), Tooltip("Each finger's middle segment.")]
-		private float _fingerMiddleRadiusMeters = 0.009f;
-
-		[SerializeField, Min(0f), Tooltip("Each finger's and the thumb's last segment, up to the tip.")]
-		private float _fingerTipRadiusMeters = 0.008f;
+		[SerializeField, Tooltip("The shared push settings, which hold the bone radii. Uses the defaults when empty.")]
+		private ParkPushSettings _settings;
 
 		#endregion
 
@@ -111,20 +96,22 @@ namespace DroneDDW.Parks.Table
 				return;
 			}
 
-			AddBones(subsystem.leftHand);
-			AddBones(subsystem.rightHand);
+			ParkPushSettings settings = ParkPushSettings.OrDefaults(_settings);
+			AddBones(subsystem.leftHand, settings);
+			AddBones(subsystem.rightHand, settings);
 		}
 
-		internal void Configure(Transform trackingSpace)
+		internal void Configure(Transform trackingSpace, ParkPushSettings settings)
 		{
 			_trackingSpace = trackingSpace;
+			_settings = settings;
 		}
 
 		#endregion
 
 		#region Private
 
-		private void AddBones(XRHand hand)
+		private void AddBones(XRHand hand, ParkPushSettings settings)
 		{
 			if (!hand.isTracked)
 			{
@@ -137,21 +124,21 @@ namespace DroneDDW.Parks.Table
 					&& hand.GetJoint(end).TryGetPose(out Pose endPose))
 				{
 					_bones.Add(new ParkHandBone(ToWorld(startPose.position), ToWorld(endPose.position),
-						GetRadiusMeters(thickness)));
+						GetRadiusMeters(thickness, settings)));
 				}
 			}
 		}
 
-		private float GetRadiusMeters(Thickness thickness)
+		private static float GetRadiusMeters(Thickness thickness, ParkPushSettings settings)
 		{
 			switch (thickness)
 			{
-				case Thickness.Wrist: return _wristRadiusMeters;
-				case Thickness.Palm: return _palmRadiusMeters;
-				case Thickness.ThumbBase: return _thumbBaseRadiusMeters;
-				case Thickness.FingerBase: return _fingerBaseRadiusMeters;
-				case Thickness.FingerMiddle: return _fingerMiddleRadiusMeters;
-				default: return _fingerTipRadiusMeters;
+				case Thickness.Wrist: return settings.WristRadiusMeters;
+				case Thickness.Palm: return settings.PalmRadiusMeters;
+				case Thickness.ThumbBase: return settings.ThumbBaseRadiusMeters;
+				case Thickness.FingerBase: return settings.FingerBaseRadiusMeters;
+				case Thickness.FingerMiddle: return settings.FingerMiddleRadiusMeters;
+				default: return settings.FingerTipRadiusMeters;
 			}
 		}
 

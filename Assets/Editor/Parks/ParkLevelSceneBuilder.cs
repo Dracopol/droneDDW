@@ -1,22 +1,13 @@
 using System.Collections.Generic;
-using DroneDDW.FingerGrab.Editor;
 using DroneDDW.Parks.Audio;
 using DroneDDW.Parks.Editor.Life;
 using DroneDDW.Parks.Experience;
 using DroneDDW.Parks.Levels;
 using DroneDDW.Parks.Table;
-using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-#if PARKS_XRI
-using Unity.XR.CoreUtils;
-using UnityEngine.XR.Interaction.Toolkit;
-#if PARKS_XRI_3
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
-#endif
-#endif
 
 namespace DroneDDW.Parks.Editor.Building
 {
@@ -27,81 +18,35 @@ namespace DroneDDW.Parks.Editor.Building
 	/// 2. Saves the modular pieces of Park_Levels_Kit as prefabs (Content/Prefabs/Parks/Park_Levels).
 	/// 3. Builds Scenes/Park Levels.unity: one park holding all five levels, every changing object
 	///    tagged with the levels it belongs to, a level controller that runs the wave transition,
-	///    the seat anchor with a copy of the project's XR rig (taken from the main scene, hands set up
-	///    as in the Interaction Tests scenes, grabbing with the finger grab and its shared settings),
-	///    the floating board that follows the head, with the five-detent slider (pushed by any part of a hand, grabbed
-	///    once the fingers close, with its sounds, lights and level name label) and the five miniatures, two ambience
-	///    sources playing the Content/Audio/Ambience loops and a realtime sun.
+	///    the seat anchor with a copy of the project's XR rig (see <see cref="ParkRigBuilder"/>), the floating board
+	///    that follows the head (see <see cref="ParkBoardBuilder"/>) with the five-detent slider and the five miniatures,
+	///    the "Slider Tuning" object showing the shared push settings, two ambience sources playing the
+	///    Content/Audio/Ambience loops and a realtime sun.
 	/// Safe to run again: materials and prefabs keep their GUIDs, the scene is rebuilt.
 	/// </summary>
 	internal static class ParkLevelSceneBuilder
 	{
-		#region Entities
-
-		private readonly struct BoardParts
-		{
-			public BoardParts(ParkLevelSlider slider, ParkModelPreview preview)
-			{
-				Slider = slider;
-				Preview = preview;
-			}
-
-			public ParkLevelSlider Slider { get; }
-			public ParkModelPreview Preview { get; }
-		}
-
-		#endregion
-
 		#region Fields
 
 		private const string MenuPath = "DroneDDW/Parks/Build Level Park (5 Levels)";
 		private const string DialogTitle = "Level park";
 		private const string LayoutFileName = "Park_Levels_Layout.json";
 		private const string KitName = "Park_Levels_Kit";
-		private const string RigName = "Park_Levels_Rig";
 		private const string ModelName = "Park_Levels_Model";
 		private const string SceneName = "Park Levels";
 		private const string ModelLevelPrefix = "Model_Level_";
-		private const string XRRigScenePath = "Assets/Scenes/Questionnaire.unity";
-		private const string LeftHandVisualName = "LeftHandQuestVisual";
-		private const string HandVisualizerName = "Hand Visualizer";
 		private const string NatureClipFileName = "Park_Ambience_Nature.ogg";
 		private const string EfficiencyClipFileName = "Park_Ambience_Efficiency.ogg";
-		private const string PressClipFileName = "Button Press.wav";
-		private const string TouchClipFileName = "Button Touch.wav";
-		private const string ReleaseClipFileName = "Button Release.wav";
-		private const string LockInClipFileName = "Lock In.wav";
-		private const string ScrapeClipFileName = "Slider Scrape.wav";
-		private const string NotchPrefix = "Rig_Detent_";
-		private const string NatureGlyphName = "Rig_Glyph_Nature";
-		private const string EfficiencyGlyphName = "Rig_Glyph_Efficiency";
-		private const string TableName = "Rig_Table";
-		private const string BoardName = "Park_Board";
 		private const int StartLevel = 2;
 
-		// Testing aid: draws the spheres the hands push the slider with
+		// Testing aid: draws the spheres the hands push the slider with, and the knob's push and grab boxes
 		private const bool ShowHandSpheres = true;
 		private const float SeatHeight = 0.12f;
 		private const float EyeHeight = 1.2f;
 		private const float FarClipPlane = 300f;
-		private const float BoardDistance = 0.75f;
-		private const float BoardDrop = 0.48f;
-		private const float BoardThickness = 0.03f;
-		private const float SliderHalfTravel = 0.3f;
 		private const float SunIntensity = 1.1f;
-		private const float SoundMinDistance = 0.3f;
-		private const float SoundMaxDistance = 10f;
-		private const float LabelFontSize = 0.13f;
 
 		private static readonly string[] GroupNames = { "Terrain", "Paths", "Vegetation", "Props", "Structures" };
-		private static readonly string[] RigParts =
-		{
-			TableName, "Rig_Slider", "Rig_Handle", "Rig_ModelRoot", "Rig_ViewCone",
-		};
-		private static readonly Vector3 HandleColliderCenter = new Vector3(0f, 0.03f, 0f);
-		private static readonly Vector3 HandleColliderSize = new Vector3(0.08f, 0.07f, 0.08f);
-		private static readonly Vector3 LabelOffsetMeters = new Vector3(0f, 0.1f, 0.06f);
-		private static readonly Vector2 LabelSizeMeters = new Vector2(0.3f, 0.05f);
 		private static readonly Vector3 SunEuler = new Vector3(50f, 30f, 0f);
 		private static readonly Vector3 CameraEuler = new Vector3(14f, 0f, 0f);
 		private static readonly Color SunColor = new Color(1f, 0.957f, 0.86f);
@@ -141,7 +86,7 @@ namespace DroneDDW.Parks.Editor.Building
 
 				// Load after the reimport so no reference points at a replaced import result.
 				GameObject kit = ParkAssetUtility.LoadModel(KitName);
-				GameObject rig = ParkAssetUtility.LoadModel(RigName);
+				GameObject rig = ParkAssetUtility.LoadModel(ParkBoardBuilder.RigModelName);
 				GameObject models = ParkAssetUtility.LoadModel(ModelName);
 				ParkLayout layout = JsonUtility.FromJson<ParkLayout>(json.text);
 
@@ -264,13 +209,17 @@ namespace DroneDDW.Parks.Editor.Building
 			controller.Configure(elements.ToArray(), seat.transform, StartLevel);
 			controller.ShowLevelInEditor(StartLevel);
 
-			BoardParts board = BuildBoard(rigModel, levelModels, world.transform, head, trackingSpace, controller);
+			ParkPushSettings pushSettings = ParkAssetUtility.LoadOrCreatePushSettings();
+			ParkBoardBuilder.Board board = ParkBoardBuilder.Build(rigModel, false, seat.transform.position, StartLevel, head,
+				trackingSpace, controller, pushSettings, ShowHandSpheres);
+			ParkModelPreview preview = AddMiniatures(levelModels, board, world.transform, head);
 			ParkAmbience ambience = BuildAmbience(experience.transform);
 			ParkExperience coordinator = experience.AddComponent<ParkExperience>();
-			coordinator.Configure(controller, board.Slider, board.Preview, ambience);
+			coordinator.Configure(controller, board.Slider, preview, ambience);
 			ParkLevelDebugKeys debugKeys = experience.AddComponent<ParkLevelDebugKeys>();
 			debugKeys.Configure(controller);
 			ParkLifeBuilder.Build(lifePieces, controller, head);
+			ParkBoardBuilder.AddTuningObject(pushSettings, board.SpheresView);
 
 			string scenesFolder = ParkAssetUtility.EnsureFolder(ParkAssetUtility.ScenesFolder);
 			string scenePath = $"{scenesFolder}/{SceneName}.unity";
@@ -352,7 +301,7 @@ namespace DroneDDW.Parks.Editor.Building
 				}
 			}
 
-			Camera rigCamera = CopyXRRig(scene, seat, out trackingSpace);
+			Camera rigCamera = ParkRigBuilder.CopyXRRig(scene, seat.position, false, FarClipPlane, out trackingSpace);
 			if (rigCamera != null)
 			{
 				if (defaultCamera != null)
@@ -360,9 +309,6 @@ namespace DroneDDW.Parks.Editor.Building
 					Object.DestroyImmediate(defaultCamera.gameObject);
 				}
 
-				// Thumb plus any finger grabs the slider, tuned by the shared Finger Grab Settings asset
-				int fingerGrabHandCount = FingerGrabRigSetup.AddToScene(scene);
-				Debug.Log($"[Parks] Finger grab set up on {fingerGrabHandCount} hands.");
 				return rigCamera.transform;
 			}
 
@@ -371,7 +317,7 @@ namespace DroneDDW.Parks.Editor.Building
 				return null;
 			}
 
-			Debug.LogWarning($"[Parks] No XR rig found in {XRRigScenePath}, so the park has a desktop camera instead.");
+			Debug.LogWarning($"[Parks] No XR rig found in {ParkRigBuilder.MainScenePath}, so the park has a desktop camera instead.");
 			defaultCamera.gameObject.name = "Main Camera (desktop preview)";
 			defaultCamera.transform.SetPositionAndRotation(seat.position + Vector3.up * EyeHeight, Quaternion.Euler(CameraEuler));
 			defaultCamera.nearClipPlane = 0.03f;
@@ -380,200 +326,22 @@ namespace DroneDDW.Parks.Editor.Building
 		}
 
 		/// <summary>
-		/// Copies the XR rig (the root with an XR Origin) from the main scene onto the seat, so the park runs on
-		/// the same seated, hand-tracked setup. It is a copy: rebuild the park after changing the rig there.
-		/// Returns the rig's camera, or null when the main scene or its rig is missing, and hands out the rig's
-		/// tracking space: the camera offset its hand joints are relative to.
+		/// The five level miniatures on the board's model root, and the preview that shows the right one and turns the
+		/// view cone. Null when the board has no model root.
 		/// </summary>
-		private static Camera CopyXRRig(Scene scene, Transform seat, out Transform trackingSpace)
+		private static ParkModelPreview AddMiniatures(GameObject levelModels, ParkBoardBuilder.Board board,
+			Transform parkRoot, Transform head)
 		{
-			trackingSpace = null;
-#if PARKS_XRI
-			if (AssetDatabase.LoadAssetAtPath<SceneAsset>(XRRigScenePath) == null)
+			if (board.ModelRoot == null)
 			{
 				return null;
 			}
 
-			Scene source = EditorSceneManager.OpenScene(XRRigScenePath, OpenSceneMode.Additive);
-			try
-			{
-				foreach (GameObject rootObject in source.GetRootGameObjects())
-				{
-					if (!rootObject.TryGetComponent(out XROrigin sourceOrigin) || sourceOrigin.Camera == null)
-					{
-						continue;
-					}
-
-					GameObject rig = Object.Instantiate(rootObject);
-					rig.name = rootObject.name;
-					SceneManager.MoveGameObjectToScene(rig, scene);
-					rig.transform.SetPositionAndRotation(seat.position, seat.rotation);
-					UseInteractionTestHands(rig.transform);
-
-					// The main scene's camera clears to transparent black for passthrough; the park needs its sky.
-					XROrigin origin = rig.GetComponent<XROrigin>();
-					trackingSpace = origin.CameraFloorOffsetObject.transform;
-					Camera camera = origin.Camera;
-					camera.clearFlags = CameraClearFlags.Skybox;
-					camera.farClipPlane = Mathf.Max(camera.farClipPlane, FarClipPlane);
-					return camera;
-				}
-
-				return null;
-			}
-			finally
-			{
-				EditorSceneManager.CloseScene(source, true);
-			}
-#else
-			return null;
-#endif
-		}
-
-		/// <summary>
-		/// Matches the hand visuals of the Interaction Tests scenes: both Quest hand meshes on, the XR Hands
-		/// sample visualizer off. The main scene currently hides the left mesh and shows the visualizer instead.
-		/// </summary>
-		private static void UseInteractionTestHands(Transform rig)
-		{
-			SetActiveInRig(rig, LeftHandVisualName, true);
-			SetActiveInRig(rig, HandVisualizerName, false);
-		}
-
-		private static void SetActiveInRig(Transform rig, string objectName, bool isActive)
-		{
-			Transform target = FindDeep(rig, objectName);
-			if (target == null)
-			{
-				Debug.LogWarning($"[Parks] The XR rig has no {objectName}, so its hand visuals stay as in the main scene.");
-				return;
-			}
-
-			target.gameObject.SetActive(isActive);
-		}
-
-		/// <summary>
-		/// The rig's slider and miniature on a floating board that follows the head, in place of the rig's table, so
-		/// it suits any height, sitting or standing, facing any way. The miniature turns with the board.
-		/// </summary>
-		private static BoardParts BuildBoard(GameObject rigModel, GameObject levelModels, Transform parkRoot,
-			Transform head, Transform trackingSpace, ParkLevelController controller)
-		{
-			GameObject rig = (GameObject)PrefabUtility.InstantiatePrefab(rigModel);
-			PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-			rig.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-			Dictionary<string, Transform> parts = new Dictionary<string, Transform>();
-			foreach (string partName in RigParts)
-			{
-				Transform part = FindDeep(rig.transform, partName);
-				if (part == null)
-				{
-					Debug.LogError($"[Parks] {RigName}.fbx has no {partName}; the board is incomplete.");
-					return new BoardParts(null, null);
-				}
-
-				parts.Add(partName, part);
-			}
-
-			Transform board = ReplaceTableWithBoard(rig.transform, parts[TableName]);
-			if (board == null)
-			{
-				return new BoardParts(null, null);
-			}
-
-			Transform slider = parts["Rig_Slider"];
-			Transform handle = parts["Rig_Handle"];
-			Transform modelRoot = parts["Rig_ModelRoot"];
-			GameObject[] miniatures = AttachMiniatures(levelModels, modelRoot);
-
-			ParkModelPreview preview = modelRoot.gameObject.AddComponent<ParkModelPreview>();
-			preview.Configure(miniatures, parts["Rig_ViewCone"], parkRoot, head);
+			GameObject[] miniatures = AttachMiniatures(levelModels, board.ModelRoot);
+			ParkModelPreview preview = board.ModelRoot.gameObject.AddComponent<ParkModelPreview>();
+			preview.Configure(miniatures, board.ViewCone, parkRoot, head);
 			preview.ShowLevel(StartLevel);
-
-			ParkLevelSlider levelSlider = slider.gameObject.AddComponent<ParkLevelSlider>();
-			levelSlider.Configure(handle, -SliderHalfTravel, SliderHalfTravel);
-			Vector3 handlePosition = handle.localPosition;
-			handlePosition.x = Mathf.Lerp(-SliderHalfTravel, SliderHalfTravel, ParkLevels.ToBlend(StartLevel));
-			handle.localPosition = handlePosition;
-			if (handle.TryGetComponent(out BoxCollider handleCollider))
-			{
-				// Bigger than the knob, so it is easy to grab. The hands push against the knob itself.
-				handleCollider.center = HandleColliderCenter;
-				handleCollider.size = HandleColliderSize;
-			}
-
-			AddHandInput(levelSlider, handle.gameObject, trackingSpace);
-			AddSliderFeedback(levelSlider, rig.transform, modelRoot, controller, head);
-			ParkBoardFollow follow = board.gameObject.AddComponent<ParkBoardFollow>();
-			follow.Configure(head, levelSlider, new Vector3(0f, -BoardDrop, BoardDistance));
-			return new BoardParts(levelSlider, preview);
-		}
-
-		/// <summary>
-		/// Swaps the rig's table (top and legs) for a slab of the same footprint, flush with the old top, under a new
-		/// root whose origin is the middle of the top: the point the follow keeps in front of the head. The board
-		/// starts where the table top was, in front of the seat.
-		/// </summary>
-		private static Transform ReplaceTableWithBoard(Transform rig, Transform table)
-		{
-			if (!table.TryGetComponent(out MeshRenderer tableRenderer) || !table.TryGetComponent(out MeshFilter tableFilter))
-			{
-				Debug.LogError($"[Parks] {RigName}.fbx's {TableName} has no mesh to size the board from.");
-				return null;
-			}
-
-			// The rig sits at the origin, so its world bounds are in rig space
-			Bounds tableBounds = tableRenderer.bounds;
-			Vector3 top = new Vector3(tableBounds.center.x, tableBounds.max.y, tableBounds.center.z);
-			Transform board = new GameObject(BoardName).transform;
-			board.position = top;
-			rig.SetParent(board, true);
-
-			GameObject slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
-			slab.name = "Board";
-			Object.DestroyImmediate(slab.GetComponent<Collider>());
-			slab.transform.SetParent(board, false);
-			slab.transform.localPosition = new Vector3(0f, -BoardThickness * 0.5f, 0f);
-			slab.transform.localScale = new Vector3(tableBounds.size.x, BoardThickness, tableBounds.size.z);
-			MeshFilter slabMesh = slab.GetComponent<MeshFilter>();
-			slabMesh.sharedMesh = CreateSwatchMesh(slabMesh.sharedMesh, tableFilter.sharedMesh);
-			slab.GetComponent<MeshRenderer>().sharedMaterial = tableRenderer.sharedMaterial;
-
-			Object.DestroyImmediate(table.gameObject);
-			board.position = new Vector3(0f, SeatHeight, BoardDistance) + top;
-			return board;
-		}
-
-		/// <summary>
-		/// A copy of the box mesh painted with the table top's palette swatch: every UV points at the UV of the
-		/// table's highest vertex, so the board keeps the table's colour from the shared palette texture.
-		/// </summary>
-		private static Mesh CreateSwatchMesh(Mesh box, Mesh table)
-		{
-			Vector3[] tableVertices = table.vertices;
-			Vector2[] tableUVs = table.uv;
-			Vector2 swatch = Vector2.zero;
-			float highest = float.NegativeInfinity;
-			for (int i = 0; i < tableVertices.Length && i < tableUVs.Length; i++)
-			{
-				if (tableVertices[i].y > highest)
-				{
-					highest = tableVertices[i].y;
-					swatch = tableUVs[i];
-				}
-			}
-
-			Mesh mesh = Object.Instantiate(box);
-			mesh.name = "Park_Board_Slab";
-			Vector2[] uvs = new Vector2[mesh.vertexCount];
-			for (int i = 0; i < uvs.Length; i++)
-			{
-				uvs[i] = swatch;
-			}
-
-			mesh.uv = uvs;
-			return mesh;
+			return preview;
 		}
 
 		private static GameObject[] AttachMiniatures(GameObject levelModels, Transform modelRoot)
@@ -583,7 +351,7 @@ namespace DroneDDW.Parks.Editor.Building
 			PrefabUtility.UnpackPrefabInstance(container, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 			for (int level = 0; level < ParkLevels.Count; level++)
 			{
-				Transform miniature = FindDeep(container.transform, ModelLevelPrefix + level);
+				Transform miniature = ParkAssetUtility.FindDeep(container.transform, ModelLevelPrefix + level);
 				if (miniature == null)
 				{
 					Debug.LogError($"[Parks] {ModelName}.fbx has no {ModelLevelPrefix}{level}.");
@@ -600,167 +368,6 @@ namespace DroneDDW.Parks.Editor.Building
 
 			Object.DestroyImmediate(container);
 			return miniatures;
-		}
-
-		/// <summary>
-		/// Hands push the handle by default and grab it once the fingers close: the interactable is what the finger
-		/// grab selects, the hand bones are what pushes, and the driver combines both into one drag.
-		/// </summary>
-		private static void AddHandInput(ParkLevelSlider slider, GameObject handle, Transform trackingSpace)
-		{
-#if PARKS_XRI
-			if (!handle.TryGetComponent(out MeshFilter handleMesh))
-			{
-				Debug.LogError($"[Parks] {RigName}.fbx's Rig_Handle has no mesh, so the hands can't push it.");
-			}
-
-			XRSimpleInteractable interactable = handle.AddComponent<XRSimpleInteractable>();
-			ParkHandBones handBones = slider.gameObject.AddComponent<ParkHandBones>();
-			handBones.Configure(trackingSpace);
-			ParkSliderHandDriver driver = slider.gameObject.AddComponent<ParkSliderHandDriver>();
-			driver.Configure(slider, interactable, handleMesh, handBones);
-			AddHandSpheresView(driver);
-#else
-			Debug.LogWarning("[Parks] XR Interaction Toolkit is not installed, so the slider has no XR input yet. "
-				+ "Install it and run this menu again, or call ParkLevelSlider.BeginDrag / DragTo / EndDrag from your own input.");
-#endif
-		}
-
-#if PARKS_XRI
-		/// <summary>
-		/// The testing view of the spheres the hands push with, on the slider. Shown while
-		/// <see cref="ShowHandSpheres"/> is on; switch its component on or off in Play mode to compare.
-		/// </summary>
-		private static void AddHandSpheresView(ParkSliderHandDriver driver)
-		{
-			Material material = ParkAssetUtility.CreateHandSpheresMaterial();
-			GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-			Mesh sphereMesh = sphere.GetComponent<MeshFilter>().sharedMesh;
-			Object.DestroyImmediate(sphere);
-
-			ParkHandSpheresView view = driver.gameObject.AddComponent<ParkHandSpheresView>();
-			view.Configure(driver, sphereMesh, material);
-			view.enabled = ShowHandSpheres;
-		}
-#endif
-
-		/// <summary>
-		/// What the slider gives back, since hands feel no haptics: sounds from the knob, the glow material on the
-		/// knob, notches and end glyphs with the lights that drive it, and the level name label.
-		/// </summary>
-		private static void AddSliderFeedback(ParkLevelSlider slider, Transform rig, Transform modelRoot,
-			ParkLevelController controller, Transform head)
-		{
-			AddSliderSounds(slider, controller);
-
-			Renderer knob = slider.Handle.GetComponent<Renderer>();
-			Renderer[] notches = new Renderer[ParkLevels.Count];
-			for (int detent = 0; detent < notches.Length; detent++)
-			{
-				notches[detent] = FindRenderer(rig, NotchPrefix + detent);
-			}
-
-			Renderer natureGlyph = FindRenderer(rig, NatureGlyphName);
-			Renderer efficiencyGlyph = FindRenderer(rig, EfficiencyGlyphName);
-			Material glow = ParkAssetUtility.CreateGlowMaterial();
-			if (glow != null)
-			{
-				SetMaterial(knob, glow);
-				SetMaterial(natureGlyph, glow);
-				SetMaterial(efficiencyGlyph, glow);
-				foreach (Renderer notch in notches)
-				{
-					SetMaterial(notch, glow);
-				}
-			}
-
-			ParkSliderVisuals visuals = slider.gameObject.AddComponent<ParkSliderVisuals>();
-			visuals.Configure(slider, controller, knob, notches, natureGlyph, efficiencyGlyph, modelRoot);
-			AddLevelLabel(slider, head);
-		}
-
-		/// <summary>Four 3D sources on the knob, so every slider sound comes from where the hand is.</summary>
-		private static void AddSliderSounds(ParkLevelSlider slider, ParkLevelController controller)
-		{
-			GameObject soundsObject = new GameObject("Slider Sounds");
-			Transform sounds = soundsObject.transform;
-			sounds.SetParent(slider.Handle, false);
-			ParkSliderSounds sliderSounds = soundsObject.AddComponent<ParkSliderSounds>();
-			sliderSounds.Configure(slider, controller, CreateSoundSource("Notch", sounds),
-				CreateSoundSource("Hand", sounds), CreateSoundSource("Commit", sounds),
-				CreateSoundSource("Scrape", sounds));
-
-			// The grab is the press click played lower
-			AudioClip press = LoadSoundEffect(PressClipFileName);
-			sliderSounds.ConfigureClips(press, LoadSoundEffect(TouchClipFileName), press,
-				LoadSoundEffect(ReleaseClipFileName), LoadSoundEffect(LockInClipFileName),
-				LoadSoundEffect(ScrapeClipFileName));
-		}
-
-		private static AudioSource CreateSoundSource(string name, Transform parent)
-		{
-			GameObject sourceObject = new GameObject(name);
-			sourceObject.transform.SetParent(parent, false);
-			AudioSource source = sourceObject.AddComponent<AudioSource>();
-			source.playOnAwake = false;
-			source.spatialBlend = 1f;
-			source.rolloffMode = AudioRolloffMode.Logarithmic;
-			source.minDistance = SoundMinDistance;
-			source.maxDistance = SoundMaxDistance;
-			source.dopplerLevel = 0f;
-			return source;
-		}
-
-		private static AudioClip LoadSoundEffect(string fileName)
-		{
-			string path = $"{ParkAssetUtility.SoundEffectsFolder}/{fileName}";
-			AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-			if (clip == null)
-			{
-				Debug.LogWarning($"[Parks] No sound at {path}, so that slider sound stays silent.");
-			}
-
-			return clip;
-		}
-
-		private static void AddLevelLabel(ParkLevelSlider slider, Transform head)
-		{
-			GameObject labelObject = new GameObject("Level Label");
-			labelObject.transform.SetParent(slider.transform, false);
-			labelObject.transform.localPosition = slider.Handle.localPosition + LabelOffsetMeters;
-
-			// The text sits at the empty's origin, where the batch-mode save quirk that zeroes label positions can't
-			// move it; the label component moves the empty.
-			GameObject textObject = new GameObject("Text");
-			textObject.transform.SetParent(labelObject.transform, false);
-			TextMeshPro text = textObject.AddComponent<TextMeshPro>();
-			text.rectTransform.sizeDelta = LabelSizeMeters;
-			text.fontSize = LabelFontSize;
-			text.alignment = TextAlignmentOptions.Center;
-			text.text = ParkLevels.GetName(StartLevel);
-
-			ParkLevelLabel label = labelObject.AddComponent<ParkLevelLabel>();
-			label.Configure(slider, text, head);
-		}
-
-		private static Renderer FindRenderer(Transform root, string name)
-		{
-			Transform part = FindDeep(root, name);
-			if (part != null && part.TryGetComponent(out Renderer renderer))
-			{
-				return renderer;
-			}
-
-			Debug.LogWarning($"[Parks] {RigName}.fbx has no {name} mesh, so it won't light up.");
-			return null;
-		}
-
-		private static void SetMaterial(Renderer renderer, Material material)
-		{
-			if (renderer != null)
-			{
-				renderer.sharedMaterial = material;
-			}
 		}
 
 		private static ParkAmbience BuildAmbience(Transform parent)
@@ -799,26 +406,6 @@ namespace DroneDDW.Parks.Editor.Building
 			source.spatialBlend = 0f;
 			source.volume = 0f;
 			return source;
-		}
-
-		/// <summary>Editor-time lookup of a node by name (the Blender build script's nodes, the rig's hand visuals).</summary>
-		private static Transform FindDeep(Transform parent, string name)
-		{
-			foreach (Transform child in parent)
-			{
-				if (child.name == name)
-				{
-					return child;
-				}
-
-				Transform found = FindDeep(child, name);
-				if (found != null)
-				{
-					return found;
-				}
-			}
-
-			return null;
 		}
 
 		#endregion
