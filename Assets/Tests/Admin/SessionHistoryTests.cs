@@ -153,9 +153,92 @@ namespace DroneDDW.Admin.Tests
 			Assert.AreEqual("2026-10-04 15:30:05", deleted[1][3]);
 		}
 
+		[Test]
+		public void Append_WithoutFile_WritesHeaderAndRow()
+		{
+			SessionHistory history = CreateHistory();
+
+			List<string> missing = history.Append(TestCells());
+
+			Assert.AreEqual(0, missing.Count);
+			byte[] bytes = File.ReadAllBytes(history.SessionsPath);
+			Assert.AreEqual(new byte[] { 0xEF, 0xBB, 0xBF }, new[] { bytes[0], bytes[1], bytes[2] });
+			List<string[]> rows = Read(history.SessionsPath);
+			CollectionAssert.AreEqual(new[] { "Id", "Group", "First time participating", "Form choice", "Date", "Time" },
+				rows[0]);
+			CollectionAssert.AreEqual(new[] { "0", "A", "no", "neutral", "2026-10-05", "14:32" }, rows[1]);
+		}
+
+		[Test]
+		public void Append_ToExistingFile_FollowsItsColumns()
+		{
+			WriteSessions("Time;Id;Answer 1;Group", "09:14;001;x;B");
+			SessionHistory history = CreateHistory();
+
+			List<string> missing = history.Append(TestCells());
+
+			List<string[]> rows = Read(history.SessionsPath);
+			Assert.AreEqual(3, rows.Count);
+			CollectionAssert.AreEqual(new[] { "14:32", "0", "", "A" }, rows[2]);
+			CollectionAssert.AreEquivalent(new[] { "First time participating", "Form choice", "Date" }, missing);
+		}
+
+		[Test]
+		public void Append_KeepsACommaFileWithCommas()
+		{
+			WriteSessions("Id,Group", "001,B");
+			SessionHistory history = CreateHistory();
+
+			history.Append(TestCells());
+
+			StringAssert.EndsWith("001,B\r\n0,A\r\n", File.ReadAllText(history.SessionsPath));
+		}
+
+		[Test]
+		public void Append_AfterALastLineWithoutBreak_StartsANewLine()
+		{
+			File.WriteAllText(Path.Combine(_folder, "Sessions.csv"), "Id;Group\r\n001;B", new UTF8Encoding(true));
+			SessionHistory history = CreateHistory();
+
+			history.Append(TestCells());
+
+			List<string[]> rows = Read(history.SessionsPath);
+			Assert.AreEqual(3, rows.Count);
+			CollectionAssert.AreEqual(new[] { "0", "A" }, rows[2]);
+		}
+
+		[Test]
+		public void Append_ThenDelete_MovesTheRow()
+		{
+			SessionHistory history = CreateHistory();
+			history.Append(TestCells());
+			history.Append(TestCells());
+
+			Assert.IsTrue(history.Delete(history.Load()[1], DeletedAt));
+
+			Assert.AreEqual(2, Read(history.SessionsPath).Count);
+			List<string[]> deleted = Read(history.DeletedPath);
+			Assert.AreEqual(2, deleted.Count);
+			Assert.AreEqual("0", deleted[1][0]);
+		}
+
 		#endregion
 
 		#region Private
+
+		// What the admin menu's test save button writes, at a fixed time
+		private static (string Column, string Value)[] TestCells()
+		{
+			return new[]
+			{
+				(SessionColumns.Id, "0"),
+				(SessionColumns.Group, "A"),
+				(SessionColumns.FirstTime, "no"),
+				(SessionColumns.FormChoice, "neutral"),
+				(SessionColumns.Date, "2026-10-05"),
+				(SessionColumns.Time, "14:32"),
+			};
+		}
 
 		private SessionHistory CreateHistory()
 		{

@@ -42,6 +42,7 @@ namespace DroneDDW.Admin.Editor
 			LeftGrip,
 			RightSecondary,
 			KeyEscape,
+			KeyUp,
 			KeyDown,
 			KeyRight,
 			KeyEnter,
@@ -119,6 +120,8 @@ namespace DroneDDW.Admin.Editor
 		private static string TempFolder;
 		private static float ElapsedWhenPaused;
 		private static int MenuIdBeforeReset;
+		private static int SessionLinesBeforeSave;
+		private static float PanelHeightWithTestSave;
 		private static InputSettings.EditorInputBehaviorInPlayMode PreviousInputBehavior;
 		private static InputSettings.BackgroundBehavior PreviousBackgroundBehavior;
 
@@ -290,11 +293,12 @@ namespace DroneDDW.Admin.Editor
 			Add("right stick down moves it too", Control.RightStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("holding the stick repeats and stops at the last button", Control.LeftStickDown,
-				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton), holdSeconds: 0.9f);
+				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton), holdSeconds: 0.9f);
 			Add("pushing right where nothing is leaves the hover", Control.LeftStickRight,
-				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
-			Add("stick up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
-			Add("stick up again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton));
+			Add("stick up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
+			Add("stick up again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
+			Add("and again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("the right trigger opens the history on Go back", Control.RightTrigger, CheckHistoryOpened);
 			Add("down reaches the first row's Delete", Control.LeftStickDown,
 				() => Expect(true, Menu.HistoryScreen, Menu.History.GetDeleteButton(0)));
@@ -322,10 +326,18 @@ namespace DroneDDW.Admin.Editor
 				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
 			Add("Change player language does nothing yet", Control.RightTrigger,
 				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
+			Add("down to Test save current session", Control.LeftStickDown,
+				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton));
+			Add("the trigger saves a test row and says so", Control.RightTrigger, CheckTestSaved, RememberSessionCount);
+			Add("the button reads its own label again", Control.None, CheckTestSaveLabel, settleSeconds: 2.8f);
 			Add("Esc closes the menu and resumes", Control.KeyEscape, CheckClosed, settleSeconds: 0.6f);
-			Add("Esc opens it again", Control.KeyEscape, () => Expect(true, Menu.PauseScreen, Menu.ResumeButton));
-			Add("the down arrow moves the hover", Control.KeyDown,
-				() => Expect(true, Menu.PauseScreen, Menu.ResetButton));
+			Add("with the checkbox off, Esc opens it without the test save button", Control.KeyEscape,
+				() => Expect(true, Menu.PauseScreen, Menu.ResumeButton) ?? CheckTestSaveHidden(), HideTestSave);
+			Add("holding the down arrow stops at Change player language", Control.KeyDown,
+				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton), holdSeconds: 1.2f);
+			Add("up arrow", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
+			Add("up arrow again", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("and again, to Reset session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
 			Add("Enter opens the reset dialog", Control.KeyEnter,
 				() => Expect(true, Menu.ResetScreen, Menu.ResetCancelButton));
 			Add("the right arrow reaches Reset session", Control.KeyRight,
@@ -500,6 +512,66 @@ namespace DroneDDW.Admin.Editor
 			return null;
 		}
 
+		private static void RememberSessionCount()
+		{
+			SessionLinesBeforeSave = ReadCsv("Sessions.csv").Count;
+		}
+
+		// One more row in the temporary Sessions.csv: 0, A, no, neutral, now, and empty under its extra column
+		private static string CheckTestSaved()
+		{
+			string state = Expect(true, Menu.PauseScreen, Menu.TestSaveButton);
+			if (state != null)
+			{
+				return state;
+			}
+
+			List<string[]> sessions = ReadCsv("Sessions.csv");
+			if (sessions.Count != SessionLinesBeforeSave + 1)
+			{
+				return $"Sessions.csv went from {SessionLinesBeforeSave} to {sessions.Count} lines";
+			}
+
+			DateTime now = DateTime.Now;
+			string[] row = sessions[sessions.Count - 1];
+			string expected = $"0|A|no|neutral|{now:yyyy-MM-dd}|";
+			string actual = string.Join("|", row);
+			bool isTimeRight = row.Length == 7 && (row[5] == now.ToString("HH:mm")
+				|| row[5] == now.AddMinutes(-1).ToString("HH:mm"));
+			if (!actual.StartsWith(expected) || !isTimeRight || row[6] != string.Empty)
+			{
+				return $"the saved row is {actual}";
+			}
+
+			string label = Menu.TestSaveButton.Label;
+			return label.StartsWith("Saved 000 at ") ? null : $"the button reads \"{label}\"";
+		}
+
+		private static string CheckTestSaveLabel()
+		{
+			string label = Menu.TestSaveButton.Label;
+			return label == "Test save current session" ? null : $"the button still reads \"{label}\"";
+		}
+
+		// As if the checkbox were turned off in the inspector during Play mode
+		private static void HideTestSave()
+		{
+			PanelHeightWithTestSave = Menu.PausePanelHeight;
+			Menu.ConfigureTestSave(false);
+		}
+
+		private static string CheckTestSaveHidden()
+		{
+			AdminMenu menu = Menu;
+			if (menu.TestSaveButton.IsShown)
+			{
+				return "the test save button still shows";
+			}
+
+			float shrink = PanelHeightWithTestSave - menu.PausePanelHeight;
+			return Mathf.Approximately(shrink, 104f) ? null : $"the panel shrank by {shrink} px, not 104";
+		}
+
 		private static string CheckClosed()
 		{
 			AdminMenu menu = Menu;
@@ -575,6 +647,9 @@ namespace DroneDDW.Admin.Editor
 					return;
 				case Control.KeyEscape:
 					SetKey(Key.Escape, isDown);
+					return;
+				case Control.KeyUp:
+					SetKey(Key.UpArrow, isDown);
 					return;
 				case Control.KeyDown:
 					SetKey(Key.DownArrow, isDown);

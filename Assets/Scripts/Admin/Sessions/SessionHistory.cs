@@ -6,9 +6,10 @@ using System.Text;
 
 namespace DroneDDW.Admin.Sessions
 {
-	// The session history files: Sessions.csv (one row per session, written by answer logging) and Deleted
-	// Sessions.csv, where the admin menu moves deleted rows with the time they were deleted. Both are UTF-8 with a byte
-	// order mark, so Excel reads them right. Every call reads the files fresh, so rows logged meanwhile aren't lost.
+	// The session history files: Sessions.csv (one row per session, written by answer logging and by the admin menu's
+	// test save button) and Deleted Sessions.csv, where the admin menu moves deleted rows with the time they were
+	// deleted. Both are UTF-8 with a byte order mark, so Excel reads them right. Every call reads the files fresh, so
+	// rows logged meanwhile aren't lost.
 	internal sealed class SessionHistory
 	{
 		#region Fields
@@ -84,6 +85,54 @@ namespace DroneDDW.Admin.Sessions
 			return true;
 		}
 
+		// Adds a row to the sessions file. A new file takes these columns, in this order, as its header. An existing one
+		// keeps its columns and separator: each value goes under its column (by name, ignoring case) and the file's
+		// other columns stay empty. Returns the columns the existing file doesn't have, whose values were left out.
+		internal List<string> Append(IReadOnlyList<(string Column, string Value)> cells)
+		{
+			List<string> missingColumns = new();
+			Directory.CreateDirectory(Folder);
+			if (!TryReadTable(SessionsPath, out string[] header, out _, out char separator))
+			{
+				string[] newHeader = new string[cells.Count];
+				string[] newRow = new string[cells.Count];
+				for (int index = 0; index < cells.Count; index++)
+				{
+					newHeader[index] = cells[index].Column;
+					newRow[index] = cells[index].Value;
+				}
+
+				string text = CsvUtil.FormatRow(newHeader, _preferredSeparator) + LineBreak
+					+ CsvUtil.FormatRow(newRow, _preferredSeparator) + LineBreak;
+				File.WriteAllText(SessionsPath, text, FileEncoding);
+				return missingColumns;
+			}
+
+			string[] row = new string[header.Length];
+			for (int index = 0; index < row.Length; index++)
+			{
+				row[index] = string.Empty;
+			}
+
+			foreach ((string column, string value) in cells)
+			{
+				int index = Array.FindIndex(header,
+					name => string.Equals(name?.Trim(), column, StringComparison.OrdinalIgnoreCase));
+				if (index >= 0)
+				{
+					row[index] = value;
+				}
+				else
+				{
+					missingColumns.Add(column);
+				}
+			}
+
+			string line = CsvUtil.FormatRow(row, separator) + LineBreak;
+			File.AppendAllText(SessionsPath, EnsureLeadingLineBreak(SessionsPath, line), FileEncoding);
+			return missingColumns;
+		}
+
 		#endregion
 
 		#region Private
@@ -134,24 +183,24 @@ namespace DroneDDW.Admin.Sessions
 			Directory.CreateDirectory(Folder);
 			if (TryReadTable(DeletedPath, out _, out _, out char separator))
 			{
-				string line = CsvUtil.FormatRow(Append(row, deletedAtCell), separator) + LineBreak;
-				File.AppendAllText(DeletedPath, EnsureLeadingLineBreak(line), FileEncoding);
+				string line = CsvUtil.FormatRow(WithCell(row, deletedAtCell), separator) + LineBreak;
+				File.AppendAllText(DeletedPath, EnsureLeadingLineBreak(DeletedPath, line), FileEncoding);
 				return;
 			}
 
 			// A new file takes the sessions file's columns plus the delete time
 			StringBuilder text = new();
-			text.Append(CsvUtil.FormatRow(Append(header, SessionColumns.DeletedAt), sessionsSeparator));
+			text.Append(CsvUtil.FormatRow(WithCell(header, SessionColumns.DeletedAt), sessionsSeparator));
 			text.Append(LineBreak);
-			text.Append(CsvUtil.FormatRow(Append(row, deletedAtCell), sessionsSeparator));
+			text.Append(CsvUtil.FormatRow(WithCell(row, deletedAtCell), sessionsSeparator));
 			text.Append(LineBreak);
 			File.WriteAllText(DeletedPath, text.ToString(), FileEncoding);
 		}
 
 		// When the file doesn't end with a line break (edited by hand), the new row still starts on its own line
-		private string EnsureLeadingLineBreak(string line)
+		private static string EnsureLeadingLineBreak(string path, string line)
 		{
-			using FileStream stream = new(DeletedPath, FileMode.Open, FileAccess.Read);
+			using FileStream stream = new(path, FileMode.Open, FileAccess.Read);
 			if (stream.Length == 0)
 			{
 				return line;
@@ -187,7 +236,7 @@ namespace DroneDDW.Admin.Sessions
 			}
 		}
 
-		private static string[] Append(string[] cells, string cell)
+		private static string[] WithCell(string[] cells, string cell)
 		{
 			string[] result = new string[cells.Length + 1];
 			cells.CopyTo(result, 0);

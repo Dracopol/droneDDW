@@ -37,6 +37,7 @@ namespace DroneDDW.Admin.Editor
 
 		// Paused
 		private const float PauseWidth = 640f;
+		// The mockup's panel with its five buttons; the test save button adds one pitch
 		private const float PauseHeight = 742f;
 		private const float PauseTitleCapMiddle = 130.5f;
 		private const float PauseButtonsTop = 189f;
@@ -166,9 +167,9 @@ namespace DroneDDW.Admin.Editor
 			AdminMenu menu = root.AddComponent<AdminMenu>();
 			menu.Configure(settings, input, placement, dimmer, canvas, canvasGroup, MutedColor);
 
-			// Paused
-			AdminMenuScreen pauseScreen = CreateScreen(canvas, "Pause Screen", PauseWidth, PauseHeight,
-				out RectTransform pausePanel);
+			// Paused: built tall enough for the test save button; the menu shrinks it when the button is off
+			AdminMenuScreen pauseScreen = CreateScreen(canvas, "Pause Screen", PauseWidth,
+				PauseHeight + PauseButtonPitch, out RectTransform pausePanel);
 			CreateText(pausePanel, "Title", "Session paused by admin", Padding, PauseTitleCapMiddle,
 				PauseWidth - 2f * Padding, TitleSize, isSemiBold: false, TextColor, TextAlignmentOptions.CaplineLeft);
 			AdminMenuButton resume = CreateMenuButton(pausePanel, "Resume Session", 0, _assets.PlayIcon);
@@ -177,8 +178,9 @@ namespace DroneDDW.Admin.Editor
 			AdminMenuButton location = CreateMenuButton(pausePanel, "Reset Player Location", 3, _assets.LocationIcon);
 			AdminMenuButton language = CreateMenuButton(pausePanel, "Change Player Language", 4,
 				_assets.LanguageIcon);
+			AdminMenuButton testSave = CreateMenuButton(pausePanel, "Test Save Current Session", 5, _assets.SaveIcon);
 			pauseScreen.Configure(settings, pauseScreen.GetComponent<CanvasGroup>(),
-				new[] { resume, reset, history, location, language });
+				new[] { resume, reset, history, location, language, testSave });
 
 			// Session history
 			AdminMenuScreen historyScreen = CreateScreen(canvas, "History Screen", HistoryWidth, HistoryHeight,
@@ -196,8 +198,9 @@ namespace DroneDDW.Admin.Editor
 			TMP_Text details = CreateDetails(deletePanel);
 
 			menu.ConfigureScreens(pauseScreen, historyScreen, historyTable, resetScreen, deleteScreen, details);
-			menu.ConfigureButtons(resume, reset, history, location, language, resetCancel, resetConfirm,
+			menu.ConfigureButtons(resume, reset, history, location, language, testSave, resetCancel, resetConfirm,
 				deleteCancel, deleteConfirm);
+			menu.ConfigurePausePanel(pausePanel, PauseButtonPitch);
 			return root;
 		}
 
@@ -239,7 +242,8 @@ namespace DroneDDW.Admin.Editor
 			return canvas;
 		}
 
-		// A screen filling the canvas, with its panel centred and the handle under the panel
+		// A screen filling the canvas, with its panel centred and the handle under the panel (anchored to the panel's
+		// bottom edge, so it follows when the panel changes height)
 		private AdminMenuScreen CreateScreen(RectTransform canvas, string name, float panelWidth, float panelHeight,
 			out RectTransform panel)
 		{
@@ -258,9 +262,12 @@ namespace DroneDDW.Admin.Editor
 				PanelRadius - BorderWidth);
 			Inset(fill.rectTransform, BorderWidth);
 
-			RectTransform handle = CreateRect("Handle", screen);
+			RectTransform handle = CreateRect("Handle", panel);
+			handle.anchorMin = new Vector2(0.5f, 0f);
+			handle.anchorMax = new Vector2(0.5f, 0f);
+			handle.pivot = new Vector2(0.5f, 1f);
 			handle.sizeDelta = new Vector2(HandleWidth, HandleHeight);
-			handle.anchoredPosition = new Vector2(0f, -(panelHeight * 0.5f + HandleGap + HandleHeight * 0.5f));
+			handle.anchoredPosition = new Vector2(0f, -HandleGap);
 			Image handleImage = CreateImage("Pill", handle, _assets.RoundedRect, HandleColor, HandleHeight * 0.5f);
 			handleImage.rectTransform.sizeDelta = Vector2.zero;
 

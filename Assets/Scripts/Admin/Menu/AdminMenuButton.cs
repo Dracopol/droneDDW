@@ -41,6 +41,10 @@ namespace DroneDDW.Admin
 		private float _hoverAmount;
 		private float _pressRemainingSeconds;
 
+		// The label's own text while a temporary one shows, otherwise null
+		private string _savedLabel;
+		private float _temporaryLabelRemainingSeconds;
+
 		#endregion
 
 		#region Properties
@@ -51,6 +55,9 @@ namespace DroneDDW.Admin
 
 		internal string Label => _label.text;
 
+		// Hidden buttons are skipped by the hover
+		internal bool IsShown => gameObject.activeSelf;
+
 		#endregion
 
 		#region Setup
@@ -59,6 +66,11 @@ namespace DroneDDW.Admin
 		private void OnEnable()
 		{
 			Refresh();
+		}
+
+		private void OnDisable()
+		{
+			RestoreLabel();
 		}
 
 		#endregion
@@ -71,6 +83,15 @@ namespace DroneDDW.Admin
 			float deltaSeconds = Time.unscaledDeltaTime;
 			_hoverAmount = Mathf.MoveTowards(_hoverAmount, IsHovered ? 1f : 0f, deltaSeconds / _settings.HoverSeconds);
 			_pressRemainingSeconds = Mathf.Max(0f, _pressRemainingSeconds - deltaSeconds);
+			if (_savedLabel != null)
+			{
+				_temporaryLabelRemainingSeconds -= deltaSeconds;
+				if (_temporaryLabelRemainingSeconds <= 0f)
+				{
+					RestoreLabel();
+				}
+			}
+
 			Apply();
 		}
 
@@ -108,9 +129,33 @@ namespace DroneDDW.Admin
 			_pressRemainingSeconds = _settings.PressSeconds;
 		}
 
+		internal void SetShown(bool isShown)
+		{
+			gameObject.SetActive(isShown);
+		}
+
+		// Shows other text on the button for a while, e.g. "Saved 000 at 14:32", then its own label again
+		internal void ShowTemporaryLabel(string text, float durationSeconds)
+		{
+			_savedLabel ??= _label.text;
+			_label.text = text;
+			_temporaryLabelRemainingSeconds = durationSeconds;
+		}
+
 		#endregion
 
 		#region Private
+
+		private void RestoreLabel()
+		{
+			if (_savedLabel == null)
+			{
+				return;
+			}
+
+			_label.text = _savedLabel;
+			_savedLabel = null;
+		}
 
 		private void Apply()
 		{

@@ -12,7 +12,7 @@ namespace DroneDDW.Admin.Editor
 	// Menu: DroneDDW > Admin Menu > Create Admin Menu Test Scene, which builds Scenes/Admin/Admin Menu Test.unity:
 	// - a copy of the main scene's XR rig and passthrough layer, so it starts in passthrough like the tutorial
 	// - Session Control and a Player Spot at the origin facing +Z, marked by a floor ring and an arrow
-	// - the admin menu prefab, wired to the rig's camera and the session control
+	// - the admin menu prefab, wired to the rig's camera and the session control, with its test save button shown
 	// - a demo session in front of the spot: a clock and a spinning cube on scaled time and a quiet looping hum, so
 	//   pausing, resuming and resetting show
 	// Run Build Admin Menu Assets first. Rebuilding replaces the scene.
@@ -90,6 +90,9 @@ namespace DroneDDW.Admin.Editor
 			AdminMenu menu = ((GameObject)PrefabUtility.InstantiatePrefab(menuPrefab, scene))
 				.GetComponent<AdminMenu>();
 			menu.ConfigureScene(sessionControl, head);
+
+			// The test scene shows the test save button, to try saving and deleting rows on the headset
+			menu.ConfigureTestSave(true);
 			PrefabUtility.RecordPrefabInstancePropertyModifications(menu);
 			PrefabUtility.RecordPrefabInstancePropertyModifications(menu.GetComponent<AdminMenuPlacement>());
 			PrefabUtility.RecordPrefabInstancePropertyModifications(menu.Dimmer);

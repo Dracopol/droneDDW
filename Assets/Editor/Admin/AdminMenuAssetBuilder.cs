@@ -115,6 +115,7 @@ namespace DroneDDW.Admin.Editor
 				assets.HistoryIcon = AdminMenuIconBaker.Bake("History", AdminMenuIconBaker.HistorySvg);
 				assets.LocationIcon = AdminMenuIconBaker.Bake("Location", AdminMenuIconBaker.LocationSvg);
 				assets.LanguageIcon = AdminMenuIconBaker.Bake("Language", AdminMenuIconBaker.LanguageSvg);
+				assets.SaveIcon = AdminMenuIconBaker.Bake("Save", AdminMenuIconBaker.SaveSvg);
 				assets.BackIcon = AdminMenuIconBaker.Bake("Back", AdminMenuIconBaker.BackSvg);
 
 				if (!LoadActions(assets))
@@ -220,6 +221,10 @@ namespace DroneDDW.Admin.Editor
 			material.SetShaderPassEnabled("DepthOnly", false);
 			material.SetShaderPassEnabled("SHADOWCASTER", false);
 			material.SetShaderPassEnabled("MOTIONVECTORS", false);
+
+			// URP recomputes a built-in shader's queue as Transparent (3000) + the queue offset whenever the material is
+			// validated, so the offset is what keeps it at 3500
+			material.SetFloat("_QueueOffset", DimmerRenderQueue - (int)RenderQueue.Transparent);
 			material.renderQueue = DimmerRenderQueue;
 			EditorUtility.SetDirty(material);
 			return material;

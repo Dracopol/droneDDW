@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using DroneDDW.Admin.Sessions;
 using TMPro;
@@ -8,10 +9,10 @@ using UnityEngine;
 namespace DroneDDW.Admin
 {
 	// The admin menu from the Figma mockups, for whoever runs the session. The left controller's menu button opens it
-	// and pauses the session; either thumbstick moves the pale blue hover, trigger, grip or A / X clicks, B or Y goes back.
-	// Screens:
+	// and pauses the session; either thumbstick moves the pale blue hover, trigger, grip or A / X clicks, B or Y goes
+	// back. Screens:
 	// - Paused: Resume (closes the menu), Reset session, View session history, Reset player location, Change player
-	//   language (no function yet)
+	//   language (no function yet), and Test save current session when the Testing checkbox is on
 	// - Session history: the rows of Sessions.csv, each with Delete
 	// - Reset / delete dialogs, which open on Cancel so a double click can't confirm them
 	// The menu button closes the menu and resumes from any screen. Everything runs on unscaled time, since the
@@ -29,6 +30,11 @@ namespace DroneDDW.Admin
 
 		[Tooltip("The scene's session: paused while the menu is open, reset and recentred by its buttons")]
 		[SerializeField] private SessionControl _sessionControl;
+
+		[Header("Testing")]
+		[Tooltip("Shows \"Test save current session\" on the Paused screen. It saves a test row (Id 0, group A, not the "
+			+ "first time, neutral, now) to the real session history. Turn off for real sessions.")]
+		[SerializeField] private bool _isTestSaveShown;
 
 		[Header("Canvas")]
 		[Tooltip("The world-space canvas, laid out in the mockups' pixels and scaled by the settings")]
@@ -49,6 +55,13 @@ namespace DroneDDW.Admin
 		[SerializeField] private AdminMenuButton _historyButton;
 		[SerializeField] private AdminMenuButton _locationButton;
 		[SerializeField] private AdminMenuButton _languageButton;
+		[SerializeField] private AdminMenuButton _testSaveButton;
+
+		[Tooltip("The Paused screen's panel, built tall enough for the test save button; one pitch shorter without it")]
+		[SerializeField] private RectTransform _pausePanel;
+
+		[Tooltip("The distance between the Paused screen's buttons, in the menu's pixels")]
+		[SerializeField] private float _pauseButtonPitch;
 
 		[Header("Dialogs")]
 		[SerializeField] private AdminMenuButton _resetCancelButton;
@@ -69,8 +82,18 @@ namespace DroneDDW.Admin
 		private const float MetersPerMillimeter = 0.001f;
 		private const string NoSessionsMessage = "No sessions yet";
 		private const string UnreadableMessage = "Couldn't read the session history (see the log)";
+		private const string SaveFailedMessage = "Couldn't save, see the log";
+		private const float SavedLabelSeconds = 2.5f;
+
+		// The test save button's row: Id 0, group A, not the first time, the park's middle level
+		private const string TestSessionId = "0";
+		private const string TestSessionGroup = "A";
+		private const string TestSessionFirstTime = "no";
+		private const string TestSessionFormChoice = "neutral";
 
 		private readonly List<Vector2> _centers = new();
+		private readonly List<AdminMenuButton> _shownButtons = new();
+		private float _pausePanelFullHeight;
 		private AdminMenuScreen _screen;
 		private AdminMenuButton _hovered;
 		private SessionRecord _pendingDelete;
@@ -96,6 +119,8 @@ namespace DroneDDW.Admin
 		internal AdminMenuButton HistoryButton => _historyButton;
 		internal AdminMenuButton LocationButton => _locationButton;
 		internal AdminMenuButton LanguageButton => _languageButton;
+		internal AdminMenuButton TestSaveButton => _testSaveButton;
+		internal float PausePanelHeight => _pausePanel.sizeDelta.y;
 		internal AdminMenuButton ResetCancelButton => _resetCancelButton;
 		internal AdminMenuButton ResetConfirmButton => _resetConfirmButton;
 		internal AdminMenuButton DeleteCancelButton => _deleteCancelButton;
@@ -114,6 +139,8 @@ namespace DroneDDW.Admin
 			_deleteScreen.Hide();
 			_canvasGroup.alpha = 0f;
 			_canvas.gameObject.SetActive(false);
+			_pausePanelFullHeight = _pausePanel.sizeDelta.y;
+			ApplyTestSaveVisibility();
 			if (_sessionControl == null)
 			{
 				Debug.LogWarning("[Admin] The admin menu has no Session Control: it can't pause, reset or recentre.",
@@ -194,18 +221,31 @@ namespace DroneDDW.Admin
 
 		internal void ConfigureButtons(AdminMenuButton resumeButton, AdminMenuButton resetButton,
 			AdminMenuButton historyButton, AdminMenuButton locationButton, AdminMenuButton languageButton,
-			AdminMenuButton resetCancelButton, AdminMenuButton resetConfirmButton, AdminMenuButton deleteCancelButton,
-			AdminMenuButton deleteConfirmButton)
+			AdminMenuButton testSaveButton, AdminMenuButton resetCancelButton, AdminMenuButton resetConfirmButton,
+			AdminMenuButton deleteCancelButton, AdminMenuButton deleteConfirmButton)
 		{
 			_resumeButton = resumeButton;
 			_resetButton = resetButton;
 			_historyButton = historyButton;
 			_locationButton = locationButton;
 			_languageButton = languageButton;
+			_testSaveButton = testSaveButton;
 			_resetCancelButton = resetCancelButton;
 			_resetConfirmButton = resetConfirmButton;
 			_deleteCancelButton = deleteCancelButton;
 			_deleteConfirmButton = deleteConfirmButton;
+		}
+
+		internal void ConfigurePausePanel(RectTransform pausePanel, float pauseButtonPitch)
+		{
+			_pausePanel = pausePanel;
+			_pauseButtonPitch = pauseButtonPitch;
+		}
+
+		// Whether the Paused screen shows the test save button; takes effect the next time the menu opens
+		internal void ConfigureTestSave(bool isShown)
+		{
+			_isTestSaveShown = isShown;
 		}
 
 		// The scene's session and headset camera; set on the prefab's instance in each scene
@@ -234,6 +274,7 @@ namespace DroneDDW.Admin
 
 			_dimmer.IsDimmed = true;
 			_canvas.gameObject.SetActive(true);
+			ApplyTestSaveVisibility();
 			_placement.PlaceInFront();
 			_placement.IsFollowing = true;
 			ShowScreen(_pauseScreen, _resumeButton);
@@ -342,17 +383,26 @@ namespace DroneDDW.Admin
 			Pulse(hand, isClick: false);
 		}
 
+		// Between the screen's shown buttons; hidden ones (the test save button when it's off) are skipped
 		private void MoveHover(MenuDirection direction, MenuHand hand)
 		{
-			IReadOnlyList<AdminMenuButton> buttons = GetScreenButtons();
+			_shownButtons.Clear();
+			foreach (AdminMenuButton button in GetScreenButtons())
+			{
+				if (button.IsShown)
+				{
+					_shownButtons.Add(button);
+				}
+			}
+
 			int from = -1;
 			_centers.Clear();
-			for (int index = 0; index < buttons.Count; index++)
+			for (int index = 0; index < _shownButtons.Count; index++)
 			{
-				RectTransform body = buttons[index].Body;
+				RectTransform body = _shownButtons[index].Body;
 				Vector3 center = _canvas.InverseTransformPoint(body.TransformPoint(body.rect.center));
 				_centers.Add(center);
-				if (buttons[index] == _hovered)
+				if (_shownButtons[index] == _hovered)
 				{
 					from = index;
 				}
@@ -360,14 +410,64 @@ namespace DroneDDW.Admin
 
 			if (from < 0)
 			{
-				SetHovered(buttons.Count > 0 ? buttons[0] : null, hand);
+				SetHovered(_shownButtons.Count > 0 ? _shownButtons[0] : null, hand);
 				return;
 			}
 
 			int to = MenuNavigationUtil.FindNeighbor(_centers, from, direction);
 			if (to >= 0)
 			{
-				SetHovered(buttons[to], hand);
+				SetHovered(_shownButtons[to], hand);
+			}
+		}
+
+		// Shows or hides the test save button; without it the Paused panel is one button shorter (it stays centred,
+		// and the handle under it follows)
+		private void ApplyTestSaveVisibility()
+		{
+			_testSaveButton.SetShown(_isTestSaveShown);
+			float height = _isTestSaveShown ? _pausePanelFullHeight : _pausePanelFullHeight - _pauseButtonPitch;
+			_pausePanel.sizeDelta = new Vector2(_pausePanel.sizeDelta.x, height);
+			if (!_isTestSaveShown && _hovered == _testSaveButton)
+			{
+				SetHovered(_resumeButton, MenuHand.None);
+			}
+		}
+
+		// Adds a test row to the session history (Id 0, group A, not the first time, neutral, now) and says so on the
+		// button for a moment
+		private void SaveTestSession()
+		{
+			DateTime now = DateTime.Now;
+			(string Column, string Value)[] cells =
+			{
+				(SessionColumns.Id, TestSessionId),
+				(SessionColumns.Group, TestSessionGroup),
+				(SessionColumns.FirstTime, TestSessionFirstTime),
+				(SessionColumns.FormChoice, TestSessionFormChoice),
+				(SessionColumns.Date, now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+				(SessionColumns.Time, now.ToString("HH:mm", CultureInfo.InvariantCulture)),
+			};
+
+			SessionHistory sessions = CreateHistory();
+			try
+			{
+				List<string> missingColumns = sessions.Append(cells);
+				if (missingColumns.Count > 0)
+				{
+					Debug.LogWarning($"[Admin] {sessions.SessionsPath} has no {string.Join(", ", missingColumns)} "
+						+ "column, so the test row leaves those out.", this);
+				}
+
+				string time = now.ToString("HH:mm", CultureInfo.InvariantCulture);
+				_testSaveButton.ShowTemporaryLabel($"Saved 000 at {time}", SavedLabelSeconds);
+				Debug.Log($"[Admin] Test session saved to {sessions.SessionsPath}.", this);
+			}
+			catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+			{
+				Debug.LogError($"[Admin] Couldn't save the test session to {sessions.SessionsPath}: "
+					+ exception.Message, this);
+				_testSaveButton.ShowTemporaryLabel(SaveFailedMessage, SavedLabelSeconds);
 			}
 		}
 
@@ -400,6 +500,10 @@ namespace DroneDDW.Admin
 			else if (button == _languageButton)
 			{
 				Debug.Log("[Admin] Change player language doesn't do anything yet.", this);
+			}
+			else if (button == _testSaveButton)
+			{
+				SaveTestSession();
 			}
 			else if (button == _history.BackButton)
 			{

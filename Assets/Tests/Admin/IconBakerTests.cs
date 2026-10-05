@@ -29,7 +29,8 @@ namespace DroneDDW.Admin.Tests
 			string[] icons =
 			{
 				AdminMenuIconBaker.PlaySvg, AdminMenuIconBaker.ResetSvg, AdminMenuIconBaker.HistorySvg,
-				AdminMenuIconBaker.LocationSvg, AdminMenuIconBaker.LanguageSvg, AdminMenuIconBaker.BackSvg,
+				AdminMenuIconBaker.LocationSvg, AdminMenuIconBaker.LanguageSvg, AdminMenuIconBaker.SaveSvg,
+				AdminMenuIconBaker.BackSvg,
 			};
 
 			foreach (string icon in icons)
