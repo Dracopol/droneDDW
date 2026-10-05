@@ -4,9 +4,9 @@ using UnityEngine;
 namespace DroneDDW.Parks.Editor.Inspectors
 {
 	/// <summary>
-	/// Writes the shared tuning assets to disk as Play mode ends: the push settings and the finger grab settings, which
-	/// the "Slider Tuning" and "Finger Grab Settings" objects edit live. Unity keeps such changes in memory anyway, but
-	/// until they are saved a crash would lose them.
+	/// Writes the shared tuning assets to disk as Play mode ends: the push and board follow settings and the finger grab
+	/// settings, which the "Slider Tuning" and "Finger Grab Settings" objects edit live. Unity keeps such changes in
+	/// memory anyway, but until they are saved a crash would lose them.
 	/// </summary>
 	[InitializeOnLoad]
 	internal static class ParkTuningAutoSave
@@ -14,7 +14,10 @@ namespace DroneDDW.Parks.Editor.Inspectors
 		#region Fields
 
 		// Found by type name, so this needs no reference to the finger grab's internals
-		private static readonly string[] AssetTypes = { "ParkPushSettings", "FingerGrabSettings" };
+		private static readonly string[] AssetTypes =
+		{
+			"ParkPushSettings", "ParkBoardFollowSettings", "FingerGrabSettings",
+		};
 
 		#endregion
 

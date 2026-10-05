@@ -71,7 +71,7 @@ namespace DroneDDW.Parks.Table
 		private bool _isHeld;
 		private bool _isGrabbed;
 		private float _lastTouchTime;
-		private Vector3 _lastHandlePosition;
+		private float _lastHandleX;
 		private float _scrapeLevel;
 
 		#endregion
@@ -98,7 +98,7 @@ namespace DroneDDW.Parks.Table
 
 		private void Start()
 		{
-			_lastHandlePosition = _slider.Handle.position;
+			_lastHandleX = _slider.Handle.localPosition.x;
 			if (_scrapeSource == null || _scrapeClip == null)
 			{
 				return;
@@ -202,14 +202,16 @@ namespace DroneDDW.Parks.Table
 			Play(_handSource, _releaseClip, _releaseVolume, 1f);
 		}
 
+		/// <summary>
+		/// Follows the handle's speed along the track, in the slider's space, so the board gliding after the head (which
+		/// carries the handle through the room) makes no scrape.
+		/// </summary>
 		private void UpdateScrape()
 		{
-			Vector3 handlePosition = _slider.Handle.position;
+			float handleX = _slider.Handle.localPosition.x;
 			float deltaTime = Time.deltaTime;
-			float speedMetersPerSecond = deltaTime > 0f
-				? Vector3.Distance(handlePosition, _lastHandlePosition) / deltaTime
-				: 0f;
-			_lastHandlePosition = handlePosition;
+			float speedMetersPerSecond = deltaTime > 0f ? Mathf.Abs(handleX - _lastHandleX) / deltaTime : 0f;
+			_lastHandleX = handleX;
 			if (_scrapeSource == null || _scrapeClip == null)
 			{
 				return;

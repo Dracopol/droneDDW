@@ -20,7 +20,7 @@ namespace DroneDDW.Parks.Editor.Building
 	///    tagged with the levels it belongs to, a level controller that runs the wave transition,
 	///    the seat anchor with a copy of the project's XR rig (see <see cref="ParkRigBuilder"/>), the floating board
 	///    that follows the head (see <see cref="ParkBoardBuilder"/>) with the five-detent slider and the five miniatures,
-	///    the "Slider Tuning" object showing the shared push settings, two ambience sources playing the
+	///    the "Slider Tuning" object showing the shared push and board follow settings, two ambience sources playing the
 	///    Content/Audio/Ambience loops and a realtime sun.
 	/// Safe to run again: materials and prefabs keep their GUIDs, the scene is rebuilt.
 	/// </summary>
@@ -210,8 +210,9 @@ namespace DroneDDW.Parks.Editor.Building
 			controller.ShowLevelInEditor(StartLevel);
 
 			ParkPushSettings pushSettings = ParkAssetUtility.LoadOrCreatePushSettings();
+			ParkBoardFollowSettings followSettings = ParkAssetUtility.LoadOrCreateFollowSettings();
 			ParkBoardBuilder.Board board = ParkBoardBuilder.Build(rigModel, false, seat.transform.position, StartLevel, head,
-				trackingSpace, controller, pushSettings, ShowHandSpheres);
+				trackingSpace, controller, pushSettings, followSettings, ShowHandSpheres);
 			ParkModelPreview preview = AddMiniatures(levelModels, board, world.transform, head);
 			ParkAmbience ambience = BuildAmbience(experience.transform);
 			ParkExperience coordinator = experience.AddComponent<ParkExperience>();
@@ -219,7 +220,7 @@ namespace DroneDDW.Parks.Editor.Building
 			ParkLevelDebugKeys debugKeys = experience.AddComponent<ParkLevelDebugKeys>();
 			debugKeys.Configure(controller);
 			ParkLifeBuilder.Build(lifePieces, controller, head);
-			ParkBoardBuilder.AddTuningObject(pushSettings, board.SpheresView);
+			ParkBoardBuilder.AddTuningObject(pushSettings, followSettings, board);
 
 			string scenesFolder = ParkAssetUtility.EnsureFolder(ParkAssetUtility.ScenesFolder);
 			string scenePath = $"{scenesFolder}/{SceneName}.unity";

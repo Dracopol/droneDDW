@@ -10,16 +10,17 @@ using UnityEngine.SceneManagement;
 namespace DroneDDW.Parks.Editor.Building
 {
 	/// <summary>
-	/// Menu: DroneDDW / Parks / Build Slider Tuning Scene (AR). Builds Scenes/Parks/Park Slider Tuning.unity, a
+	/// Menu: DroneDDW / Parks / Build Slider Tuning Scene (AR). Builds Scenes/Park Tunning/Park Slider Tuning.unity, a
 	/// passthrough scene for tuning how the hands meet the park's slider while seeing the room and the monitor:
 	/// - a copy of the main scene's XR rig and passthrough layer, with the finger grab and its shared settings
 	/// - the park's floating board with only the slider, on a strip, following the head exactly like in the park
 	/// - an empty level controller wired like the park's, so releasing the slider locks in a level with the same sounds
 	///   and lights (and the debug keys 1-5 and the arrows still move it)
 	/// - the "Slider Tuning" object, showing the shared push settings (sphere sizes, margin, spacing, push and grab
-	///   boxes), with the spheres and boxes drawn
+	///   boxes) and board follow settings (position, dead zone, turn and move speed), with the spheres and boxes drawn
+	///   and, in Play mode, what the board is doing
 	/// Uses the park's built assets (its materials and rig model), so build the level park once first.
-	/// Rebuilding replaces the scene; the tuning lives in the settings asset, which it never touches.
+	/// Rebuilding replaces the scene; the tuning lives in the settings assets, which it never touches.
 	/// </summary>
 	internal static class ParkSliderTuningSceneBuilder
 	{
@@ -27,7 +28,7 @@ namespace DroneDDW.Parks.Editor.Building
 
 		private const string MenuPath = "DroneDDW/Parks/Build Slider Tuning Scene (AR)";
 		private const string DialogTitle = "Slider tuning scene";
-		private const string ScenesFolder = ParkAssetUtility.ScenesFolder + "/Parks";
+		private const string ScenesFolder = ParkAssetUtility.ScenesFolder + "/Park Tunning";
 		private const string ScenePath = ScenesFolder + "/Park Slider Tuning.unity";
 		private const int StartLevel = 2;
 		private const float LightIntensity = 1f;
@@ -62,6 +63,7 @@ namespace DroneDDW.Parks.Editor.Building
 			}
 
 			ParkPushSettings settings = ParkAssetUtility.LoadOrCreatePushSettings();
+			ParkBoardFollowSettings followSettings = ParkAssetUtility.LoadOrCreateFollowSettings();
 			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			Camera camera = ParkRigBuilder.CopyXRRig(scene, Vector3.zero, true, 0f, out Transform trackingSpace);
 			if (camera == null)
@@ -77,12 +79,12 @@ namespace DroneDDW.Parks.Editor.Building
 
 			Transform head = camera != null ? camera.transform : null;
 			ParkBoardBuilder.Board board = ParkBoardBuilder.Build(rigModel, true, Vector3.zero, StartLevel, head,
-				trackingSpace, controller, settings, true);
+				trackingSpace, controller, settings, followSettings, true);
 			ParkExperience coordinator = experience.AddComponent<ParkExperience>();
 			coordinator.Configure(controller, board.Slider, null, null);
 			ParkLevelDebugKeys debugKeys = experience.AddComponent<ParkLevelDebugKeys>();
 			debugKeys.Configure(controller);
-			ParkBoardBuilder.AddTuningObject(settings, board.SpheresView);
+			ParkBoardBuilder.AddTuningObject(settings, followSettings, board);
 
 			ParkAssetUtility.EnsureFolder(ScenesFolder);
 			EditorSceneManager.SaveScene(scene, ScenePath);

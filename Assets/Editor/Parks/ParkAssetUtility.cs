@@ -27,6 +27,7 @@ namespace DroneDDW.Parks.Editor.Building
 		internal const string ScenesFolder = "Assets/Scenes";
 
 		private const string PushSettingsPath = LayoutsFolder + "/Park Push Settings.asset";
+		private const string FollowSettingsPath = LayoutsFolder + "/Park Board Follow Settings.asset";
 		private const string PaletteFileName = "Park_Palette.png";
 		private const string MaquettePaletteFileName = "Park_Palette_Maquette.png";
 		private const string MaterialPrefix = "Park_Mat_";
@@ -98,17 +99,16 @@ namespace DroneDDW.Parks.Editor.Building
 		/// </summary>
 		internal static ParkPushSettings LoadOrCreatePushSettings()
 		{
-			ParkPushSettings settings = AssetDatabase.LoadAssetAtPath<ParkPushSettings>(PushSettingsPath);
-			if (settings != null)
-			{
-				return settings;
-			}
+			return LoadOrCreateData<ParkPushSettings>(PushSettingsPath);
+		}
 
-			EnsureFolder(LayoutsFolder);
-			settings = ScriptableObject.CreateInstance<ParkPushSettings>();
-			AssetDatabase.CreateAsset(settings, PushSettingsPath);
-			AssetDatabase.SaveAssets();
-			return settings;
+		/// <summary>
+		/// The follow settings shared by every park board (Content/Data/Parks/Park Board Follow Settings.asset): created
+		/// with the defaults the first time, never overwritten after, so tuning survives every rebuild.
+		/// </summary>
+		internal static ParkBoardFollowSettings LoadOrCreateFollowSettings()
+		{
+			return LoadOrCreateData<ParkBoardFollowSettings>(FollowSettingsPath);
 		}
 
 		/// <summary>Editor-time lookup of a node by name (the Blender build script's nodes, the rig's hand visuals).</summary>
@@ -344,6 +344,22 @@ namespace DroneDDW.Parks.Editor.Building
 			}
 
 			return custom;
+		}
+
+		/// <summary>The data asset at the path, created with its defaults when missing and never overwritten.</summary>
+		private static T LoadOrCreateData<T>(string path) where T : ScriptableObject
+		{
+			T data = AssetDatabase.LoadAssetAtPath<T>(path);
+			if (data != null)
+			{
+				return data;
+			}
+
+			EnsureFolder(LayoutsFolder);
+			data = ScriptableObject.CreateInstance<T>();
+			AssetDatabase.CreateAsset(data, path);
+			AssetDatabase.SaveAssets();
+			return data;
 		}
 
 		private static void SetFloatIfPresent(Material material, string property, float value)

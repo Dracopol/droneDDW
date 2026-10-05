@@ -16,7 +16,7 @@ namespace DroneDDW.Parks.Editor.Building
 	/// <summary>
 	/// The floating board both park scenes share: Park_Levels_Rig's five-detent slider on a board that follows the head,
 	/// pushed by any part of a hand and grabbed once the fingers close, with its sounds, lights, level name label and the
-	/// testing view of the push spheres and knob boxes, all tuned by the shared push settings. The park keeps the rig's
+	/// testing view of the push spheres and knob boxes, all tuned by the shared push and board follow settings. The park keeps the rig's
 	/// miniature on a board the size of the old table; the slider tuning scene drops the miniature and keeps only a strip
 	/// under the slider, in the same place relative to the head.
 	/// </summary>
@@ -26,12 +26,14 @@ namespace DroneDDW.Parks.Editor.Building
 
 		internal readonly struct Board
 		{
-			public Board(ParkLevelSlider slider, Transform modelRoot, Transform viewCone, Behaviour spheresView)
+			public Board(ParkLevelSlider slider, Transform modelRoot, Transform viewCone, Behaviour spheresView,
+				ParkBoardFollow follow)
 			{
 				Slider = slider;
 				ModelRoot = modelRoot;
 				ViewCone = viewCone;
 				SpheresView = spheresView;
+				Follow = follow;
 			}
 
 			public ParkLevelSlider Slider { get; }
@@ -41,6 +43,7 @@ namespace DroneDDW.Parks.Editor.Building
 
 			public Transform ViewCone { get; }
 			public Behaviour SpheresView { get; }
+			public ParkBoardFollow Follow { get; }
 		}
 
 		#endregion
@@ -66,9 +69,6 @@ namespace DroneDDW.Parks.Editor.Building
 		private const string LockInClipFileName = "Lock In.wav";
 		private const string ScrapeClipFileName = "Slider Scrape.wav";
 
-		// The board's top: below and ahead of the eyes, turned with the head
-		private const float BoardDistance = 0.75f;
-		private const float BoardDrop = 0.48f;
 		private const float BoardThickness = 0.03f;
 		private const float StripMargin = 0.04f;
 		private const float SliderHalfTravel = 0.3f;
@@ -90,11 +90,12 @@ namespace DroneDDW.Parks.Editor.Building
 
 		/// <summary>
 		/// Builds the board from the rig model, in front of the seat until the head takes over. Slider-only drops the
-		/// miniature and plinth and shrinks the board to a strip under the slider. Returns the parts the scene wires up.
+		/// miniature and plinth and shrinks the board to a strip under the slider. The push settings tune how the hands
+		/// meet the knob, the follow settings how the board follows the head. Returns the parts the scene wires up.
 		/// </summary>
 		internal static Board Build(GameObject rigModel, bool isSliderOnly, Vector3 seatPosition, int startLevel,
 			Transform head, Transform trackingSpace, ParkLevelController controller, ParkPushSettings settings,
-			bool isShowingSpheres)
+			ParkBoardFollowSettings followSettings, bool isShowingSpheres)
 		{
 			GameObject rig = (GameObject)PrefabUtility.InstantiatePrefab(rigModel);
 			PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
@@ -114,7 +115,9 @@ namespace DroneDDW.Parks.Editor.Building
 			}
 
 			Transform slider = parts[SliderName];
-			Transform board = ReplaceTableWithBoard(rig.transform, parts[TableName], slider, isSliderOnly, seatPosition);
+			float boardDistance = ParkBoardFollowSettings.OrDefaults(followSettings).DistanceMeters;
+			Transform board = ReplaceTableWithBoard(rig.transform, parts[TableName], slider, isSliderOnly,
+				seatPosition + new Vector3(0f, 0f, boardDistance));
 			if (board == null)
 			{
 				return default;
@@ -147,18 +150,19 @@ namespace DroneDDW.Parks.Editor.Building
 			Behaviour spheresView = AddHandInput(levelSlider, handle.gameObject, trackingSpace, settings, isShowingSpheres);
 			AddSliderFeedback(levelSlider, rig.transform, modelRoot, controller, head, startLevel);
 			ParkBoardFollow follow = board.gameObject.AddComponent<ParkBoardFollow>();
-			follow.Configure(head, levelSlider, new Vector3(0f, -BoardDrop, BoardDistance));
-			return new Board(levelSlider, modelRoot, viewCone, spheresView);
+			follow.Configure(head, levelSlider, followSettings);
+			return new Board(levelSlider, modelRoot, viewCone, spheresView, follow);
 		}
 
 		/// <summary>
-		/// The scene's "Slider Tuning" object, which shows the shared push settings in place with a switch for the
-		/// spheres and boxes.
+		/// The scene's "Slider Tuning" object, which shows the shared push and board follow settings in place, with a
+		/// switch for the spheres and boxes and, in Play mode, what the board is doing.
 		/// </summary>
-		internal static void AddTuningObject(ParkPushSettings settings, Behaviour spheresView)
+		internal static void AddTuningObject(ParkPushSettings settings, ParkBoardFollowSettings followSettings,
+			Board board)
 		{
 			ParkSliderTuning tuning = new GameObject(TuningObjectName).AddComponent<ParkSliderTuning>();
-			tuning.Configure(settings, spheresView);
+			tuning.Configure(settings, followSettings, board.SpheresView, board.Follow);
 		}
 
 		#endregion
@@ -168,10 +172,11 @@ namespace DroneDDW.Parks.Editor.Building
 		/// <summary>
 		/// Swaps the rig's table (top and legs) for a slab, flush with the old top, under a new root whose origin is the
 		/// middle of the old top: the point the follow keeps in front of the head. The slab has the table's footprint,
-		/// or is only a strip under the slider. The board starts where the table top was, in front of the seat.
+		/// or is only a strip under the slider. The board starts with the old top at the given place (until the head
+		/// takes over in Play mode).
 		/// </summary>
 		private static Transform ReplaceTableWithBoard(Transform rig, Transform table, Transform slider, bool isSliderOnly,
-			Vector3 seatPosition)
+			Vector3 startPosition)
 		{
 			if (!table.TryGetComponent(out MeshRenderer tableRenderer) || !table.TryGetComponent(out MeshFilter tableFilter))
 			{
@@ -199,7 +204,7 @@ namespace DroneDDW.Parks.Editor.Building
 			slab.GetComponent<MeshRenderer>().sharedMaterial = tableRenderer.sharedMaterial;
 
 			Object.DestroyImmediate(table.gameObject);
-			board.position = seatPosition + new Vector3(0f, 0f, BoardDistance) + top;
+			board.position = startPosition + top;
 			return board;
 		}
 

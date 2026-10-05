@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fde282042c988a47a02c23c185a85b5, type: 3}
+  m_Name: Park Board Follow Settings
+  m_EditorClassIdentifier: DroneDDW.Parks::DroneDDW.Parks.Table.ParkBoardFollowSettings
+  _distanceMeters: 0.75
+  _dropMeters: 0.48
+  _startAngleDegrees: 20
+  _startDistanceMeters: 0.25
+  _turnTimeSeconds: 0.3
+  _moveTimeSeconds: 0.3
