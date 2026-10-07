@@ -10,32 +10,13 @@ namespace DroneDDW.Parks.Table
     [AddComponentMenu("DroneDDW/Parks/Park Time Controller")]
     public sealed class ParkTimeController : MonoBehaviour
     {
-        #region Entities
-
-        [Serializable]
-        private sealed class StepObjects
-        {
-            public GameObject[] Objects = Array.Empty<GameObject>();
-        }
-
-        #endregion
-
         #region Serialized fields
 
         [SerializeField, Tooltip("The time slider (detent count 3).")]
         private ParkLevelSlider _slider;
 
-        [SerializeField, Tooltip("Fog, sun and ambient light per step. Leave empty to change only the objects.")]
-        private ParkTimeEnvironment _environment;
-
-        [SerializeField, Tooltip("The scene's directional light.")]
-        private Light _sun;
-
-        [SerializeField, Tooltip("Index 0 = 2026, 1 = 2050, 2 = 2100. Only the chosen step's objects are active.")]
-        private StepObjects[] _stepObjects = new StepObjects[ParkTimes.Count];
-
-        [SerializeField, Min(0f), Tooltip("Seconds the look takes to blend to the next step. 0 = at once.")]
-        private float _transitionSeconds = 2f;
+        [SerializeField, Min(0f), Tooltip("Seconds the environment takes to glide to the next step. 0 = at once.")]
+        private float _transitionSeconds = 3f;
 
         #endregion
 
@@ -48,7 +29,12 @@ namespace DroneDDW.Parks.Table
 
         #region Properties
 
+        public ParkLevelSlider Slider => _slider;
+
         public int Step { get; private set; }
+
+        public float Progress { get; private set; }
+
         public bool IsTransitioning { get; private set; }
 
         private CancellationToken LifetimeToken
@@ -74,14 +60,6 @@ namespace DroneDDW.Parks.Table
 
         #region Setup
 
-        private void OnValidate()
-        {
-            if (_stepObjects == null || _stepObjects.Length != ParkTimes.Count)
-            {
-                Array.Resize(ref _stepObjects, ParkTimes.Count);
-            }
-        }
-
         private void OnEnable()
         {
             _slider.OnLevelCommit += HandleCommit;
@@ -94,9 +72,8 @@ namespace DroneDDW.Parks.Table
 
         private void Start()
         {
+            Progress = Step;
             _slider.SetDetent(Step, false);
-            ApplyObjects(Step);
-            ApplyBlend(Step, Step, 1f);
         }
 
         private void OnDestroy()
@@ -115,7 +92,6 @@ namespace DroneDDW.Parks.Table
 
         #region Public
 
-        /// <summary>Switches to a time step. The slider follows if it isn't already there.</summary>
         public void SetStep(int step, bool immediate)
         {
             step = ParkTimes.Clamp(step);
@@ -136,12 +112,11 @@ namespace DroneDDW.Parks.Table
             {
                 _transitionId++;
                 IsTransitioning = false;
-                ApplyObjects(step);
-                ApplyBlend(step, step, 1f);
+                Progress = step;
                 return;
             }
 
-            TransitionAsync(previous, step, ++_transitionId, LifetimeToken).Forget();
+            TransitionAsync(step, ++_transitionId, LifetimeToken).Forget();
         }
 
         #endregion
@@ -157,23 +132,15 @@ namespace DroneDDW.Parks.Table
 
         #region Private
 
-        private async UniTask TransitionAsync(int from, int to, int transitionId, CancellationToken cancellationToken)
+        private async UniTask TransitionAsync(int target, int transitionId, CancellationToken cancellationToken)
         {
             try
             {
                 IsTransitioning = true;
-                bool hasSwapped = false;
+                float start = Progress;
                 float elapsed = 0f;
                 while (elapsed < _transitionSeconds)
                 {
-                    float blend = Mathf.SmoothStep(0f, 1f, elapsed / _transitionSeconds);
-                    ApplyBlend(from, to, blend);
-                    if (!hasSwapped && blend >= 0.5f)
-                    {
-                        ApplyObjects(to);
-                        hasSwapped = true;
-                    }
-
                     await UniTask.NextFrame(cancellationToken);
                     if (transitionId != _transitionId)
                     {
@@ -181,14 +148,14 @@ namespace DroneDDW.Parks.Table
                     }
 
                     elapsed += Time.deltaTime;
+                    float blend = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / _transitionSeconds));
+                    Progress = Mathf.Lerp(start, target, blend);
                 }
 
-                ApplyObjects(to);
-                ApplyBlend(to, to, 1f);
+                Progress = target;
             }
             catch (OperationCanceledException)
             {
-                // Destroyed mid-transition.
             }
             catch (Exception exception)
             {
@@ -199,46 +166,6 @@ namespace DroneDDW.Parks.Table
                 if (transitionId == _transitionId)
                 {
                     IsTransitioning = false;
-                }
-            }
-        }
-
-        private void ApplyBlend(int from, int to, float blend)
-        {
-            if (_environment == null)
-            {
-                return;
-            }
-
-            ParkTimeEnvironment.Step a = _environment.GetStep(from);
-            ParkTimeEnvironment.Step b = _environment.GetStep(to);
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = Color.Lerp(a.FogColor, b.FogColor, blend);
-            RenderSettings.fogDensity = Mathf.Lerp(a.FogDensity, b.FogDensity, blend);
-            RenderSettings.ambientLight = Color.Lerp(a.AmbientColor, b.AmbientColor, blend);
-            if (_sun != null)
-            {
-                _sun.color = Color.Lerp(a.SunColor, b.SunColor, blend);
-                _sun.intensity = Mathf.Lerp(a.SunIntensity, b.SunIntensity, blend);
-            }
-        }
-
-        private void ApplyObjects(int step)
-        {
-            for (int i = 0; i < _stepObjects.Length; i++)
-            {
-                if (_stepObjects[i] == null)
-                {
-                    continue;
-                }
-
-                foreach (GameObject go in _stepObjects[i].Objects)
-                {
-                    if (go != null)
-                    {
-                        go.SetActive(i == step);
-                    }
                 }
             }
         }

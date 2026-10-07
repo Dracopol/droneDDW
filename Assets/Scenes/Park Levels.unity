@@ -40132,16 +40132,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DroneDDW.Parks::DroneDDW.Parks.Table.ParkTimeController
   _slider: {fileID: 1746583306}
-  _environment: {fileID: 11400000, guid: 8e8fedc72aef05b4080cee30523472a6, type: 2}
-  _sun: {fileID: 906081689}
-  _stepObjects:
-  - Objects:
-    - {fileID: 874253444}
-  - Objects:
-    - {fileID: 1684076897}
-  - Objects:
-    - {fileID: 167600323}
-  _transitionSeconds: 2
+  _transitionSeconds: 3
 --- !u!4 &545325792
 Transform:
   m_ObjectHideFlags: 0
@@ -129936,6 +129927,213 @@ MonoBehaviour:
   _levelMask: 7
   _style: 1
   _liftDepth: 7.525
+--- !u!1 &1772313553
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1772313556}
+  - component: {fileID: 1772313555}
+  - component: {fileID: 1772313554}
+  m_Layer: 0
+  m_Name: Time World
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1772313554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1772313553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17dc5715fd7a13b418f9ba894527c56f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DroneDDW.Parks::DroneDDW.Parks.Table.ParkTimeCaption
+  _world: {fileID: 1772313555}
+  _board: {fileID: 0}
+  _localPosition: {x: 0, y: 0.36, z: 0}
+  _size: {x: 0.8, y: 0.3}
+  _fontSize: 0.3
+--- !u!114 &1772313555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1772313553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37873e068f009db4a80f40862b34fce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DroneDDW.Parks::DroneDDW.Parks.Table.ParkTimeWorld
+  _root: {fileID: 0}
+  _timeController: {fileID: 545325791}
+  _levelController: {fileID: 68339829}
+  _levelSlider: {fileID: 1746583306}
+  _startLevel: 2
+  _sun: {fileID: 906081689}
+  _treeWords:
+  - tree
+  - pine
+  - oak
+  - birch
+  - beech
+  - palm
+  - willow
+  - spruce
+  - conifer
+  - cedar
+  - poplar
+  - maple
+  _shrubWords:
+  - bush
+  - shrub
+  - hedge
+  - bramble
+  - thicket
+  _plantWords:
+  - grass
+  - flower
+  - plant
+  - fern
+  - weed
+  - reed
+  - clover
+  - lily
+  - daisy
+  - tulip
+  - moss
+  - herb
+  - foliage
+  - vegetation
+  - wildflower
+  - bloom
+  - meadow
+  _faunaWords:
+  - bird
+  - insect
+  - butterfly
+  - bee
+  - deer
+  - rabbit
+  - fox
+  - duck
+  - fish
+  - frog
+  - animal
+  - squirrel
+  - crow
+  - owl
+  - hawk
+  - eagle
+  - pigeon
+  - sparrow
+  - hare
+  - wildlife
+  _ignoreWords:
+  - xr
+  - origin
+  - rig
+  - hand
+  - hands
+  - controller
+  - camera
+  - terrain
+  - floor
+  - sky
+  - canvas
+  - ui
+  - board
+  - table
+  - slider
+  - hud
+  _minGroupChildren: 3
+  _tintWhiteMaterials: 0
+  _seed: 7
+  _newTreeShare: 0.5
+  _newShrubShare: 1
+  _newPlantShare: 1.5
+  _newFaunaShare: 0.5
+  _maxNewItems: 250
+  _newItemDistance: {x: 1, y: 4}
+  _blossomColors:
+  - {r: 0.95, g: 0.55, b: 0.7, a: 1}
+  - {r: 0.95, g: 0.6, b: 0.2, a: 1}
+  - {r: 0.95, g: 0.85, b: 0.25, a: 1}
+  - {r: 0.6, g: 0.4, b: 0.8, a: 1}
+  - {r: 0.15, g: 0.55, b: 0.4, a: 1}
+  - {r: 0.85, g: 0.25, b: 0.25, a: 1}
+  - {r: 0.55, g: 0.8, b: 0.35, a: 1}
+  _pollinatorCount: 60
+  _tidyColor: {r: 0.42, g: 0.62, b: 0.3, a: 1}
+  _stationCount: 6
+  _sensorCount: 20
+  _towerCount: 4
+  _droneCount: 20
+  _zoneCount: 8
+  _droneHeight: {x: 14, y: 4}
+  _droneRadius: {x: 8, y: 4}
+  _clearanceMeters: 1.8
+  _useCustomArea: 0
+  _customArea:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 20, y: 5, z: 20}
+  _natureLook:
+  - FogColor: {r: 0.78, g: 0.87, b: 0.9, a: 1}
+    FogDensity: 0.0015
+    SunColor: {r: 1, g: 0.97, b: 0.9, a: 1}
+    SunIntensity: 1
+    AmbientColor: {r: 0.55, g: 0.62, b: 0.6, a: 1}
+  - FogColor: {r: 0.76, g: 0.88, b: 0.86, a: 1}
+    FogDensity: 0.0018
+    SunColor: {r: 1, g: 0.96, b: 0.86, a: 1}
+    SunIntensity: 1
+    AmbientColor: {r: 0.53, g: 0.64, b: 0.58, a: 1}
+  - FogColor: {r: 0.74, g: 0.89, b: 0.84, a: 1}
+    FogDensity: 0.0022
+    SunColor: {r: 1, g: 0.95, b: 0.84, a: 1}
+    SunIntensity: 1
+    AmbientColor: {r: 0.5, g: 0.65, b: 0.56, a: 1}
+  _efficiencyLook:
+  - FogColor: {r: 0.78, g: 0.87, b: 0.92, a: 1}
+    FogDensity: 0.0016
+    SunColor: {r: 1, g: 0.98, b: 0.93, a: 1}
+    SunIntensity: 1
+    AmbientColor: {r: 0.56, g: 0.62, b: 0.63, a: 1}
+  - FogColor: {r: 0.82, g: 0.87, b: 0.9, a: 1}
+    FogDensity: 0.0012
+    SunColor: {r: 0.99, g: 0.99, b: 0.96, a: 1}
+    SunIntensity: 1.02
+    AmbientColor: {r: 0.58, g: 0.62, b: 0.66, a: 1}
+  - FogColor: {r: 0.86, g: 0.88, b: 0.9, a: 1}
+    FogDensity: 0.0008
+    SunColor: {r: 0.97, g: 0.99, b: 1, a: 1}
+    SunIntensity: 1.05
+    AmbientColor: {r: 0.6, g: 0.63, b: 0.68, a: 1}
+  _levelBlendSeconds: 2
+--- !u!4 &1772313556
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1772313553}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1773398781
 GameObject:
   m_ObjectHideFlags: 0
@@ -153607,3 +153805,4 @@ SceneRoots:
   - {fileID: 902918360}
   - {fileID: 1112726142}
   - {fileID: 545325792}
+  - {fileID: 1772313556}
