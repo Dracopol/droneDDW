@@ -129938,6 +129938,7 @@ GameObject:
   - component: {fileID: 1772313556}
   - component: {fileID: 1772313555}
   - component: {fileID: 1772313554}
+  - component: {fileID: 1772313557}
   m_Layer: 0
   m_Name: Time World
   m_TagString: Untagged
@@ -130134,6 +130135,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1772313557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1772313553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f96172000044ddf4891b003f65c1e783, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DroneDDW.Parks::DroneDDW.Parks.Table.ParkWristWatch
+  _timeController: {fileID: 545325791}
+  _world: {fileID: 1772313555}
+  _trackingSpace: {fileID: 0}
+  _head: {fileID: 0}
+  _flipSide: 0
+  _towardElbowMeters: 0.04
+  _upMeters: 0
+  _smoothing: 30
+  _bandRadiusMeters: 0.036
+  _facingThreshold: 0.35
+  _fadeSpeed: 8
+  _screenColor: {r: 0.8, g: 0.95, b: 1, a: 1}
+  _previewColor: {r: 1, g: 0.75, b: 0.3, a: 1}
+  _previewWithoutHand: 0
 --- !u!1 &1773398781
 GameObject:
   m_ObjectHideFlags: 0
