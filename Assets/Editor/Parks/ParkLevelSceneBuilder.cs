@@ -40,7 +40,7 @@ namespace DroneDDW.Parks.Editor.Building
 		private const int StartLevel = 2;
 
 		// Testing aid: draws the spheres the hands push the slider with, and the knob's push and grab boxes
-		private const bool ShowHandSpheres = true;
+		private const bool ShowHandSpheres = false;
 		private const float SeatHeight = 0.12f;
 		private const float EyeHeight = 1.2f;
 		private const float FarClipPlane = 300f;
