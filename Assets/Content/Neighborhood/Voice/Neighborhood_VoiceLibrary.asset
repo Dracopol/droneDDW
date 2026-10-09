@@ -1,0 +1,263 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e7dcfcf866af034980bd1b3a13d57e0, type: 3}
+  m_Name: Neighborhood_VoiceLibrary
+  m_EditorClassIdentifier: DroneDDW.Neighborhood::DroneDDW.Neighborhood.Voice.NeighborhoodVoiceLibrary
+  _scriptVersion: The Park Dial voice script, English recording, 2026-10-09, 26 lines
+  _lines:
+  - _id: GRA_01
+    _character: 0
+    _emotion: 1
+    _side: 0
+    _stage: 0
+    _trigger: Introduction
+    _text: I come to the pond every evening to feed my ducks. I hope it stays just
+      like this.
+    _clip: {fileID: 0}
+  - _id: GRA_02
+    _character: 0
+    _emotion: 0
+    _side: 1
+    _stage: 1
+    _trigger: Drones keep away from the pond
+    _text: Quiet again. Just me and the ducks.
+    _clip: {fileID: 0}
+  - _id: GRA_03
+    _character: 0
+    _emotion: 0
+    _side: 1
+    _stage: 1
+    _trigger: Lamp is still dark
+    _text: That lamp's still out. I'll have to walk home in the dark again.
+    _clip: {fileID: 0}
+  - _id: GRA_04
+    _character: 0
+    _emotion: 1
+    _side: 1
+    _stage: 1
+    _trigger: Ducks stay
+    _text: There they are. Same as always.
+    _clip: {fileID: 0}
+  - _id: GRA_05
+    _character: 0
+    _emotion: 1
+    _side: 1
+    _stage: 2
+    _trigger: Five years on, more ducks
+    _text: Even more of them this year. This is what a park is for.
+    _clip: {fileID: 0}
+  - _id: GRA_06
+    _character: 0
+    _emotion: 1
+    _side: 1
+    _stage: 2
+    _trigger: Five years on, garden blooms
+    _text: Smell those flowers. The bees found the garden too.
+    _clip: {fileID: 0}
+  - _id: GRA_07
+    _character: 0
+    _emotion: 0
+    _side: 2
+    _stage: 1
+    _trigger: Some drones, ducks still there
+    _text: A few drones, a few ducks. I suppose we can share.
+    _clip: {fileID: 0}
+  - _id: GRA_08
+    _character: 0
+    _emotion: 2
+    _side: 3
+    _stage: 1
+    _trigger: First drones over the pond
+    _text: What's that buzzing? You're scaring them off.
+    _clip: {fileID: 0}
+  - _id: GRA_09
+    _character: 0
+    _emotion: 2
+    _side: 3
+    _stage: 1
+    _trigger: Ducks leave
+    _text: Where did my ducks go?
+    _clip: {fileID: 0}
+  - _id: GRA_10
+    _character: 0
+    _emotion: 0
+    _side: 3
+    _stage: 1
+    _trigger: Towers light up
+    _text: Those towers are pretty at night, I'll admit. But I miss the water.
+    _clip: {fileID: 0}
+  - _id: GRA_11
+    _character: 0
+    _emotion: 2
+    _side: 3
+    _stage: 2
+    _trigger: Five years on, pond is gone
+    _text: I still come out of habit. All that buzzing, who asked for this?
+    _clip: {fileID: 0}
+  - _id: WOR_01
+    _character: 1
+    _emotion: 0
+    _side: 0
+    _stage: 0
+    _trigger: Introduction
+    _text: That lamp post by the path has been dark for a week. I'm waiting on a
+      part.
+    _clip: {fileID: 0}
+  - _id: WOR_02
+    _character: 1
+    _emotion: 2
+    _side: 1
+    _stage: 1
+    _trigger: Part is still on its way
+    _text: Still waiting on that part. Taking the scenic route, apparently.
+    _clip: {fileID: 0}
+  - _id: WOR_03
+    _character: 1
+    _emotion: 1
+    _side: 1
+    _stage: 1
+    _trigger: Part finally arrives
+    _text: About time. Lamp's fixed.
+    _clip: {fileID: 0}
+  - _id: WOR_04
+    _character: 1
+    _emotion: 0
+    _side: 1
+    _stage: 2
+    _trigger: Five years on
+    _text: Deliveries are slow, but the park looks after itself. Less work for me.
+    _clip: {fileID: 0}
+  - _id: WOR_05
+    _character: 1
+    _emotion: 0
+    _side: 2
+    _stage: 1
+    _trigger: Part arrives after a few days
+    _text: Took a few days. Can't complain.
+    _clip: {fileID: 0}
+  - _id: WOR_06
+    _character: 1
+    _emotion: 1
+    _side: 3
+    _stage: 1
+    _trigger: Part arrives fast
+    _text: That was fast. Lamp's fixed.
+    _clip: {fileID: 0}
+  - _id: WOR_07
+    _character: 1
+    _emotion: 0
+    _side: 3
+    _stage: 2
+    _trigger: Five years on
+    _text: Pads, towers, lights. A lot more to maintain now. Keeps me busy.
+    _clip: {fileID: 0}
+  - _id: STU_01
+    _character: 2
+    _emotion: 0
+    _side: 0
+    _stage: 0
+    _trigger: Introduction
+    _text: I walk her here every day. Honestly, this park could use a bit of an upgrade.
+    _clip: {fileID: 0}
+  - _id: STU_02
+    _character: 2
+    _emotion: 0
+    _side: 1
+    _stage: 1
+    _trigger: Path stays quiet
+    _text: Nice and calm today, I'll give it that.
+    _clip: {fileID: 0}
+  - _id: STU_03
+    _character: 2
+    _emotion: 2
+    _side: 1
+    _stage: 1
+    _trigger: Order is slow
+    _text: My orders take ages out here. Nothing ever changes in this park.
+    _clip: {fileID: 0}
+  - _id: STU_04
+    _character: 2
+    _emotion: 0
+    _side: 1
+    _stage: 2
+    _trigger: Five years on, garden blooms
+    _text: Okay, the garden is kind of nice. Still waiting on my package though.
+    _clip: {fileID: 0}
+  - _id: STU_05
+    _character: 2
+    _emotion: 0
+    _side: 2
+    _stage: 1
+    _trigger: Order arrives in reasonable time
+    _text: Not bad. Could be faster, but not bad.
+    _clip: {fileID: 0}
+  - _id: STU_06
+    _character: 2
+    _emotion: 1
+    _side: 3
+    _stage: 1
+    _trigger: Order is fast
+    _text: Mine came in minutes. That's how it should be.
+    _clip: {fileID: 0}
+  - _id: STU_07
+    _character: 2
+    _emotion: 1
+    _side: 3
+    _stage: 2
+    _trigger: Five years on, towers light up
+    _text: Look at that skyline. This place finally feels like the future.
+    _clip: {fileID: 0}
+  - _id: STU_08
+    _character: 2
+    _emotion: 0
+    _side: 3
+    _stage: 2
+    _trigger: Five years on, pond is gone
+    _text: She doesn't chase the ducks anymore. There aren't any left.
+    _clip: {fileID: 0}
+  _reactions:
+  - _version: 0
+    _stage: 1
+    _lineIds:
+    - GRA_04
+    - WOR_02
+    - STU_03
+  - _version: 1
+    _stage: 1
+    _lineIds:
+    - GRA_07
+    - WOR_05
+    - STU_05
+  - _version: 2
+    _stage: 1
+    _lineIds:
+    - GRA_08
+    - WOR_06
+    - STU_06
+  - _version: 0
+    _stage: 2
+    _lineIds:
+    - GRA_05
+    - WOR_04
+    - STU_04
+  - _version: 1
+    _stage: 2
+    _lineIds:
+    - GRA_07
+    - WOR_05
+    - STU_05
+  - _version: 2
+    _stage: 2
+    _lineIds:
+    - GRA_11
+    - WOR_07
+    - STU_07

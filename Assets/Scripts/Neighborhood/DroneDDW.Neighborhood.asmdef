@@ -1,0 +1,36 @@
+{
+    "name": "DroneDDW.Neighborhood",
+    "rootNamespace": "DroneDDW.Neighborhood",
+    "references": [
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
+        "Unity.InputSystem",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "2.0.0",
+            "define": "NEIGHBORHOOD_XRI"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "3.0.0",
+            "define": "NEIGHBORHOOD_XRI_3"
+        },
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "1.0.0",
+            "define": "NEIGHBORHOOD_INPUT_SYSTEM"
+        }
+    ],
+    "noEngineReferences": false
+}

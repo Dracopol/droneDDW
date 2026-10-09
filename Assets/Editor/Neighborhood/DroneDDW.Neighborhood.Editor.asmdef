@@ -1,0 +1,35 @@
+{
+    "name": "DroneDDW.Neighborhood.Editor",
+    "rootNamespace": "DroneDDW.Neighborhood.Editor",
+    "references": [
+        "DroneDDW.Neighborhood",
+        "DroneDDW.FingerGrab",
+        "DroneDDW.FingerGrab.Editor",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "2.0.0",
+            "define": "NEIGHBORHOOD_XRI"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "3.0.0",
+            "define": "NEIGHBORHOOD_XRI_3"
+        }
+    ],
+    "noEngineReferences": false
+}

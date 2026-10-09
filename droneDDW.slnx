@@ -9,9 +9,11 @@
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
   <Project Path="DroneDDW.Admin.Editor.csproj" />
   <Project Path="DroneDDW.NarratorOrb.Editor.csproj" />
+  <Project Path="DroneDDW.Neighborhood.Editor.csproj" />
   <Project Path="DroneDDW.Voice.Tests.csproj" />
   <Project Path="DroneDDW.Characters.Editor.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.Hands.Editor.csproj" />
+  <Project Path="DroneDDW.Neighborhood.csproj" />
   <Project Path="DroneDDW.Admin.Tests.csproj" />
   <Project Path="DroneDDW.FingerGrab.csproj" />
   <Project Path="DroneDDW.NarratorOrb.Tests.csproj" />

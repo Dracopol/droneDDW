@@ -1,0 +1,300 @@
+using System.Collections.Generic;
+using DroneDDW.Neighborhood.Characters;
+using DroneDDW.Neighborhood.Editor.Layout;
+using DroneDDW.Neighborhood.Versions;
+using UnityEditor;
+using UnityEditor.Animations;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace DroneDDW.Neighborhood.Editor.Building
+{
+    /// <summary>
+    /// Puts the three people in the street: each model at its spot, an animator controller with one state per
+    /// clip (the pose clips are named Pose_Nature, Pose_Balanced, Pose_Efficiency), the face parts, a spatial
+    /// voice source on the head bone, the props they hold (parented to the hand bone while the matching pose
+    /// is sampled, so they sit in the hand) and the student's leash.
+    /// </summary>
+    internal static class NeighborhoodCharacterBuilder
+    {
+        #region Fields
+
+        private const string HeadBone = "Head";
+        private const string PreviewClipPrefix = "__preview__";
+        private const float LeashWidth = 0.014f;
+        private const int LeashPoints = 10;
+        // Grandma and the worker stand 16 to 18 m from the seat: full volume up to 10 m keeps them easy to hear,
+        // while the direction still tells the participant who is speaking.
+        private const float VoiceMinDistance = 10f;
+        private const float VoiceMaxDistance = 40f;
+
+        private static readonly string[] VersionNames = { "Nature", "Balanced", "Efficiency" };
+
+        #endregion
+
+        #region Internal
+
+        internal static NeighborhoodCharacter[] Build(string root, NeighborhoodLayout layout, Dictionary<string, Transform> elementNodes,
+            NeighborhoodMaterialSet materials, NeighborhoodVersionController controller, Transform parent, NeighborhoodVersion start)
+        {
+            GameObject group = new GameObject("Characters");
+            group.transform.SetParent(parent, false);
+            string animationFolder = NeighborhoodAssetUtility.EnsureFolder(root, NeighborhoodAssetUtility.AnimationFolder);
+            List<NeighborhoodCharacter> characters = new List<NeighborhoodCharacter>();
+            foreach (NeighborhoodLayoutCharacter entry in layout.Characters)
+            {
+                GameObject model = NeighborhoodAssetUtility.LoadModel(root, entry.Model);
+                if (model == null)
+                {
+                    Debug.LogError($"[Neighborhood] {entry.Model}.fbx is missing; {entry.Name} is left out.");
+                    continue;
+                }
+
+                GameObject instance = NeighborhoodBuildUtility.InstantiateUnpacked(model, group.transform, entry.Name);
+                instance.transform.SetPositionAndRotation(entry.Position, Quaternion.Euler(0f, entry.RotationY, 0f));
+                Dictionary<string, AnimationClip> clips = LoadClips(NeighborhoodAssetUtility.ModelPath(root, entry.Model));
+                NeighborhoodLayoutPose startPose = FindPose(entry, (int)start);
+
+                if (!instance.TryGetComponent(out Animator animator))
+                {
+                    animator = instance.AddComponent<Animator>();
+                }
+
+                animator.runtimeAnimatorController = CreateController(animationFolder, entry, clips, startPose);
+                animator.applyRootMotion = false;
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+                NeighborhoodFace face = BuildFace(instance, entry.Name);
+                AudioSource voice = BuildVoice(instance, entry);
+                NeighborhoodCharacter character = instance.AddComponent<NeighborhoodCharacter>();
+                character.Configure((NeighborhoodCharacterId)entry.Id, animator, face, voice, controller, ToPoses(entry));
+                AttachProps(instance, entry, clips, layout, elementNodes, materials.Leash);
+
+                // Leave the scene showing the start pose and face.
+                if (startPose != null && clips.TryGetValue(startPose.Clip, out AnimationClip startClip))
+                {
+                    startClip.SampleAnimation(instance, 0f);
+                    face.SetEmotion((NeighborhoodEmotion)startPose.Emotion);
+                }
+
+                characters.Add(character);
+            }
+
+            return characters.ToArray();
+        }
+
+        #endregion
+
+        #region Private
+
+        private static Dictionary<string, AnimationClip> LoadClips(string modelPath)
+        {
+            Dictionary<string, AnimationClip> clips = new Dictionary<string, AnimationClip>();
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(modelPath))
+            {
+                if (asset is AnimationClip clip && !clip.name.StartsWith(PreviewClipPrefix, System.StringComparison.Ordinal))
+                {
+                    clips[clip.name] = clip;
+                }
+            }
+
+            return clips;
+        }
+
+        private static NeighborhoodLayoutPose FindPose(NeighborhoodLayoutCharacter entry, int version)
+        {
+            foreach (NeighborhoodLayoutPose pose in entry.Poses)
+            {
+                if (pose.Version == version)
+                {
+                    return pose;
+                }
+            }
+
+            return null;
+        }
+
+        private static NeighborhoodCharacterPose[] ToPoses(NeighborhoodLayoutCharacter entry)
+        {
+            NeighborhoodCharacterPose[] poses = new NeighborhoodCharacterPose[entry.Poses.Count];
+            for (int i = 0; i < poses.Length; i++)
+            {
+                NeighborhoodLayoutPose pose = entry.Poses[i];
+                poses[i] = new NeighborhoodCharacterPose(NeighborhoodVersions.Clamp(pose.Version), pose.Clip, (NeighborhoodEmotion)pose.Emotion);
+            }
+
+            return poses;
+        }
+
+        /// <summary>
+        /// One state per clip, named after it; the start pose is the default state. An existing controller is
+        /// refilled rather than replaced, so its GUID (and anything pointing at it) survives a rebuild.
+        /// </summary>
+        private static AnimatorController CreateController(string folder, NeighborhoodLayoutCharacter entry,
+            Dictionary<string, AnimationClip> clips, NeighborhoodLayoutPose startPose)
+        {
+            string path = $"{folder}/{entry.Model}.controller";
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (controller == null)
+            {
+                controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+            }
+
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            foreach (ChildAnimatorState child in machine.states)
+            {
+                machine.RemoveState(child.state);
+            }
+
+            List<string> names = new List<string>(clips.Keys);
+            names.Sort(System.StringComparer.Ordinal);
+            foreach (string clipName in names)
+            {
+                AnimatorState state = machine.AddState(clipName);
+                state.motion = clips[clipName];
+                state.writeDefaultValues = true;
+                if (startPose != null && clipName == startPose.Clip)
+                {
+                    machine.defaultState = state;
+                }
+            }
+
+            foreach (NeighborhoodLayoutPose pose in entry.Poses)
+            {
+                if (!clips.ContainsKey(pose.Clip))
+                {
+                    Debug.LogError($"[Neighborhood] {entry.Model}.fbx has no clip {pose.Clip}.");
+                }
+            }
+
+            EditorUtility.SetDirty(controller);
+            return controller;
+        }
+
+        private static NeighborhoodFace BuildFace(GameObject instance, string characterName)
+        {
+            NeighborhoodFace face = instance.AddComponent<NeighborhoodFace>();
+            face.Configure(FindRenderer(instance, characterName, "eyes_usual"), FindRenderer(instance, characterName, "eyes_happy"),
+                FindRenderer(instance, characterName, "eyes_angry"), FindRenderer(instance, characterName, "mouth_smile"),
+                FindRenderer(instance, characterName, "mouth_bigsmile"), FindRenderer(instance, characterName, "mouth_frown"),
+                FindRenderer(instance, characterName, "mouth_open"));
+            return face;
+        }
+
+        private static Renderer FindRenderer(GameObject instance, string characterName, string part)
+        {
+            Transform node = NeighborhoodBuildUtility.FindDeep(instance.transform, $"{characterName}_{part}");
+            if (node != null && node.TryGetComponent(out Renderer renderer))
+            {
+                return renderer;
+            }
+
+            Debug.LogWarning($"[Neighborhood] {characterName} has no face part {part}.");
+            return null;
+        }
+
+        private static AudioSource BuildVoice(GameObject instance, NeighborhoodLayoutCharacter entry)
+        {
+            Transform head = NeighborhoodBuildUtility.FindDeep(instance.transform, HeadBone);
+            GameObject voiceObject = new GameObject("Voice");
+            voiceObject.transform.SetParent(head != null ? head : instance.transform, false);
+            if (head == null)
+            {
+                voiceObject.transform.localPosition = new Vector3(0f, entry.HeadHeight, 0f);
+            }
+
+            AudioSource source = voiceObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = false;
+            source.spatialBlend = 1f;
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            source.minDistance = VoiceMinDistance;
+            source.maxDistance = VoiceMaxDistance;
+            source.dopplerLevel = 0f;
+            return source;
+        }
+
+        /// <summary>
+        /// For each version: sample its pose, then hang that version's hand props on their bones (keeping where
+        /// they are, which is in the hand) and build that version's leash.
+        /// </summary>
+        private static void AttachProps(GameObject instance, NeighborhoodLayoutCharacter entry, Dictionary<string, AnimationClip> clips,
+            NeighborhoodLayout layout, Dictionary<string, Transform> elementNodes, Material leashMaterial)
+        {
+            foreach (NeighborhoodLayoutPose pose in entry.Poses)
+            {
+                if (!clips.TryGetValue(pose.Clip, out AnimationClip clip))
+                {
+                    continue;
+                }
+
+                clip.SampleAnimation(instance, 0f);
+                int versionMask = 1 << pose.Version;
+                foreach (NeighborhoodLayoutElement element in layout.Elements)
+                {
+                    if (element.AttachCharacter != entry.Id || element.Mask != versionMask
+                        || !elementNodes.TryGetValue(element.Name, out Transform node))
+                    {
+                        continue;
+                    }
+
+                    Transform bone = NeighborhoodBuildUtility.FindDeep(instance.transform, element.AttachBone);
+                    if (bone == null)
+                    {
+                        Debug.LogWarning($"[Neighborhood] {entry.Name} has no bone {element.AttachBone} for {element.Name}.");
+                        continue;
+                    }
+
+                    node.SetParent(bone, true);
+                }
+
+                foreach (NeighborhoodLayoutLeash leash in layout.Leashes)
+                {
+                    if (leash.Character == entry.Id && leash.Version == pose.Version)
+                    {
+                        BuildLeash(instance, leash, elementNodes, leashMaterial);
+                    }
+                }
+            }
+        }
+
+        private static void BuildLeash(GameObject instance, NeighborhoodLayoutLeash leash, Dictionary<string, Transform> elementNodes,
+            Material material)
+        {
+            Transform bone = NeighborhoodBuildUtility.FindDeep(instance.transform, leash.Bone);
+            if (bone == null || !elementNodes.TryGetValue(leash.Element, out Transform dog))
+            {
+                Debug.LogWarning($"[Neighborhood] Leash for {leash.Element} skipped: bone {leash.Bone} or the dog is missing.");
+                return;
+            }
+
+            string versionName = VersionNames[Mathf.Clamp(leash.Version, 0, VersionNames.Length - 1)];
+            GameObject grip = new GameObject($"LeashGrip_{versionName}");
+            grip.transform.position = leash.Grip;
+            grip.transform.SetParent(bone, true);
+            GameObject collar = new GameObject("LeashCollar");
+            collar.transform.position = leash.Collar;
+            collar.transform.SetParent(dog, true);
+
+            GameObject lineObject = new GameObject("Leash");
+            lineObject.transform.SetParent(dog, false);
+            LineRenderer line = lineObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.widthMultiplier = LeashWidth;
+            line.numCapVertices = 2;
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.sharedMaterial = material;
+            line.positionCount = LeashPoints;
+            for (int i = 0; i < LeashPoints; i++)
+            {
+                line.SetPosition(i, Vector3.Lerp(leash.Grip, leash.Collar, i / (float)(LeashPoints - 1)));
+            }
+
+            NeighborhoodLeash component = lineObject.AddComponent<NeighborhoodLeash>();
+            component.Configure(line, grip.transform, collar.transform);
+        }
+
+        #endregion
+    }
+}
