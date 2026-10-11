@@ -1,0 +1,25 @@
+{
+    "name": "DroneDDW.TicketScan.Editor",
+    "rootNamespace": "DroneDDW.TicketScan.Editor",
+    "references": [
+        "DroneDDW.TicketScan",
+        "meta.xr.mrutilitykit",
+        "Oculus.VR",
+        "Oculus.VR.Editor",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.CoreUtils"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

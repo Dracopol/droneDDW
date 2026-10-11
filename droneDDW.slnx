@@ -3,6 +3,7 @@
   <Project Path="DroneDDW.Parks.csproj" />
   <Project Path="Unity.XR.Hands.Samples.VisualizerSample.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="DroneDDW.TicketScan.csproj" />
   <Project Path="DroneDDW.Parks.Editor.csproj" />
   <Project Path="DroneDDW.NarratorOrb.csproj" />
   <Project Path="DroneDDW.Admin.csproj" />
@@ -14,6 +15,7 @@
   <Project Path="DroneDDW.Characters.Editor.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.Hands.Editor.csproj" />
   <Project Path="DroneDDW.Neighborhood.csproj" />
+  <Project Path="DroneDDW.TicketScan.Tests.csproj" />
   <Project Path="DroneDDW.Admin.Tests.csproj" />
   <Project Path="DroneDDW.FingerGrab.csproj" />
   <Project Path="DroneDDW.NarratorOrb.Tests.csproj" />
@@ -21,5 +23,6 @@
   <Project Path="DroneDDW.Voice.csproj" />
   <Project Path="DroneDDW.FingerGrab.Editor.csproj" />
   <Project Path="DroneDDW.Characters.Tests.csproj" />
+  <Project Path="DroneDDW.TicketScan.Editor.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.Editor.csproj" />
 </Solution>

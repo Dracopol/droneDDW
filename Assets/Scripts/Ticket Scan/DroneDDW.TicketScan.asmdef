@@ -1,0 +1,23 @@
+{
+    "name": "DroneDDW.TicketScan",
+    "rootNamespace": "DroneDDW.TicketScan",
+    "references": [
+        "UniTask",
+        "meta.xr.mrutilitykit",
+        "Oculus.VR",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "zxing.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
