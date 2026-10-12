@@ -27,9 +27,9 @@ MonoBehaviour:
     _success: {fileID: 8300000, guid: 1919c6a3f333b8cdf7910b578640eec0, type: 3}
   _charactersIntro: {fileID: 8300000, guid: 148ca3a932b0e86016c20d374f2f6361, type: 3}
   _characterLines:
-  - {fileID: 8300000, guid: a7fc0a9be12eff14b9b17df13f44e704, type: 3}
-  - {fileID: 8300000, guid: a7fc0a9be12eff14b9b17df13f44e704, type: 3}
-  - {fileID: 8300000, guid: a7fc0a9be12eff14b9b17df13f44e704, type: 3}
+  - {fileID: 8300000, guid: fe8ca3c9ec3b8811d7cfc2b73ffce21b, type: 3}
+  - {fileID: 8300000, guid: 5cf76883082c6505d1f8ea5cfa344d16, type: 3}
+  - {fileID: 8300000, guid: 7a6b0551a14c43b66af955883949572f, type: 3}
   _neighborhoodWelcome: {fileID: 8300000, guid: 310f6e811274c269e354a882060a60ec, type: 3}
   _neighborhoodLockIn:
     _prompt: {fileID: 8300000, guid: d0b309f634ed72481cca60a6db0c0980, type: 3}

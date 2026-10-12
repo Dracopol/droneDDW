@@ -387,7 +387,7 @@ namespace DroneDDW.Experience.Editor
 				Vector3 position = eyes + direction * CardDistanceMeters + Vector3.up * CardHeightAboveEyesMeters;
 				Pose pose = new(position, Quaternion.LookRotation(direction, Vector3.up));
 				cards[card] = CharacterPortraitTestSceneBuilder.CreateCard(portraitSets[card], settings, panel,
-					(float)card / cards.Length, pose);
+					(float)card / cards.Length, pose, false);
 				cards[card].transform.SetParent(root.transform, true);
 			}
 

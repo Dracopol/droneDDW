@@ -189,9 +189,10 @@ namespace DroneDDW.Characters.Editor
 			}
 		}
 
-		// The card's root holds the voice; its canvas (the body) holds the parts, which the card animates
+		// The card's root holds the voice; its canvas (the body) holds the parts, which the card animates. The name and
+		// emotion label is for the test scene (it shows the keys' effect); the experience's cards go without it
 		internal static CharacterCard CreateCard(CharacterPortraitSet portraits, CharacterPortraitSettings settings,
-			Sprite panel, float hoverPhase, Pose pose)
+			Sprite panel, float hoverPhase, Pose pose, bool hasLabel = true)
 		{
 			GameObject root = new($"{portraits.DisplayName} Card");
 			root.transform.SetPositionAndRotation(pose.position, pose.rotation);
@@ -212,7 +213,7 @@ namespace DroneDDW.Characters.Editor
 			RawImage mouth = CreateUiPart<RawImage>("Mouth", portrait.rectTransform);
 			mouth.raycastTarget = false;
 			mouth.enabled = false;
-			TextMeshProUGUI label = CreateLabel(body, portraits);
+			TextMeshProUGUI label = hasLabel ? CreateLabel(body, portraits) : null;
 
 			CharacterCard card = root.AddComponent<CharacterCard>();
 			card.Configure(portraits, settings, voice, liveTap, hoverPhase, body, portrait, mouth, border, label);

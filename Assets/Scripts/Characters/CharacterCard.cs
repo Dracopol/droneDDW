@@ -275,12 +275,19 @@ namespace DroneDDW.Characters
 			_portrait.color = tint;
 			_mouth.color = tint;
 			_border.color = _portraits.AccentColor * tint;
-			_label.color = tint;
+			if (_label != null)
+			{
+				_label.color = tint;
+			}
 		}
 
+		// The test scene's cards show who speaks and how; the experience's have no label
 		private void RefreshLabel()
 		{
-			_label.text = GetLabel(_portraits, _emotion);
+			if (_label != null)
+			{
+				_label.text = GetLabel(_portraits, _emotion);
+			}
 		}
 
 		#endregion
