@@ -1,0 +1,37 @@
+{
+    "name": "DroneDDW.Experience.Editor",
+    "rootNamespace": "DroneDDW.Experience.Editor",
+    "references": [
+        "DroneDDW.Experience",
+        "DroneDDW.Admin",
+        "DroneDDW.Admin.Editor",
+        "DroneDDW.TicketScan",
+        "DroneDDW.NarratorOrb",
+        "DroneDDW.Characters",
+        "DroneDDW.Characters.Editor",
+        "DroneDDW.Neighborhood",
+        "DroneDDW.Neighborhood.Editor",
+        "DroneDDW.FingerGrab.Editor",
+        "DroneDDW.Voice",
+        "meta.xr.mrutilitykit",
+        "Oculus.VR",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "UniTask"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

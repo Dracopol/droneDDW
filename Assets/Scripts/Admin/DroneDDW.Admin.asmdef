@@ -6,7 +6,8 @@
         "Unity.TextMeshPro",
         "UnityEngine.UI",
         "Unity.XR.CoreUtils",
-        "Unity.XR.OpenXR"
+        "Unity.XR.OpenXR",
+        "DroneDDW.TicketScan"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

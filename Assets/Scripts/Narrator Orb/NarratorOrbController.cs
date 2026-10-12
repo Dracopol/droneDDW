@@ -101,6 +101,9 @@ namespace DroneDDW.NarratorOrb
 		// The analysis of the clip being followed, or null
 		internal VoiceAnalysis Analysis => _voiceReader?.Analysis;
 
+		// While a line plays; it stays true while the session is paused (the listener pauses the voice, it doesn't stop)
+		public bool IsSpeaking => _voice != null && _voice.isPlaying;
+
 		private Transform CurrentHead => _headOverride != null ? _headOverride : _head;
 
 		#endregion
@@ -224,6 +227,36 @@ namespace DroneDDW.NarratorOrb
 			_step = step;
 		}
 
+		// Says a line with the orb's voice, which the orb reacts to. The line is read ahead first (like the character
+		// cards do), so the orb answers its first syllables too.
+		public void Speak(AudioClip clip)
+		{
+			if (clip == null)
+			{
+				return;
+			}
+
+			_voiceReader?.Prepare(clip, _settings.Voice.ToAnalysisSettings());
+			_voice.clip = clip;
+			_voice.Play();
+		}
+
+		public void StopSpeaking()
+		{
+			_voice.Stop();
+		}
+
+		// Moves the orb and turns it straight to whoever it faces, without the usual eased turn
+		public void MoveTo(Vector3 position)
+		{
+			_transform.position = position;
+			Transform head = CurrentHead;
+			if (head != null && (head.position - position).sqrMagnitude > 1e-8f)
+			{
+				_transform.rotation = Quaternion.LookRotation(head.position - position, Vector3.up);
+			}
+		}
+
 		// Pushes the particles near a point, for a fingertip later. The amount (0 to 1) eases in; call this every frame
 		// while poking, and with 0 to let go.
 		public void SetPoke(Vector3 worldPoint, float amount)
@@ -253,17 +286,6 @@ namespace DroneDDW.NarratorOrb
 		internal void OverrideHead(Transform head)
 		{
 			_headOverride = head;
-		}
-
-		// Moves the orb and turns it straight to whoever it faces, without the usual eased turn
-		internal void MoveTo(Vector3 position)
-		{
-			_transform.position = position;
-			Transform head = CurrentHead;
-			if (head != null && (head.position - position).sqrMagnitude > 1e-8f)
-			{
-				_transform.rotation = Quaternion.LookRotation(head.position - position, Vector3.up);
-			}
 		}
 
 		internal void Configure(NarratorOrbSettings settings, AudioSource voice, VoiceLiveTap liveTap,

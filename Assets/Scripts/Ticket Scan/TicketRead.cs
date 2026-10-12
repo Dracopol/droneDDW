@@ -2,28 +2,28 @@ namespace DroneDDW.TicketScan
 {
 	// One sighting of a QR code by a scanner: its text, the ticket number in it (if it is a ticket) and what the
 	// scanner measured. Measurements a scanner can't make are NaN.
-	internal readonly struct TicketRead
+	public readonly struct TicketRead
 	{
 		#region Properties
 
-		internal string Payload { get; }
+		public string Payload { get; }
 
 		// The participant number, or -1 when the code isn't a ticket
-		internal int Number { get; }
+		public int Number { get; }
 
-		internal bool IsTicket => Number >= 0;
+		public bool IsTicket => Number >= 0;
 
 		// From the headset camera to the code
-		internal float DistanceMeters { get; }
+		public float DistanceMeters { get; }
 
 		// How many camera pixels one module of the code covered: below about 3 codes get hard to read
-		internal float PixelsPerModule { get; }
+		public float PixelsPerModule { get; }
 
 		// How long finding and decoding the code took
-		internal float DecodeMilliseconds { get; }
+		public float DecodeMilliseconds { get; }
 
 		// Time.realtimeSinceStartup when the scanner saw the code
-		internal float TimeSeconds { get; }
+		public float TimeSeconds { get; }
 
 		#endregion
 

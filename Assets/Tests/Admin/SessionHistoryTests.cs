@@ -164,9 +164,8 @@ namespace DroneDDW.Admin.Tests
 			byte[] bytes = File.ReadAllBytes(history.SessionsPath);
 			Assert.AreEqual(new byte[] { 0xEF, 0xBB, 0xBF }, new[] { bytes[0], bytes[1], bytes[2] });
 			List<string[]> rows = Read(history.SessionsPath);
-			CollectionAssert.AreEqual(new[] { "Id", "Group", "First time participating", "Form choice", "Date", "Time" },
-				rows[0]);
-			CollectionAssert.AreEqual(new[] { "0", "A", "no", "neutral", "2026-10-05", "14:32" }, rows[1]);
+			CollectionAssert.AreEqual(new[] { "Id", "Group", "Form choice", "Date", "Time" }, rows[0]);
+			CollectionAssert.AreEqual(new[] { "0", "A", "neutral", "2026-10-05", "14:32" }, rows[1]);
 		}
 
 		[Test]
@@ -180,7 +179,7 @@ namespace DroneDDW.Admin.Tests
 			List<string[]> rows = Read(history.SessionsPath);
 			Assert.AreEqual(3, rows.Count);
 			CollectionAssert.AreEqual(new[] { "14:32", "0", "", "A" }, rows[2]);
-			CollectionAssert.AreEquivalent(new[] { "First time participating", "Form choice", "Date" }, missing);
+			CollectionAssert.AreEquivalent(new[] { "Form choice", "Date" }, missing);
 		}
 
 		[Test]
@@ -233,7 +232,6 @@ namespace DroneDDW.Admin.Tests
 			{
 				(SessionColumns.Id, "0"),
 				(SessionColumns.Group, "A"),
-				(SessionColumns.FirstTime, "no"),
 				(SessionColumns.FormChoice, "neutral"),
 				(SessionColumns.Date, "2026-10-05"),
 				(SessionColumns.Time, "14:32"),

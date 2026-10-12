@@ -11,7 +11,7 @@ namespace DroneDDW.Characters
 	// cards dim.
 	[DisallowMultipleComponent]
 	[AddComponentMenu("DroneDDW/Characters/Character Card")]
-	internal sealed class CharacterCard : MonoBehaviour
+	public sealed class CharacterCard : MonoBehaviour
 	{
 		#region Serialized fields
 
@@ -70,7 +70,8 @@ namespace DroneDDW.Characters
 		internal CharacterPortraitSet Portraits => _portraits;
 		internal CharacterPortraitSettings Settings => _settings;
 		internal CharacterEmotion Emotion => _emotion;
-		internal bool IsSpeaking => _voice.isPlaying;
+		// While a line plays; it stays true while the session is paused (the listener pauses the voice, it doesn't stop)
+		public bool IsSpeaking => _voice.isPlaying;
 		internal bool IsMouthOpen => _mouthFlap.IsOpen;
 		internal float MouthOpenness => _mouthFlap.Openness;
 		internal float VowelEnvelope => _mouthFlap.Envelope;
@@ -155,19 +156,19 @@ namespace DroneDDW.Characters
 			RefreshLabel();
 		}
 
-		internal void SetHighlighted(bool isHighlighted)
+		public void SetHighlighted(bool isHighlighted)
 		{
 			_isHighlighted = isHighlighted;
 		}
 
 		// Reads a line ahead before it is spoken, so the mouth moves from its first syllable
-		internal void Prepare(AudioClip clip)
+		public void Prepare(AudioClip clip)
 		{
 			_voiceReader.Prepare(clip, VoiceAnalysisSettings.Defaults);
 		}
 
 		// Starts a line from the beginning
-		internal void Speak(AudioClip clip)
+		public void Speak(AudioClip clip)
 		{
 			_voice.clip = clip;
 			_voice.Play();
@@ -176,7 +177,7 @@ namespace DroneDDW.Characters
 			_syllableCount = 0;
 		}
 
-		internal void Stop()
+		public void Stop()
 		{
 			_voice.Stop();
 		}
@@ -191,7 +192,7 @@ namespace DroneDDW.Characters
 			_voice.UnPause();
 		}
 
-		internal void PlaceAt(Vector3 position, Quaternion rotation)
+		public void PlaceAt(Vector3 position, Quaternion rotation)
 		{
 			_transform.SetPositionAndRotation(position, rotation);
 		}

@@ -20,8 +20,9 @@ namespace DroneDDW.Admin.Editor
 	// through its real input bindings with two simulated controllers (an XR controller layout with the Quest Touch
 	// controller's usages) and a simulated keyboard: opening and pausing, moving the hover with both sticks (with
 	// repeat and no wrap-around), the history with a delete cancelled by B and one confirmed, scrolling to the last
-	// row, the reset dialog, Reset player location after the rig has drifted, closing with Esc, and Reset session
-	// reloading the scene. The history reads a temporary file with 14 made-up sessions in the temp folder, deleted
+	// row, the end and reset dialogs, Reset player location after the rig has drifted, closing with Esc, and Reset
+	// session reloading the scene. (The check-in screen is checked by the experience's Play mode check: this scene
+	// runs without check-in.) The history reads a temporary file with 14 made-up sessions in the temp folder, deleted
 	// afterwards; the real session files are never touched. Reports every step and the errors logged, and also runs
 	// headless (-batchmode -executeMethod DroneDDW.Admin.Editor.AdminMenuCheck.Run), quitting with code 1 on a failure.
 	[InitializeOnLoad]
@@ -291,7 +292,7 @@ namespace DroneDDW.Admin.Editor
 			Add("left stick down moves the hover", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.ResetButton));
 			Add("right stick down moves it too", Control.RightStickDown,
-				() => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+				() => Expect(true, Menu.PauseScreen, Menu.EndButton));
 			Add("holding the stick repeats and stops at the last button", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton), holdSeconds: 0.9f);
 			Add("pushing right where nothing is leaves the hover", Control.LeftStickRight,
@@ -313,11 +314,17 @@ namespace DroneDDW.Admin.Editor
 			Add("holding down scrolls to the last row", Control.LeftStickDown, CheckScrolledToEnd, holdSeconds: 2.6f);
 			Add("B goes back to Paused on View session history", Control.RightSecondary,
 				() => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("up to End session", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
+			Add("the end dialog opens on Cancel", Control.RightTrigger,
+				() => Expect(true, Menu.EndScreen, Menu.EndCancelButton));
+			Add("B cancels it, back on End session", Control.RightSecondary,
+				() => Expect(true, Menu.PauseScreen, Menu.EndButton));
 			Add("up to Reset session", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
 			Add("the reset dialog opens on Cancel", Control.RightTrigger,
 				() => Expect(true, Menu.ResetScreen, Menu.ResetCancelButton));
 			Add("B cancels it", Control.RightSecondary, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
-			Add("down", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("down", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
+			Add("down again", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("down to Reset player location", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.LocationButton));
 			Add("Reset player location puts the head over the Player Spot", Control.RightTrigger,
@@ -337,6 +344,7 @@ namespace DroneDDW.Admin.Editor
 				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton), holdSeconds: 1.2f);
 			Add("up arrow", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
 			Add("up arrow again", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("and again, to End session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
 			Add("and again, to Reset session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
 			Add("Enter opens the reset dialog", Control.KeyEnter,
 				() => Expect(true, Menu.ResetScreen, Menu.ResetCancelButton));
@@ -463,7 +471,7 @@ namespace DroneDDW.Admin.Editor
 			}
 
 			if (deleted.Count != 2 || deleted[0].Last() != SessionColumns.DeletedAt || deleted[1][0] != "001"
-				|| deleted[1][6] != "answer 1")
+				|| deleted[1][5] != "answer 1")
 			{
 				return $"Deleted Sessions.csv is {string.Join(" / ", deleted.Select(row => string.Join("|", row)))}";
 			}
@@ -534,11 +542,11 @@ namespace DroneDDW.Admin.Editor
 
 			DateTime now = DateTime.Now;
 			string[] row = sessions[sessions.Count - 1];
-			string expected = $"0|A|no|neutral|{now:yyyy-MM-dd}|";
+			string expected = $"0|A|neutral|{now:yyyy-MM-dd}|";
 			string actual = string.Join("|", row);
-			bool isTimeRight = row.Length == 7 && (row[5] == now.ToString("HH:mm")
-				|| row[5] == now.AddMinutes(-1).ToString("HH:mm"));
-			if (!actual.StartsWith(expected) || !isTimeRight || row[6] != string.Empty)
+			bool isTimeRight = row.Length == 6 && (row[4] == now.ToString("HH:mm")
+				|| row[4] == now.AddMinutes(-1).ToString("HH:mm"));
+			if (!actual.StartsWith(expected) || !isTimeRight || row[5] != string.Empty)
 			{
 				return $"the saved row is {actual}";
 			}
@@ -696,14 +704,13 @@ namespace DroneDDW.Admin.Editor
 		private static string MakeSampleSessions()
 		{
 			StringBuilder text = new();
-			text.Append("Id;Group;First time participating;Form choice;Date;Time;Answer 1\r\n");
+			text.Append("Id;Group;Form choice;Date;Time;Answer 1\r\n");
 			for (int session = 1; session <= SampleSessions; session++)
 			{
 				string group = session % 2 == 1 ? "A" : "B";
-				string firstTime = session % 3 == 0 ? "no" : "yes";
 				string formChoice = FormChoices[(session - 1) % FormChoices.Length];
 				int minutes = 9 * 60 + 10 + session * 4;
-				text.Append($"{session:000};{group};{firstTime};{formChoice};2026-03-12;"
+				text.Append($"{session:000};{group};{formChoice};2026-03-12;"
 					+ $"{minutes / 60:00}:{minutes % 60:00};answer {session}\r\n");
 			}
 

@@ -3,11 +3,11 @@ using UnityEngine;
 namespace DroneDDW.Neighborhood.Table
 {
 	/// <summary>
-	/// How the hands meet the slider's knob, shared by every scene whose slider uses this asset (the
-	/// neighborhood): the radius of the spheres along each hand bone, the push's touch margin and sphere spacing, a
-	/// padding around the visible knob box the spheres push against, and the knob's grab box (its BoxCollider, which
-	/// only the finger grab reaches for). Read live, so changes apply at once; an asset, so changes made in Play mode are
-	/// kept.
+	/// How the hands meet the table, shared by every scene whose table uses this asset (the neighborhood and the
+	/// experience's practice table): the radius of the spheres along each hand bone, the push's touch margin and sphere
+	/// spacing, a padding around the visible knob box the spheres push against, the knob's grab box (its BoxCollider,
+	/// which only the finger grab reaches for), and how long the lock-in button has to be held. Read live, so changes
+	/// apply at once; an asset, so changes made in Play mode are kept.
 	/// </summary>
 	[CreateAssetMenu(fileName = "Neighborhood Push Settings", menuName = "DroneDDW/Neighborhood/Push Settings")]
 	public sealed class NeighborhoodPushSettings : ScriptableObject
@@ -52,6 +52,13 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Tooltip("Bigger than the knob, so it is easy to grab.")]
 		private Vector3 _grabBoxSize = new Vector3(0.08f, 0.07f, 0.08f);
 
+		[Header("Lock-in button")]
+		[SerializeField, Range(0.2f, 5f), Tooltip("How long a hand has to hold the button down to lock the choice in.")]
+		private float _lockHoldSeconds = 1f;
+
+		[SerializeField, Range(0.05f, 2f), Tooltip("How quickly the ring empties again when the hand lets go early.")]
+		private float _lockDrainSeconds = 0.4f;
+
 		#endregion
 
 		#region Fields
@@ -75,6 +82,8 @@ namespace DroneDDW.Neighborhood.Table
 		internal float PushBoxPaddingMeters => _pushBoxPaddingMeters;
 		internal Vector3 GrabBoxCenter => _grabBoxCenter;
 		internal Vector3 GrabBoxSize => _grabBoxSize;
+		internal float LockHoldSeconds => _lockHoldSeconds;
+		internal float LockDrainSeconds => _lockDrainSeconds;
 
 		#endregion
 

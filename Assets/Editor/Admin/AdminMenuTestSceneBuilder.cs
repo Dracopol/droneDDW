@@ -87,6 +87,10 @@ namespace DroneDDW.Admin.Editor
 			SessionControl sessionControl = new GameObject("Session Control").AddComponent<SessionControl>();
 			sessionControl.Configure(origin, spot);
 
+			// No check-in: the demo session runs from the start, without a participant
+			sessionControl.ConfigureSessions(
+				AssetDatabase.LoadAssetAtPath<AdminMenuSettings>(AdminMenuAssetBuilder.SettingsPath), false);
+
 			AdminMenu menu = ((GameObject)PrefabUtility.InstantiatePrefab(menuPrefab, scene))
 				.GetComponent<AdminMenu>();
 			menu.ConfigureScene(sessionControl, head);

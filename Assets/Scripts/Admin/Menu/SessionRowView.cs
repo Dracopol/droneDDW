@@ -18,7 +18,6 @@ namespace DroneDDW.Admin
 		[SerializeField] private TMP_Text _id;
 		[SerializeField] private Image _groupBadge;
 		[SerializeField] private TMP_Text _group;
-		[SerializeField] private TMP_Text _firstTime;
 		[SerializeField] private TMP_Text _formChoice;
 		[SerializeField] private TMP_Text _date;
 		[SerializeField] private TMP_Text _time;
@@ -65,7 +64,7 @@ namespace DroneDDW.Admin
 		#region Internal
 
 		internal void Configure(AdminMenuSettings settings, Image background, TMP_Text id, Image groupBadge,
-			TMP_Text group, TMP_Text firstTime, TMP_Text formChoice, TMP_Text date, TMP_Text time,
+			TMP_Text group, TMP_Text formChoice, TMP_Text date, TMP_Text time,
 			AdminMenuButton deleteButton, Color oddRowColor, Color evenRowColor, Color groupColor, Color missingColor)
 		{
 			_settings = settings;
@@ -73,7 +72,6 @@ namespace DroneDDW.Admin
 			_id = id;
 			_groupBadge = groupBadge;
 			_group = group;
-			_firstTime = firstTime;
 			_formChoice = formChoice;
 			_date = date;
 			_time = time;
@@ -98,7 +96,6 @@ namespace DroneDDW.Admin
 			_groupBadge.enabled = group.Length > 0;
 			_group.text = group.Length > 0 ? group : SessionRecord.Missing;
 			_group.color = group.Length > 0 ? _groupColor : _missingColor;
-			_firstTime.text = record.GetDisplay(SessionColumns.FirstTime);
 			_formChoice.text = record.GetDisplay(SessionColumns.FormChoice);
 			_date.text = record.GetDisplay(SessionColumns.Date);
 			_time.text = record.GetDisplay(SessionColumns.Time);

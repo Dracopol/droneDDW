@@ -133,7 +133,7 @@ namespace DroneDDW.Characters.Editor
 		}
 
 		// The sets in the builder's order (the cards' order, left to right), or null when one is missing
-		private static CharacterPortraitSet[] LoadPortraitSets()
+		internal static CharacterPortraitSet[] LoadPortraitSets()
 		{
 			CharacterPortraitSet[] sets = new CharacterPortraitSet[CharacterPortraitBuilder.Characters.Length];
 			for (int character = 0; character < sets.Length; character++)
@@ -190,7 +190,7 @@ namespace DroneDDW.Characters.Editor
 		}
 
 		// The card's root holds the voice; its canvas (the body) holds the parts, which the card animates
-		private static CharacterCard CreateCard(CharacterPortraitSet portraits, CharacterPortraitSettings settings,
+		internal static CharacterCard CreateCard(CharacterPortraitSet portraits, CharacterPortraitSettings settings,
 			Sprite panel, float hoverPhase, Pose pose)
 		{
 			GameObject root = new($"{portraits.DisplayName} Card");

@@ -57,6 +57,12 @@ namespace DroneDDW.Admin.Editor
 			+ $"<path {Stroke} d=\"M12 19l-7-7 7-7\"/>"
 			+ $"<path {Stroke} d=\"M19 12H5\"/></svg>";
 
+		// Lucide's log-out: a door with an arrow leaving it
+		internal static readonly string EndSvg = Header
+			+ $"<path {Stroke} d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/>"
+			+ $"<path {Stroke} d=\"M16 17l5-5-5-5\"/>"
+			+ $"<path {Stroke} d=\"M21 12H9\"/></svg>";
+
 		#endregion
 
 		#region Internal

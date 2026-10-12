@@ -11,11 +11,11 @@ using Object = UnityEngine.Object;
 
 namespace DroneDDW.TicketScan.Editor
 {
-	// Menu: DroneDDW > Ticket Scan > Check Test Scenes In Play Mode. Plays the camera test scene, then the tracker one,
-	// and checks in each that it starts without errors from the ticket scan code and that the panel shows the
-	// scanner's state; then it hands the scanner a ticket read and another QR code, checks both reach the panel and its
-	// log, and that Clear empties them. Without a headset the scanners only get as far as waiting for the camera or the
-	// tracker: what the XR runtime and Meta's SDK log about that is reported, not failed. Also runs headless
+	// Menu: DroneDDW > Ticket Scan > Check Test Scenes In Play Mode. Plays the camera test scene and checks that it
+	// starts without errors from the ticket scan code and that the panel shows the scanner's state; then it hands the
+	// scanner a ticket read and another QR code, checks both reach the panel and its log, and that Clear empties them.
+	// Without a headset the camera plays MRUK's mock images, which hold no code: what the XR runtime and Meta's SDK log
+	// about the missing headset is reported, not failed. Also runs headless
 	// (-batchmode -executeMethod DroneDDW.TicketScan.Editor.TicketScanSceneCheck.Run, without -quit), quitting with
 	// code 1 on a failure.
 	[InitializeOnLoad]
@@ -40,7 +40,6 @@ namespace DroneDDW.TicketScan.Editor
 		private static readonly string[] ScenePaths =
 		{
 			TicketScanTestSceneBuilder.CameraScenePath,
-			TicketScanTestSceneBuilder.TrackerScenePath,
 		};
 
 		private static readonly List<string> Failures = new();

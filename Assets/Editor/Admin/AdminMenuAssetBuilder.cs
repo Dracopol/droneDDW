@@ -117,6 +117,7 @@ namespace DroneDDW.Admin.Editor
 				assets.LanguageIcon = AdminMenuIconBaker.Bake("Language", AdminMenuIconBaker.LanguageSvg);
 				assets.SaveIcon = AdminMenuIconBaker.Bake("Save", AdminMenuIconBaker.SaveSvg);
 				assets.BackIcon = AdminMenuIconBaker.Bake("Back", AdminMenuIconBaker.BackSvg);
+				assets.EndIcon = AdminMenuIconBaker.Bake("End", AdminMenuIconBaker.EndSvg);
 
 				if (!LoadActions(assets))
 				{

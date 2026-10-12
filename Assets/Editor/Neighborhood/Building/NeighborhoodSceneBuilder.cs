@@ -21,8 +21,10 @@ namespace DroneDDW.Neighborhood.Editor.Building
     ///    Street_ FBX with them; fills the voice library and links the WAVs found in the project.
     /// 2. Builds Scenes/Neighborhood/Neighborhood.unity: the shared street (static), every changing object tagged with its
     ///    versions, lamps with their lights and light pools, drones, robots and ducks that move, the three
-    ///    people with their poses, faces, voices, props and the leash, the table with the three-notch slider
-    ///    and the miniatures, the project's XR rig at the seat, ambience, the dusk sky, sun, ambient light and fog.
+    ///    people with their poses, faces, voices, props and the leash, the table with the three-notch slider,
+    ///    the miniatures and the lock-in button, the project's XR rig at the seat, ambience, the dusk sky, sun, ambient
+    ///    light and fog. The rig is saved switched off: NeighborhoodStandaloneRig switches it on only when the scene is
+    ///    opened on its own, since the experience loads this scene on top of its own and brings its own rig.
     /// Safe to run again: materials and the voice library keep their GUIDs, the scene is rebuilt.
     /// </summary>
     internal static class NeighborhoodSceneBuilder
@@ -198,8 +200,16 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodAmbience ambience = BuildAmbience(experience.transform);
             NeighborhoodExperience coordinator = experience.AddComponent<NeighborhoodExperience>();
             coordinator.Configure(controller, table.Slider, table.Preview, ambience, voice);
+            coordinator.ConfigureTable(table.LockButton, table.HandBones, table.SliderDriver);
             NeighborhoodDebugKeys debugKeys = experience.AddComponent<NeighborhoodDebugKeys>();
             debugKeys.Configure(controller, voice);
+            if (trackingSpace != null)
+            {
+                // Off until the scene knows it was opened on its own (the finger grab is already set up on it)
+                GameObject rig = head.root.gameObject;
+                rig.SetActive(false);
+                experience.AddComponent<NeighborhoodStandaloneRig>().Configure(rig);
+            }
 
             string scenesFolder = NeighborhoodAssetUtility.EnsureFolder(NeighborhoodAssetUtility.ScenesParentFolder,
                 NeighborhoodAssetUtility.ScenesFolder);

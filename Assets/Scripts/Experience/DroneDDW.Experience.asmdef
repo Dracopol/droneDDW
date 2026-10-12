@@ -1,0 +1,27 @@
+{
+    "name": "DroneDDW.Experience",
+    "rootNamespace": "DroneDDW.Experience",
+    "references": [
+        "DroneDDW.Admin",
+        "DroneDDW.NarratorOrb",
+        "DroneDDW.Characters",
+        "DroneDDW.Neighborhood",
+        "DroneDDW.Voice",
+        "UniTask",
+        "Oculus.VR",
+        "Unity.XR.Hands",
+        "Unity.XR.CoreUtils",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -109,6 +109,12 @@ namespace DroneDDW.Neighborhood.Table
             _head = head;
         }
 
+        /// <summary>Follows another head, e.g. the experience rig's once it has loaded this scene.</summary>
+        internal void SetHead(Transform head)
+        {
+            _head = head;
+        }
+
         #endregion
 
         #region Private

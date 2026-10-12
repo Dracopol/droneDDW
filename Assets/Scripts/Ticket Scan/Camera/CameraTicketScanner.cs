@@ -53,6 +53,7 @@ namespace DroneDDW.TicketScan
 		private readonly StringBuilder _status = new();
 
 		private PermissionState _permission;
+		private bool _isScanningRequested;
 		private bool _isSupported = true;
 		private bool _canReadBack = true;
 		private byte[] _pixels = Array.Empty<byte>();
@@ -70,13 +71,30 @@ namespace DroneDDW.TicketScan
 
 		#region Properties
 
-		internal override string Status => BuildStatus();
+		public override string Status => BuildStatus();
 
-		internal override Texture Preview => _cameraAccess.IsPlaying ? _cameraAccess.GetTexture() : null;
+		public override Texture Preview => _cameraAccess.IsPlaying ? _cameraAccess.GetTexture() : null;
+
+		// Switches the camera stream itself on and off; scanning carries on with the next image once it plays again
+		public override bool IsScanning
+		{
+			get => _isScanningRequested;
+			set
+			{
+				_isScanningRequested = value;
+				_cameraAccess.enabled = value;
+			}
+		}
 
 		#endregion
 
 		#region Setup
+
+		// The camera component's own switch says whether the scene starts scanning
+		private void Awake()
+		{
+			_isScanningRequested = _cameraAccess.enabled;
+		}
 
 		private void Start()
 		{
@@ -275,6 +293,11 @@ namespace DroneDDW.TicketScan
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(_permission), _permission, null);
+			}
+
+			if (!_isScanningRequested)
+			{
+				return "Scanning is off.";
 			}
 
 			if (!_cameraAccess.enabled || !_cameraAccess.IsPlaying)

@@ -36,6 +36,7 @@ namespace DroneDDW.Admin.Editor
 		internal Sprite LanguageIcon { get; set; }
 		internal Sprite SaveIcon { get; set; }
 		internal Sprite BackIcon { get; set; }
+		internal Sprite EndIcon { get; set; }
 
 		internal InputActionReference ToggleAction { get; set; }
 		internal InputActionReference NavigateAction { get; set; }

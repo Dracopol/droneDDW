@@ -42,13 +42,14 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const string PanoramicSkyShader = "Skybox/Panoramic";
         private const string WaterKey = "Water";
         private const string GlassGlowKey = "GlassGlow";
+        private const string PropsKey = "Props";
         private const float MatteSmoothness = 0.1f;
         private const float WaterSmoothness = 0.85f;
         private const float GlassSmoothness = 0.6f;
 
         private static readonly string[] PaletteKeys =
         {
-            "Terrain", "Paths", "Vegetation", "Props", "Structures", WaterKey, "Emissive", GlassGlowKey, "NightGlow",
+            "Terrain", "Paths", "Vegetation", PropsKey, "Structures", WaterKey, "Emissive", GlassGlowKey, "NightGlow",
         };
 
         private static readonly Color LeashColor = new Color(0.62f, 0.13f, 0.11f);
@@ -108,6 +109,15 @@ namespace DroneDDW.Neighborhood.Editor.Building
         internal static GameObject LoadModel(string root, string fileName)
         {
             return AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(root, fileName));
+        }
+
+        /// <summary>
+        /// The palette material the table and the props use (Street_Mat_Props), made by <see cref="CreateMaterials"/>;
+        /// null before the street has been built once.
+        /// </summary>
+        internal static Material LoadPropsMaterial(string root)
+        {
+            return AssetDatabase.LoadAssetAtPath<Material>($"{root}/{MaterialsFolder}/{PalettePrefix}{PropsKey}.mat");
         }
 
         internal static string ModelPath(string root, string fileName)

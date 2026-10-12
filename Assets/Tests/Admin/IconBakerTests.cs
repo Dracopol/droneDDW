@@ -30,7 +30,7 @@ namespace DroneDDW.Admin.Tests
 			{
 				AdminMenuIconBaker.PlaySvg, AdminMenuIconBaker.ResetSvg, AdminMenuIconBaker.HistorySvg,
 				AdminMenuIconBaker.LocationSvg, AdminMenuIconBaker.LanguageSvg, AdminMenuIconBaker.SaveSvg,
-				AdminMenuIconBaker.BackSvg,
+				AdminMenuIconBaker.BackSvg, AdminMenuIconBaker.EndSvg,
 			};
 
 			foreach (string icon in icons)

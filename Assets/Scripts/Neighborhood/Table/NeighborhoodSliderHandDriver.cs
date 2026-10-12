@@ -84,6 +84,18 @@ namespace DroneDDW.Neighborhood.Table
 
 		#endregion
 
+		#region Properties
+
+		/// <summary>Whether the hands move the slider. Off lets go of it; the experience switches it off once the
+		/// choice is locked in, and while the session is paused.</summary>
+		public bool IsInputEnabled
+		{
+			get => enabled;
+			set => enabled = value;
+		}
+
+		#endregion
+
 		#region Setup
 
 		private void Awake()

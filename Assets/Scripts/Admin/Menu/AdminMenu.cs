@@ -3,18 +3,25 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using DroneDDW.Admin.Sessions;
+using DroneDDW.TicketScan;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DroneDDW.Admin
 {
 	// The admin menu from the Figma mockups, for whoever runs the session. The left controller's menu button opens it
 	// and pauses the session; either thumbstick moves the pale blue hover, trigger, grip or A / X clicks, B or Y goes
 	// back. Screens:
-	// - Paused: Resume (closes the menu), Reset session, View session history, Reset player location, Change player
-	//   language (no function yet), and Test save current session when the Testing checkbox is on
+	// - Check-in, when the scene's Session Control waits for a participant: it opens by itself, shows the ticket
+	//   scanner's camera image and the number it reads (or the one typed on the number pad), and Start session hands
+	//   the participant to the session. The menu button does nothing until then.
+	// - Number pad: 0-9, Delete and OK, to type the participant number when the ticket doesn't scan
+	// - Paused: Resume (closes the menu), Reset session (the same participant from the start), End session (back to
+	//   check-in), View session history, Reset player location, Change player language (no function yet), and Test
+	//   save current session when the Testing checkbox is on
 	// - Session history: the rows of Sessions.csv, each with Delete
-	// - Reset / delete dialogs, which open on Cancel so a double click can't confirm them
+	// - Reset / end / delete dialogs, which open on Cancel so a double click can't confirm them
 	// The menu button closes the menu and resumes from any screen. Everything runs on unscaled time, since the
 	// session's time stands still while the menu is open.
 	[DisallowMultipleComponent]
@@ -32,8 +39,8 @@ namespace DroneDDW.Admin
 		[SerializeField] private SessionControl _sessionControl;
 
 		[Header("Testing")]
-		[Tooltip("Shows \"Test save current session\" on the Paused screen. It saves a test row (Id 0, group A, not the "
-			+ "first time, neutral, now) to the real session history. Turn off for real sessions.")]
+		[Tooltip("Shows \"Test save current session\" on the Paused screen. It saves a test row (Id 0, group A, "
+			+ "neutral, now) to the real session history. Turn off for real sessions.")]
 		[SerializeField] private bool _isTestSaveShown;
 
 		[Header("Canvas")]
@@ -75,6 +82,45 @@ namespace DroneDDW.Admin
 		[Tooltip("The delete dialog's Id, Date and Time names")]
 		[SerializeField] private Color _detailsNameColor;
 
+		[Header("End session")]
+		[SerializeField] private AdminMenuButton _endButton;
+		[SerializeField] private AdminMenuScreen _endScreen;
+		[SerializeField] private AdminMenuButton _endCancelButton;
+		[SerializeField] private AdminMenuButton _endConfirmButton;
+
+		[Header("Check-in")]
+		[Tooltip("Reads the participant's ticket while the check-in screen shows; set per scene. Without one the "
+			+ "number can still be typed.")]
+		[SerializeField] private TicketScanner _ticketScanner;
+
+		[SerializeField] private AdminMenuScreen _checkInScreen;
+		[SerializeField] private AdminMenuButton _typeNumberButton;
+		[SerializeField] private AdminMenuButton _startSessionButton;
+
+		[Tooltip("The participant number, large")]
+		[SerializeField] private TMP_Text _participantNumber;
+
+		[Tooltip("What to do, or what the scanner is doing")]
+		[SerializeField] private TMP_Text _checkInStatus;
+
+		[Tooltip("The scanner's camera image")]
+		[SerializeField] private RawImage _checkInPreview;
+
+		[Tooltip("The largest the camera image may be, in the menu's pixels; it keeps its shape inside")]
+		[SerializeField] private Vector2 _checkInPreviewMaxSize;
+
+		[Header("Number pad")]
+		[SerializeField] private AdminMenuScreen _numberPadScreen;
+
+		[Tooltip("The digit keys, 0 to 9 in order")]
+		[SerializeField] private AdminMenuButton[] _digitButtons;
+
+		[SerializeField] private AdminMenuButton _deleteDigitButton;
+		[SerializeField] private AdminMenuButton _numberPadOkButton;
+
+		[Tooltip("The number typed so far")]
+		[SerializeField] private TMP_Text _numberPadEntry;
+
 		#endregion
 
 		#region Fields
@@ -85,11 +131,18 @@ namespace DroneDDW.Admin
 		private const string SaveFailedMessage = "Couldn't save, see the log";
 		private const float SavedLabelSeconds = 2.5f;
 
-		// The test save button's row: Id 0, group A, not the first time, the park's middle level
+		// The test save button's row: Id 0, group A, the middle choice
 		private const string TestSessionId = "0";
 		private const string TestSessionGroup = "A";
-		private const string TestSessionFirstTime = "no";
 		private const string TestSessionFormChoice = "neutral";
+
+		// Participant numbers are ticket numbers; longer ones aren't (as in the ticket scanner)
+		private const int MaxParticipantDigits = 6;
+		private const string NoNumber = "---";
+		private const float CheckInRefreshSeconds = 0.25f;
+		private const string ScanInstruction = "Hold the participant's ticket up to the headset, QR code first";
+		private const string TypeInstruction = "Type the participant number";
+		private const string OtherCodeMessage = "That QR code isn't a ticket";
 
 		private readonly List<Vector2> _centers = new();
 		private readonly List<AdminMenuButton> _shownButtons = new();
@@ -98,12 +151,23 @@ namespace DroneDDW.Admin
 		private AdminMenuButton _hovered;
 		private SessionRecord _pendingDelete;
 		private string _sessionsFolderOverride;
+		private string _participantId = string.Empty;
+		private string _typedNumber = string.Empty;
+		private float _nextCheckInRefresh;
+		private float _otherCodeUntil;
+		private Texture _shownPreview;
 
 		#endregion
 
 		#region Properties
 
 		internal bool IsOpen { get; private set; }
+
+		// The check-in screen (or its number pad) is up, waiting for the admin to start the session
+		internal bool IsCheckingIn { get; private set; }
+
+		// The number Start session would start with: read from the ticket or typed, empty before either
+		internal string ParticipantNumber => _participantId;
 
 		// What the Play mode check looks at
 		internal AdminMenuScreen CurrentScreen => _screen;
@@ -118,6 +182,16 @@ namespace DroneDDW.Admin
 		internal AdminMenuButton ResetButton => _resetButton;
 		internal AdminMenuButton HistoryButton => _historyButton;
 		internal AdminMenuButton LocationButton => _locationButton;
+		internal AdminMenuButton EndButton => _endButton;
+		internal AdminMenuScreen EndScreen => _endScreen;
+		internal AdminMenuButton EndCancelButton => _endCancelButton;
+		internal AdminMenuButton EndConfirmButton => _endConfirmButton;
+		internal AdminMenuScreen CheckInScreen => _checkInScreen;
+		internal AdminMenuButton TypeNumberButton => _typeNumberButton;
+		internal AdminMenuButton StartSessionButton => _startSessionButton;
+		internal AdminMenuScreen NumberPadScreen => _numberPadScreen;
+		internal IReadOnlyList<AdminMenuButton> DigitButtons => _digitButtons;
+		internal AdminMenuButton NumberPadOkButton => _numberPadOkButton;
 		internal AdminMenuButton LanguageButton => _languageButton;
 		internal AdminMenuButton TestSaveButton => _testSaveButton;
 		internal float PausePanelHeight => _pausePanel.sizeDelta.y;
@@ -137,6 +211,9 @@ namespace DroneDDW.Admin
 			_historyScreen.Hide();
 			_resetScreen.Hide();
 			_deleteScreen.Hide();
+			_endScreen.Hide();
+			_checkInScreen.Hide();
+			_numberPadScreen.Hide();
 			_canvasGroup.alpha = 0f;
 			_canvas.gameObject.SetActive(false);
 			_pausePanelFullHeight = _pausePanel.sizeDelta.y;
@@ -150,6 +227,45 @@ namespace DroneDDW.Admin
 			Debug.Log($"[Admin] Session history file: {CreateHistory().SessionsPath}", this);
 		}
 
+		// After every Awake, so Session Control knows whether Reset session brought a participant along
+		private void Start()
+		{
+			if (_sessionControl != null && _sessionControl.IsCheckingIn)
+			{
+				OpenCheckIn();
+			}
+			else
+			{
+				SetScanning(false);
+			}
+		}
+
+		private void OnEnable()
+		{
+			if (_ticketScanner != null)
+			{
+				_ticketScanner.OnRead += HandleTicketRead;
+			}
+
+			if (_sessionControl != null)
+			{
+				_sessionControl.OnSessionStart += HandleSessionStart;
+			}
+		}
+
+		private void OnDisable()
+		{
+			if (_ticketScanner != null)
+			{
+				_ticketScanner.OnRead -= HandleTicketRead;
+			}
+
+			if (_sessionControl != null)
+			{
+				_sessionControl.OnSessionStart -= HandleSessionStart;
+			}
+		}
+
 		#endregion
 
 		#region Update
@@ -160,6 +276,17 @@ namespace DroneDDW.Admin
 			FadeCanvas();
 
 			MenuCommand command = _input.Read(Time.unscaledTime, _settings);
+			if (IsCheckingIn)
+			{
+				RefreshCheckIn();
+				if (command.Kind != MenuCommandKind.Toggle)
+				{
+					DoCommand(command);
+				}
+
+				return;
+			}
+
 			if (!IsOpen)
 			{
 				if (command.Kind == MenuCommandKind.Toggle)
@@ -170,25 +297,46 @@ namespace DroneDDW.Admin
 				return;
 			}
 
-			switch (command.Kind)
+			DoCommand(command);
+		}
+
+		#endregion
+
+		#region Event handlers
+
+		// A session started without the menu's Start session (e.g. by the Play mode check): check-in is over
+		private void HandleSessionStart()
+		{
+			if (IsCheckingIn)
 			{
-				case MenuCommandKind.None:
-					break;
-				case MenuCommandKind.Toggle:
-					Close(command.Hand);
-					break;
-				case MenuCommandKind.Move:
-					MoveHover(command.Direction, command.Hand);
-					break;
-				case MenuCommandKind.Click:
-					Click(command.Hand);
-					break;
-				case MenuCommandKind.Back:
-					Back(command.Hand);
-					break;
-				default:
-					throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, null);
+				CloseCheckIn();
 			}
+		}
+
+		// A ticket read while the check-in screen shows becomes the participant number; the hover moves on to Start
+		// session, so one click starts it
+		private void HandleTicketRead(TicketRead read)
+		{
+			if (!IsCheckingIn || _screen != _checkInScreen)
+			{
+				return;
+			}
+
+			if (!read.IsTicket)
+			{
+				_otherCodeUntil = Time.unscaledTime + 2f;
+				return;
+			}
+
+			string number = read.Number.ToString(CultureInfo.InvariantCulture);
+			if (number == _participantId)
+			{
+				return;
+			}
+
+			_participantId = number;
+			Debug.Log($"[Admin] Check-in: read ticket {number}.", this);
+			ShowCheckIn(_hovered == _typeNumberButton || _hovered == null ? _startSessionButton : _hovered);
 		}
 
 		#endregion
@@ -242,6 +390,45 @@ namespace DroneDDW.Admin
 			_pauseButtonPitch = pauseButtonPitch;
 		}
 
+		internal void ConfigureEndSession(AdminMenuButton endButton, AdminMenuScreen endScreen,
+			AdminMenuButton endCancelButton, AdminMenuButton endConfirmButton)
+		{
+			_endButton = endButton;
+			_endScreen = endScreen;
+			_endCancelButton = endCancelButton;
+			_endConfirmButton = endConfirmButton;
+		}
+
+		internal void ConfigureCheckIn(AdminMenuScreen checkInScreen, AdminMenuButton typeNumberButton,
+			AdminMenuButton startSessionButton, TMP_Text participantNumber, TMP_Text checkInStatus,
+			RawImage checkInPreview, Vector2 checkInPreviewMaxSize)
+		{
+			_checkInScreen = checkInScreen;
+			_typeNumberButton = typeNumberButton;
+			_startSessionButton = startSessionButton;
+			_participantNumber = participantNumber;
+			_checkInStatus = checkInStatus;
+			_checkInPreview = checkInPreview;
+			_checkInPreviewMaxSize = checkInPreviewMaxSize;
+		}
+
+		internal void ConfigureNumberPad(AdminMenuScreen numberPadScreen, AdminMenuButton[] digitButtons,
+			AdminMenuButton deleteDigitButton, AdminMenuButton numberPadOkButton, TMP_Text numberPadEntry)
+		{
+			_numberPadScreen = numberPadScreen;
+			_digitButtons = digitButtons;
+			_deleteDigitButton = deleteDigitButton;
+			_numberPadOkButton = numberPadOkButton;
+			_numberPadEntry = numberPadEntry;
+		}
+
+		// The scene's ticket scanner, which the check-in screen switches on while it shows; set where the prefab is
+		// placed, like the head
+		internal void ConfigureTicketScanner(TicketScanner ticketScanner)
+		{
+			_ticketScanner = ticketScanner;
+		}
+
 		// Whether the Paused screen shows the test save button; takes effect the next time the menu opens
 		internal void ConfigureTestSave(bool isShown)
 		{
@@ -265,6 +452,11 @@ namespace DroneDDW.Admin
 		// Opens the menu on the Paused screen and pauses the session
 		internal void Open(MenuHand hand)
 		{
+			if (IsCheckingIn)
+			{
+				return;
+			}
+
 			IsOpen = true;
 			_input.ClearStick();
 			if (_sessionControl != null)
@@ -351,6 +543,199 @@ namespace DroneDDW.Admin
 			}
 		}
 
+		private void DoCommand(MenuCommand command)
+		{
+			switch (command.Kind)
+			{
+				case MenuCommandKind.None:
+					break;
+				case MenuCommandKind.Toggle:
+					Close(command.Hand);
+					break;
+				case MenuCommandKind.Move:
+					MoveHover(command.Direction, command.Hand);
+					break;
+				case MenuCommandKind.Click:
+					Click(command.Hand);
+					break;
+				case MenuCommandKind.Back:
+					Back(command.Hand);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, null);
+			}
+		}
+
+		// Opens on the check-in screen, without pausing (nothing runs yet) or dimming, and switches the scanner on
+		private void OpenCheckIn()
+		{
+			IsOpen = true;
+			IsCheckingIn = true;
+			_input.ClearStick();
+			_canvas.gameObject.SetActive(true);
+			_placement.PlaceInFront();
+			_placement.IsFollowing = true;
+			SetScanning(true);
+			ShowCheckIn(_typeNumberButton);
+			Debug.Log("[Admin] Check-in: waiting for the participant's ticket.", this);
+		}
+
+		// The check-in screen with the current number; Start session only shows once there is one
+		private void ShowCheckIn(AdminMenuButton hovered)
+		{
+			bool hasNumber = _participantId.Length > 0;
+			_participantNumber.text = hasNumber ? _participantId : NoNumber;
+			_startSessionButton.SetShown(hasNumber);
+			ShowScreen(_checkInScreen, hasNumber || hovered != _startSessionButton ? hovered : _typeNumberButton);
+			_nextCheckInRefresh = 0f;
+			RefreshCheckIn();
+		}
+
+		// A few times a second: what the scanner sees and what to do
+		private void RefreshCheckIn()
+		{
+			float now = Time.unscaledTime;
+			if (now < _nextCheckInRefresh || _screen != _checkInScreen)
+			{
+				return;
+			}
+
+			_nextCheckInRefresh = now + CheckInRefreshSeconds;
+			Texture preview = _ticketScanner != null && _ticketScanner.IsScanning ? _ticketScanner.Preview : null;
+			ShowCheckInPreview(preview);
+			if (now < _otherCodeUntil)
+			{
+				_checkInStatus.text = OtherCodeMessage;
+			}
+			else if (_ticketScanner == null)
+			{
+				_checkInStatus.text = TypeInstruction;
+			}
+			else
+			{
+				_checkInStatus.text = preview != null ? ScanInstruction : _ticketScanner.Status;
+			}
+		}
+
+		// The camera image at its own shape, as large as fits; nothing when there is none
+		private void ShowCheckInPreview(Texture texture)
+		{
+			if (texture == _shownPreview)
+			{
+				return;
+			}
+
+			_shownPreview = texture;
+			_checkInPreview.texture = texture;
+			_checkInPreview.enabled = texture != null;
+			if (texture == null || texture.width <= 0 || texture.height <= 0)
+			{
+				return;
+			}
+
+			float scale = Mathf.Min(_checkInPreviewMaxSize.x / texture.width, _checkInPreviewMaxSize.y / texture.height);
+			_checkInPreview.rectTransform.sizeDelta = new Vector2(texture.width * scale, texture.height * scale);
+		}
+
+		private void SetScanning(bool isScanning)
+		{
+			if (_ticketScanner != null)
+			{
+				_ticketScanner.IsScanning = isScanning;
+			}
+		}
+
+		// The number pad starts from the current number, hover on 1
+		private void ShowNumberPad()
+		{
+			_typedNumber = _participantId;
+			ShowTypedNumber();
+			ShowScreen(_numberPadScreen, _digitButtons[1]);
+		}
+
+		private void ShowTypedNumber()
+		{
+			_numberPadEntry.text = _typedNumber.Length > 0 ? _typedNumber : NoNumber;
+		}
+
+		private bool TryGetDigit(AdminMenuButton button, out int digit)
+		{
+			digit = Array.IndexOf(_digitButtons, button);
+			return digit >= 0;
+		}
+
+		private void TypeDigit(int digit)
+		{
+			if (_typedNumber.Length < MaxParticipantDigits)
+			{
+				_typedNumber += digit.ToString(CultureInfo.InvariantCulture);
+				ShowTypedNumber();
+			}
+		}
+
+		private void DeleteDigit()
+		{
+			if (_typedNumber.Length > 0)
+			{
+				_typedNumber = _typedNumber.Substring(0, _typedNumber.Length - 1);
+				ShowTypedNumber();
+			}
+		}
+
+		// OK: the typed number (without leading zeros, as tickets print it) becomes the participant number
+		private void AcceptTypedNumber()
+		{
+			_participantId = _typedNumber.Length > 0
+				? int.Parse(_typedNumber, NumberStyles.None, CultureInfo.InvariantCulture)
+					.ToString(CultureInfo.InvariantCulture)
+				: string.Empty;
+			if (_participantId.Length > 0)
+			{
+				Debug.Log($"[Admin] Check-in: typed participant {_participantId}.", this);
+			}
+
+			ShowCheckIn(_participantId.Length > 0 ? _startSessionButton : _typeNumberButton);
+		}
+
+		// Closes the menu, switches the scanner off and hands the participant to the session
+		private void StartSession()
+		{
+			if (_participantId.Length == 0)
+			{
+				return;
+			}
+
+			CloseCheckIn();
+			if (_sessionControl == null)
+			{
+				Debug.LogWarning("[Admin] Start session needs a Session Control in the scene.", this);
+				return;
+			}
+
+			_sessionControl.StartSession(_participantId);
+		}
+
+		private void CloseCheckIn()
+		{
+			IsCheckingIn = false;
+			IsOpen = false;
+			_placement.IsFollowing = false;
+			SetScanning(false);
+		}
+
+		private void EndSession()
+		{
+			if (_sessionControl == null)
+			{
+				Debug.LogWarning("[Admin] End session needs a Session Control in the scene.", this);
+				ShowScreen(_pauseScreen, _endButton);
+				return;
+			}
+
+			Close(MenuHand.None);
+			_sessionControl.EndSession();
+		}
+
 		private IReadOnlyList<AdminMenuButton> GetScreenButtons()
 		{
 			return _screen == _historyScreen ? _history.Buttons : _screen.Buttons;
@@ -434,8 +819,7 @@ namespace DroneDDW.Admin
 			}
 		}
 
-		// Adds a test row to the session history (Id 0, group A, not the first time, neutral, now) and says so on the
-		// button for a moment
+		// Adds a test row to the session history (Id 0, group A, neutral, now) and says so on the button for a moment
 		private void SaveTestSession()
 		{
 			DateTime now = DateTime.Now;
@@ -443,7 +827,6 @@ namespace DroneDDW.Admin
 			{
 				(SessionColumns.Id, TestSessionId),
 				(SessionColumns.Group, TestSessionGroup),
-				(SessionColumns.FirstTime, TestSessionFirstTime),
 				(SessionColumns.FormChoice, TestSessionFormChoice),
 				(SessionColumns.Date, now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
 				(SessionColumns.Time, now.ToString("HH:mm", CultureInfo.InvariantCulture)),
@@ -488,6 +871,38 @@ namespace DroneDDW.Admin
 			else if (button == _resetButton)
 			{
 				ShowScreen(_resetScreen, _resetCancelButton);
+			}
+			else if (button == _endButton)
+			{
+				ShowScreen(_endScreen, _endCancelButton);
+			}
+			else if (button == _endCancelButton)
+			{
+				ShowScreen(_pauseScreen, _endButton);
+			}
+			else if (button == _endConfirmButton)
+			{
+				EndSession();
+			}
+			else if (button == _typeNumberButton)
+			{
+				ShowNumberPad();
+			}
+			else if (button == _startSessionButton)
+			{
+				StartSession();
+			}
+			else if (TryGetDigit(button, out int digit))
+			{
+				TypeDigit(digit);
+			}
+			else if (button == _deleteDigitButton)
+			{
+				DeleteDigit();
+			}
+			else if (button == _numberPadOkButton)
+			{
+				AcceptTypedNumber();
 			}
 			else if (button == _historyButton)
 			{
@@ -541,6 +956,14 @@ namespace DroneDDW.Admin
 			else if (_screen == _resetScreen)
 			{
 				ShowScreen(_pauseScreen, _resetButton);
+			}
+			else if (_screen == _endScreen)
+			{
+				ShowScreen(_pauseScreen, _endButton);
+			}
+			else if (_screen == _numberPadScreen)
+			{
+				ShowCheckIn(_typeNumberButton);
 			}
 			else if (_screen == _deleteScreen)
 			{
@@ -650,10 +1073,7 @@ namespace DroneDDW.Admin
 
 		private SessionHistory CreateHistory()
 		{
-			string folder = _sessionsFolderOverride
-				?? Path.Combine(Application.persistentDataPath, _settings.SessionsFolder);
-			return new SessionHistory(folder, _settings.SessionsFileName, _settings.DeletedSessionsFileName,
-				_settings.Separator);
+			return SessionHistory.FromSettings(_settings, _sessionsFolderOverride);
 		}
 
 		private void Pulse(MenuHand hand, bool isClick)

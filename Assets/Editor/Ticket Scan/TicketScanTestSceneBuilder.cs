@@ -1,7 +1,6 @@
 using System.IO;
 using DroneDDW.TicketScan.TestScene;
 using Meta.XR;
-using Meta.XR.MRUtilityKit;
 using TMPro;
 using Unity.XR.CoreUtils;
 using UnityEditor;
@@ -13,38 +12,21 @@ using UnityEngine.UI;
 
 namespace DroneDDW.TicketScan.Editor
 {
-	// Menu: DroneDDW > Ticket Scan > Create Camera Ticket Scan Test Scene, and Create Tracker Ticket Scan Test Scene.
-	// Each builds one variant of the ticket scan test in Scenes/Ticket Scan, to compare on the headset how well each
-	// reads the participants' tickets (QR codes printed white on purple, 26 mm wide, holding a survey link with the
-	// participant number as its code parameter):
-	// - Camera Ticket Scan Test: the headset camera's own images (Meta's Passthrough Camera Access), decoded with ZXing
-	// - Tracker Ticket Scan Test: Horizon OS's QR code tracking through MRUK, with its scene loading and world lock off
-	// Both get a copy of the main scene's XR rig and passthrough layer (both ways need passthrough on), the panel that
-	// shows what is read, its sounds and the test controls (TicketScanTestControls). Expected quirks:
-	// - in the tracker scene MRUK logs an error that OVRCameraRig is missing: the rig is XRI, and QR tracking works
-	//   without one
-	// - over Link, Meta says QR tracking may only work on the first Play; restarting Link or the headset helps
-	// - the camera scene needs Meta Horizon Link v85+ in the Editor, or a Quest 3 / 3S on Horizon OS v74+
-	// Rebuilding replaces the scene.
+	// Menu: DroneDDW > Ticket Scan > Create Camera Ticket Scan Test Scene. Builds Scenes/Ticket Scan/Camera Ticket Scan
+	// Test.unity, to see on the headset how well the headset camera's own images (Meta's Passthrough Camera Access),
+	// decoded with ZXing, read the participants' tickets (QR codes printed white on purple, 26 mm wide, holding a survey
+	// link with the participant number as its code parameter). It gets a copy of the main scene's XR rig and
+	// passthrough layer (the camera needs passthrough on), the panel that shows what is read, its sounds and the test
+	// controls (TicketScanTestControls). In the Editor it needs Meta Horizon Link v85+; on the headset a Quest 3 / 3S on
+	// Horizon OS v74+. Meta's own QR tracker was tried as a second variant and dropped on 2026-10-11: it didn't read
+	// the tickets. Rebuilding replaces the scene.
 	internal static class TicketScanTestSceneBuilder
 	{
-		#region Entities
-
-		private enum ScanVariant
-		{
-			Camera,
-			Tracker,
-		}
-
-		#endregion
-
 		#region Fields
 
 		internal const string CameraScenePath = "Assets/Scenes/Ticket Scan/Camera Ticket Scan Test.unity";
-		internal const string TrackerScenePath = "Assets/Scenes/Ticket Scan/Tracker Ticket Scan Test.unity";
 
 		private const string CameraMenuPath = "DroneDDW/Ticket Scan/Create Camera Ticket Scan Test Scene";
-		private const string TrackerMenuPath = "DroneDDW/Ticket Scan/Create Tracker Ticket Scan Test Scene";
 		private const string DialogTitle = "Ticket scan test scene";
 		private const string MainScenePath = "Assets/Scenes/Questionnaire.unity";
 		private const string ManifestPath = "Assets/Plugins/Android/AndroidManifest.xml";
@@ -92,17 +74,6 @@ namespace DroneDDW.TicketScan.Editor
 		[MenuItem(CameraMenuPath)]
 		private static void CreateCameraScene()
 		{
-			Create(ScanVariant.Camera);
-		}
-
-		[MenuItem(TrackerMenuPath)]
-		private static void CreateTrackerScene()
-		{
-			Create(ScanVariant.Tracker);
-		}
-
-		private static void Create(ScanVariant variant)
-		{
 			TMP_FontAsset regularFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(RegularFontPath);
 			TMP_FontAsset semiBoldFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(SemiBoldFontPath);
 			AudioClip ticketClip = AssetDatabase.LoadAssetAtPath<AudioClip>(TicketClipPath);
@@ -114,7 +85,7 @@ namespace DroneDDW.TicketScan.Editor
 				return;
 			}
 
-			string scenePath = variant == ScanVariant.Camera ? CameraScenePath : TrackerScenePath;
+			const string scenePath = CameraScenePath;
 			bool isReplacing = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) != null;
 			if (!Application.isBatchMode && isReplacing
 				&& !EditorUtility.DisplayDialog(DialogTitle, $"Replace {scenePath}?", "Replace", "Cancel"))
@@ -130,13 +101,9 @@ namespace DroneDDW.TicketScan.Editor
 			Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 			XROrigin origin = CopyMainSceneRig(scene);
 			Transform head;
-			Transform trackingSpace;
 			if (origin != null)
 			{
 				head = origin.Camera.transform;
-				trackingSpace = origin.CameraFloorOffsetObject != null
-					? origin.CameraFloorOffsetObject.transform
-					: head.parent;
 			}
 			else
 			{
@@ -144,19 +111,16 @@ namespace DroneDDW.TicketScan.Editor
 					+ "point, so it only works as a layout check.");
 				head = new GameObject("Head").transform;
 				head.position = new Vector3(0f, SeatedEyeHeight, 0f);
-				trackingSpace = null;
 			}
 
 			CreateLight();
-			TicketScanner scanner = variant == ScanVariant.Camera
-				? CreateCameraScanner()
-				: CreateTrackerScanner(head, trackingSpace);
-			TicketScanPanel panel = CreatePanel(variant, regularFont, semiBoldFont);
+			TicketScanner scanner = CreateCameraScanner();
+			TicketScanPanel panel = CreatePanel(regularFont, semiBoldFont);
 			CreateControls(scanner, panel, head, ticketClip, otherCodeClip);
 
 			EnsureFolder(scenePath.Substring(0, scenePath.LastIndexOf('/')));
 			EditorSceneManager.SaveScene(scene, scenePath);
-			WarnAboutMissingSetup(variant);
+			WarnAboutMissingSetup();
 			Debug.Log($"[Ticket Scan] Built {scenePath}.");
 		}
 
@@ -172,29 +136,9 @@ namespace DroneDDW.TicketScan.Editor
 			return scanner;
 		}
 
-		// MRUK with QR code tracking on and everything else this test doesn't need off: loading the room's scene model
-		// (which would ask for a room scan) and world locking (which moves an OVRCameraRig the scene doesn't have)
-		private static TicketScanner CreateTrackerScanner(Transform head, Transform trackingSpace)
-		{
-			MRUK mruk = new GameObject("MRUK").AddComponent<MRUK>();
-			mruk.EnableWorldLock = false;
-			mruk.SceneSettings ??= new MRUK.MRUKSettings();
-			mruk.SceneSettings.LoadSceneOnStartup = false;
-			mruk.SceneSettings.TrackerConfiguration = new OVRAnchor.TrackerConfiguration
-			{
-				QRCodeTrackingEnabled = true,
-			};
-
-			TrackerTicketScanner scanner = new GameObject("Tracker Ticket Scanner")
-				.AddComponent<TrackerTicketScanner>();
-			scanner.Configure(mruk, head, trackingSpace);
-			return scanner;
-		}
-
 		// The panel, where the controls put it until the headset reports its first pose: in front of a seated head at
 		// the rig's origin
-		private static TicketScanPanel CreatePanel(ScanVariant variant, TMP_FontAsset regularFont,
-			TMP_FontAsset semiBoldFont)
+		private static TicketScanPanel CreatePanel(TMP_FontAsset regularFont, TMP_FontAsset semiBoldFont)
 		{
 			GameObject panelObject = new("Ticket Scan Panel", typeof(RectTransform));
 			RectTransform panelRect = (RectTransform)panelObject.transform;
@@ -210,8 +154,7 @@ namespace DroneDDW.TicketScan.Editor
 			panelRect.SetPositionAndRotation(position, Quaternion.LookRotation(position - eye, Vector3.up));
 
 			CreateImage("Background", panelRect, BackgroundColor);
-			bool isCamera = variant == ScanVariant.Camera;
-			CreateText(panelRect, "Title", isCamera ? "Camera ticket scan" : "Tracker ticket scan", Padding, 10f,
+			CreateText(panelRect, "Title", "Camera ticket scan", Padding, 10f,
 				ContentWidth, 26f, semiBoldFont, TitleSize, TextColor, TextAlignmentOptions.TopLeft, false);
 			CreateText(panelRect, "Instruction", Instruction, Padding, 36f, ContentWidth, 18f, regularFont, BodySize,
 				MutedColor, TextAlignmentOptions.TopLeft, false);
@@ -219,23 +162,13 @@ namespace DroneDDW.TicketScan.Editor
 			RectTransform previewBox = CreateRect("Preview Box", panelRect);
 			Place(previewBox, Padding, PreviewTop, PreviewSize, PreviewSize);
 			CreateImage("Box", previewBox, PreviewBoxColor);
-			RawImage preview = null;
-			if (isCamera)
-			{
-				RectTransform previewRect = CreateRect("Camera Image", previewBox);
-				previewRect.sizeDelta = new Vector2(PreviewSize, PreviewSize);
-				preview = previewRect.gameObject.AddComponent<RawImage>();
-				preview.raycastTarget = false;
+			RectTransform previewRect = CreateRect("Camera Image", previewBox);
+			previewRect.sizeDelta = new Vector2(PreviewSize, PreviewSize);
+			RawImage preview = previewRect.gameObject.AddComponent<RawImage>();
+			preview.raycastTarget = false;
 
-				// Shown once the camera plays: an image without a texture would draw white
-				preview.enabled = false;
-			}
-			else
-			{
-				CreateText(previewBox, "No Camera Image", "The system tracker shares no camera image", 12f, 0f,
-					PreviewSize - 24f, PreviewSize, regularFont, BodySize, MutedColor, TextAlignmentOptions.Center,
-					true);
-			}
+			// Shown once the camera plays: an image without a texture would draw white
+			preview.enabled = false;
 
 			TextMeshProUGUI number = CreateText(panelRect, "Number", "---", ColumnLeft, PreviewTop, ColumnWidth, 92f,
 				semiBoldFont, NumberMaxSize, TextColor, TextAlignmentOptions.Left, false);
@@ -330,14 +263,11 @@ namespace DroneDDW.TicketScan.Editor
 			light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
 		}
 
-		// The scene can't ask for its permission on the headset unless the app's manifest declares it, and Meta's
-		// project settings must allow the feature
-		private static void WarnAboutMissingSetup(ScanVariant variant)
+		// The scene can't ask for the camera permission on the headset unless the app's manifest declares it, and Meta's
+		// project settings must allow camera access
+		private static void WarnAboutMissingSetup()
 		{
-			bool isCamera = variant == ScanVariant.Camera;
-			string permission = isCamera
-				? OVRPermissionsRequester.PassthroughCameraAccessPermission
-				: OVRPermissionsRequester.ScenePermission;
+			const string permission = OVRPermissionsRequester.PassthroughCameraAccessPermission;
 			string manifest = File.Exists(ManifestPath) ? File.ReadAllText(ManifestPath) : string.Empty;
 			if (!manifest.Contains(permission))
 			{
@@ -351,16 +281,10 @@ namespace DroneDDW.TicketScan.Editor
 				return;
 			}
 
-			if (isCamera && !config.isPassthroughCameraAccessEnabled)
+			if (!config.isPassthroughCameraAccessEnabled)
 			{
 				Debug.LogWarning("[Ticket Scan] Passthrough Camera Access is off in Meta's project settings (OVR "
 					+ "Manager > Quest Features).");
-			}
-
-			if (!isCamera && config.sceneSupport == OVRProjectConfig.FeatureSupport.None)
-			{
-				Debug.LogWarning("[Ticket Scan] Scene Support is off in Meta's project settings (OVR Manager > Quest "
-					+ "Features), and QR code tracking needs it.");
 			}
 		}
 

@@ -107,6 +107,12 @@ namespace DroneDDW.Neighborhood.Table
 			_settings = settings;
 		}
 
+		/// <summary>Reads the hands relative to another rig, e.g. the experience's once it has loaded this scene.</summary>
+		internal void SetTrackingSpace(Transform trackingSpace)
+		{
+			_trackingSpace = trackingSpace;
+		}
+
 		#endregion
 
 		#region Private

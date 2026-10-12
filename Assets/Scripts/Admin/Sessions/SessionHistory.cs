@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using UnityEngine;
 
 namespace DroneDDW.Admin.Sessions
 {
-	// The session history files: Sessions.csv (one row per session, written by answer logging and by the admin menu's
-	// test save button) and Deleted Sessions.csv, where the admin menu moves deleted rows with the time they were
-	// deleted. Both are UTF-8 with a byte order mark, so Excel reads them right. Every call reads the files fresh, so
-	// rows logged meanwhile aren't lost.
+	// The session history files: Sessions.csv (one row per session, written by Session Control when the participant
+	// locks in their choice, and by the admin menu's test save button) and Deleted Sessions.csv, where the admin menu
+	// moves deleted rows with the time they were deleted. Both are UTF-8 with a byte order mark, so Excel reads them
+	// right. Every call reads the files fresh, so rows logged meanwhile aren't lost.
 	internal sealed class SessionHistory
 	{
 		#region Fields
@@ -45,6 +46,15 @@ namespace DroneDDW.Admin.Sessions
 		#endregion
 
 		#region Internal
+
+		// The files named in the admin menu's settings, in their folder under the app's persistent data, or in
+		// folderOverride when it isn't null (the Play mode checks use a temporary one)
+		internal static SessionHistory FromSettings(AdminMenuSettings settings, string folderOverride)
+		{
+			string folder = folderOverride ?? Path.Combine(Application.persistentDataPath, settings.SessionsFolder);
+			return new SessionHistory(folder, settings.SessionsFileName, settings.DeletedSessionsFileName,
+				settings.Separator);
+		}
 
 		// The sessions in file order; none when the file doesn't exist yet. Throws IOException when it can't be read.
 		internal List<SessionRecord> Load()

@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 849e8618443de3a4495a92156bcb56f9, type: 3}
+  m_Name: Experience Settings
+  m_EditorClassIdentifier: DroneDDW.Experience::DroneDDW.Experience.ExperienceSettings
+  _welcome: {fileID: 8300000, guid: 8bb80824274bae1c6f06c58676e12ab7, type: 3}
+  _handCheck:
+    _prompt: {fileID: 8300000, guid: f21bad1c7f72723e1c9ee2d5bd349eb6, type: 3}
+    _stuck: {fileID: 8300000, guid: d6eb481db44619319f33b582e873c350, type: 3}
+    _success: {fileID: 8300000, guid: 9a3e8ed8f5212a287811ebd7a0446541, type: 3}
+  _slider:
+    _prompt: {fileID: 8300000, guid: 71fdb6046cff44b2a55b4bbe4aa5eac3, type: 3}
+    _stuck: {fileID: 8300000, guid: 3d0264fd084dcc24b12fbb9e6341f921, type: 3}
+    _success: {fileID: 8300000, guid: ad33e2cdc4639ee7d9df1f517fa3e327, type: 3}
+  _practiceLockIn:
+    _prompt: {fileID: 8300000, guid: adf284525c96c79cbc904eacb1849250, type: 3}
+    _stuck: {fileID: 8300000, guid: 31478ae1063a390ab768a7a9f4c6e03d, type: 3}
+    _success: {fileID: 8300000, guid: 1919c6a3f333b8cdf7910b578640eec0, type: 3}
+  _charactersIntro: {fileID: 8300000, guid: 148ca3a932b0e86016c20d374f2f6361, type: 3}
+  _characterLines:
+  - {fileID: 8300000, guid: a7fc0a9be12eff14b9b17df13f44e704, type: 3}
+  - {fileID: 8300000, guid: a7fc0a9be12eff14b9b17df13f44e704, type: 3}
+  - {fileID: 8300000, guid: a7fc0a9be12eff14b9b17df13f44e704, type: 3}
+  _neighborhoodWelcome: {fileID: 8300000, guid: 310f6e811274c269e354a882060a60ec, type: 3}
+  _neighborhoodLockIn:
+    _prompt: {fileID: 8300000, guid: d0b309f634ed72481cca60a6db0c0980, type: 3}
+    _stuck: {fileID: 8300000, guid: cb9963f582471414ca597dd4532d7d73, type: 3}
+    _success: {fileID: 8300000, guid: c4561206c3e0669e1719e90819068c43, type: 3}
+  _outro: {fileID: 8300000, guid: b9ecaee922b372541a1ece881ad14072, type: 3}
+  _goodbye: {fileID: 8300000, guid: 9bc6ba8a4cf8db1eca260eac9d9387c4, type: 3}
+  _firstHintDelaySeconds: 8
+  _hintRepeatSeconds: 15
+  _handoverSettleSeconds: 2
+  _pauseBetweenLinesSeconds: 0.4
+  _fadeSeconds: 1
+  _blackHoldSeconds: 0.3
+  _handoverText: Give the headset to participant {0}
+  _goodbyeText: Thank you! You can take off the headset now.
+  _formChoiceNames:
+  - Nature
+  - Balanced
+  - Efficiency
