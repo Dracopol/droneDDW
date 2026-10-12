@@ -219,14 +219,20 @@ namespace DroneDDW.Experience.Editor
 				return;
 			}
 
-			Bounds footprint = collar.bounds;
+			// The collar is round: its footprint is a circle, whichever way the button is turned
+			Vector3 center = collar.transform.position;
+			float radius = collar.GetComponent<MeshFilter>().sharedMesh.bounds.extents.x * collar.transform.lossyScale.x;
+			Bounds footprint = new(center, new Vector3(radius * 2f, 0f, radius * 2f));
 			IEnumerable<Renderer> sliderParts = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None)
 				.Where(part => part.name.StartsWith("Rig_Glyph_") || part == track);
 			foreach (Renderer part in sliderParts)
 			{
-				Expect(sceneName, !OverlapsFromAbove(footprint, part.bounds),
+				Bounds bounds = part.bounds;
+				float dx = Mathf.Max(bounds.min.x - center.x, 0f, center.x - bounds.max.x);
+				float dz = Mathf.Max(bounds.min.z - center.z, 0f, center.z - bounds.max.z);
+				Expect(sceneName, dx * dx + dz * dz >= radius * radius,
 					$"the button to stay clear of {part.name} (button x {footprint.min.x:0.###} to {footprint.max.x:0.###}, "
-					+ $"{part.name} x {part.bounds.min.x:0.###} to {part.bounds.max.x:0.###})");
+					+ $"{part.name} x {bounds.min.x:0.###} to {bounds.max.x:0.###})");
 			}
 
 			if (isOnTable)

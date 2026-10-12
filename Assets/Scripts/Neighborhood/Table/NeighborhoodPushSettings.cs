@@ -53,8 +53,9 @@ namespace DroneDDW.Neighborhood.Table
 		private Vector3 _grabBoxSize = new Vector3(0.08f, 0.07f, 0.08f);
 
 		[Header("Lock-in button")]
-		[SerializeField, Range(0.2f, 5f), Tooltip("How long a hand has to hold the button down to lock the choice in.")]
-		private float _lockHoldSeconds = 1f;
+		[SerializeField, Range(0.2f, 5f), Tooltip("How long a hand has to hold the button down to lock the choice in; "
+			+ "the countdown above the button shows the whole seconds left.")]
+		private float _lockHoldSeconds = 3f;
 
 		[SerializeField, Range(0.05f, 2f), Tooltip("How quickly the ring empties again when the hand lets go early.")]
 		private float _lockDrainSeconds = 0.4f;

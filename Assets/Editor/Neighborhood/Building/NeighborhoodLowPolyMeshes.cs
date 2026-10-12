@@ -103,6 +103,9 @@ namespace DroneDDW.Neighborhood.Editor.Building
         /// <summary>Slate, #5e6770: the slider's track and handle.</summary>
         internal static readonly PaletteCell Slate = new PaletteCell(3, 6);
 
+        /// <summary>Orange, #f08a3c: the table's accent (the miniature's marker pin).</summary>
+        internal static readonly PaletteCell Orange = new PaletteCell(4, 6);
+
         /// <summary>Almost white, #f3f5f7: for parts tinted at runtime, so the tint shows as it is.</summary>
         internal static readonly PaletteCell White = new PaletteCell(13, 3);
 

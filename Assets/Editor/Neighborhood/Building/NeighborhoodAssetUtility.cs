@@ -43,6 +43,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const string WaterKey = "Water";
         private const string GlassGlowKey = "GlassGlow";
         private const string PropsKey = "Props";
+        private const string HighlightKey = "Highlight";
         private const float MatteSmoothness = 0.1f;
         private const float WaterSmoothness = 0.85f;
         private const float GlassSmoothness = 0.6f;
@@ -118,6 +119,29 @@ namespace DroneDDW.Neighborhood.Editor.Building
         internal static Material LoadPropsMaterial(string root)
         {
             return AssetDatabase.LoadAssetAtPath<Material>($"{root}/{MaterialsFolder}/{PalettePrefix}{PropsKey}.mat");
+        }
+
+        /// <summary>
+        /// The palette material for the table's parts that light up (the lock-in button's cap and ring, the slider's
+        /// handle and notches): matte like Street_Mat_Props, its emission switched on but black, so a part only glows
+        /// where its renderer sets an emission colour through a property block. Made the first time, updated every build.
+        /// </summary>
+        internal static Material LoadOrCreateHighlightMaterial(string root)
+        {
+            Texture2D palette = AssetDatabase.LoadAssetAtPath<Texture2D>($"{root}/{TexturesFolder}/{PaletteFileName}");
+            Material material = LoadOrCreate(EnsureFolder(root, MaterialsFolder), $"{PalettePrefix}{HighlightKey}",
+                FindLitShader());
+            material.mainTexture = palette;
+            material.color = Color.white;
+            SetFloatIfPresent(material, "_Smoothness", MatteSmoothness);
+            SetFloatIfPresent(material, "_Glossiness", MatteSmoothness);
+            SetFloatIfPresent(material, "_Metallic", 0f);
+            material.EnableKeyword("_EMISSION");
+            material.SetTexture("_EmissionMap", palette);
+            material.SetColor("_EmissionColor", Color.black);
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         internal static string ModelPath(string root, string fileName)

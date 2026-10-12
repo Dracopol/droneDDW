@@ -193,7 +193,7 @@ namespace DroneDDW.Experience.Editor
 				questionnaireGhostHands);
 			PracticeChoice practice = experience.AddComponent<PracticeChoice>();
 			practice.Configure(tableProp, table.Slider, table.LockButton, table.SliderDriver as NeighborhoodSliderHandDriver,
-				orb);
+				table.Hint, orb);
 
 			ExperienceDirector director = experience.AddComponent<ExperienceDirector>();
 			director.Configure(settings, session, presence, environment, notice);

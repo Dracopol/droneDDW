@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using UnityEngine;
 
 namespace DroneDDW.Neighborhood.Table
@@ -6,11 +7,13 @@ namespace DroneDDW.Neighborhood.Table
 	/// <summary>
 	/// The table's lock-in button, beside the slider: a push button like the Scripted Button Stepper Test's. Any part of a
 	/// hand pushes its cap down; the cap follows the hand and springs back up once it lets go
-	/// (<see cref="NeighborhoodPushCap"/>). Holding it pressed lights the ring of segments around the cap one by one, and
-	/// once the ring is full the slider's choice is locked in. A press only counts while the button is armed (available,
-	/// and the slider resting on a notch without a hand on it), so reaching for the slider can't lock in by accident;
-	/// letting go early empties the ring again. The cap only moves while the button is available, and once locked it stays
-	/// down and green until <see cref="ResetLock"/>. Pushed by the slider's hand bones
+	/// (<see cref="NeighborhoodPushCap"/>). Holding it pressed counts down above the button with a tick each second and
+	/// lights the ring of segments around the cap one by one; once the ring is full the slider's choice is locked in. A
+	/// press only counts while the button is armed (available, and the slider resting on a notch without a hand on it), so
+	/// reaching for the slider can't lock in by accident; letting go early empties the ring again. The cap only moves while
+	/// the button is available, and once locked it stays down and green until <see cref="ResetLock"/>.
+	/// To be noticed by people new to VR, the armed button breathes a soft glow, brightens when a finger comes close, and
+	/// a flash runs around the ring when it locks in. Pushed by the slider's hand bones
 	/// (<see cref="NeighborhoodHandBones"/>), timed by the shared push settings, on scaled time, so a paused session holds
 	/// it still.
 	/// </summary>
@@ -45,11 +48,17 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Tooltip("The ring around the cap, in the order its segments light up while the button is held.")]
 		private Renderer[] _ringSegments = Array.Empty<Renderer>();
 
+		[SerializeField, Tooltip("The seconds left, shown above the button while it is held; it turns to face the viewer.")]
+		private TMP_Text _countdown;
+
 		[SerializeField] private AudioSource _audioSource;
 		[SerializeField] private AudioClip _touchClip;
 		[SerializeField] private AudioClip _pressClip;
 		[SerializeField] private AudioClip _releaseClip;
 		[SerializeField] private AudioClip _lockInClip;
+
+		[SerializeField, Tooltip("The countdown's ticks, for 1, 2, 3 ... seconds left (the last one also for more).")]
+		private AudioClip[] _countdownClips = Array.Empty<AudioClip>();
 
 		[Header("Shape")]
 		[SerializeField, Min(0.005f), Tooltip("The cap's radius: only a hand over its face pushes it.")]
@@ -79,6 +88,31 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Tooltip("The ring's segments that aren't lit.")]
 		private Color _ringIdleColor = new Color(0.24f, 0.25f, 0.28f);
 
+		[Header("Glow")]
+		[SerializeField, Min(0f), Tooltip("How brightly the lit ring segments glow.")]
+		private float _ringGlow = 1.6f;
+
+		[SerializeField, Min(0.05f), Tooltip("How fast the armed button breathes, in breaths per second.")]
+		private float _readyPulseHertz = 0.6f;
+
+		[SerializeField, Min(0f), Tooltip("How brightly the armed button glows at the top of a breath.")]
+		private float _readyPulseGlow = 0.5f;
+
+		[SerializeField, Min(0f), Tooltip("How brightly the cap glows while a finger is close above it.")]
+		private float _hoverGlow = 0.45f;
+
+		[SerializeField, Min(0f), Tooltip("How far above the cap's top a finger counts as close.")]
+		private float _hoverRangeMeters = 0.06f;
+
+		[SerializeField, Min(0f), Tooltip("How far a ring segment rises as it lights up.")]
+		private float _segmentLiftMeters = 0.0015f;
+
+		[SerializeField, Min(0.05f), Tooltip("How long the flash around the ring takes once the button locks in.")]
+		private float _lockFlashSeconds = 0.6f;
+
+		[SerializeField, Min(0.05f), Tooltip("How long each countdown number pops in.")]
+		private float _countdownPopSeconds = 0.25f;
+
 		#endregion
 
 		#region Fields
@@ -86,12 +120,24 @@ namespace DroneDDW.Neighborhood.Table
 		// Below this the samples along a bone would be too many to test every frame
 		private const float MinSampleSpacingMeters = 0.002f;
 
+		// How much bigger a countdown number starts, and how much the cap swells when it locks in
+		private const float CountdownPopScale = 0.35f;
+		private const float LockBounceScale = 0.12f;
+		private const float LockBounceSeconds = 0.3f;
+
 		private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+		private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
 		private MaterialPropertyBlock _propertyBlock;
 		private NeighborhoodPushCap _pushCap;
+		private Vector3 _capScale = Vector3.one;
+		private Vector3 _countdownScale = Vector3.one;
 		private bool _isAvailable = true;
+		private bool _isHovered;
 		private float _progress;
+		private int _shownCount;
+		private float _countdownShownAtSeconds;
+		private float _lockedAtSeconds = float.NegativeInfinity;
 
 		#endregion
 
@@ -126,6 +172,9 @@ namespace DroneDDW.Neighborhood.Table
 			&& !_slider.IsDragging && _slider.Contact != NeighborhoodSliderContact.Pushed
 			&& _slider.Contact != NeighborhoodSliderContact.Grabbed;
 
+		/// <summary>The whole seconds left on the countdown while the button is held; 0 when it isn't counting down.</summary>
+		public int CountdownSeconds => _shownCount;
+
 		#endregion
 
 		#region Setup
@@ -134,6 +183,17 @@ namespace DroneDDW.Neighborhood.Table
 		{
 			_propertyBlock = new MaterialPropertyBlock();
 			_pushCap = new NeighborhoodPushCap(_travelMeters, _push);
+			if (_cap != null)
+			{
+				_capScale = _cap.localScale;
+			}
+
+			if (_countdown != null)
+			{
+				_countdownScale = _countdown.transform.localScale;
+				_countdown.enabled = false;
+			}
+
 			ApplyCapHeight();
 		}
 
@@ -150,11 +210,13 @@ namespace DroneDDW.Neighborhood.Table
 				bool wasPressed = _pushCap.IsPressed;
 				_pushCap.Spring(deltaSeconds);
 				bool isPushable = _isAvailable && !IsLocked;
+				_isHovered = false;
 				_pushCap.ApplyHand(isPushable
-					? FindLowestHandUnderside(_pushCap.LowestCountedMeters)
+					? FindLowestHandUnderside(_pushCap.LowestCountedMeters, out _isHovered)
 					: float.PositiveInfinity);
 				PlayChanges(wasTouched, wasPressed);
 				UpdateProgress(deltaSeconds);
+				UpdateCountdown();
 			}
 
 			ApplyLook();
@@ -170,6 +232,7 @@ namespace DroneDDW.Neighborhood.Table
 			IsLocked = false;
 			LockedDetent = -1;
 			_progress = 0f;
+			_lockedAtSeconds = float.NegativeInfinity;
 			_pushCap?.Unlatch();
 		}
 
@@ -179,7 +242,7 @@ namespace DroneDDW.Neighborhood.Table
 
 		internal void Configure(NeighborhoodSlider slider, NeighborhoodHandBones handBones,
 			NeighborhoodPushSettings settings, Transform cap, Renderer capRenderer, Renderer[] ringSegments,
-			AudioSource audioSource, AudioClip touchClip, AudioClip pressClip, AudioClip releaseClip, AudioClip lockInClip)
+			TMP_Text countdown, AudioSource audioSource)
 		{
 			_slider = slider;
 			_handBones = handBones;
@@ -187,11 +250,18 @@ namespace DroneDDW.Neighborhood.Table
 			_cap = cap;
 			_capRenderer = capRenderer;
 			_ringSegments = ringSegments;
+			_countdown = countdown;
 			_audioSource = audioSource;
+		}
+
+		internal void ConfigureSounds(AudioClip touchClip, AudioClip pressClip, AudioClip releaseClip,
+			AudioClip lockInClip, AudioClip[] countdownClips)
+		{
 			_touchClip = touchClip;
 			_pressClip = pressClip;
 			_releaseClip = releaseClip;
 			_lockInClip = lockInClip;
+			_countdownClips = countdownClips;
 		}
 
 		internal void ConfigureShape(float capRadiusMeters, float pressedTopMeters, float travelMeters)
@@ -199,6 +269,13 @@ namespace DroneDDW.Neighborhood.Table
 			_capRadiusMeters = capRadiusMeters;
 			_pressedTopMeters = pressedTopMeters;
 			_travelMeters = travelMeters;
+		}
+
+		/// <summary>The whole seconds left to hold, from 1 up: 3, 2, 1 for a three second hold.</summary>
+		internal static int GetCountdown(float progress, float holdSeconds)
+		{
+			const float roundingMargin = 0.0001f;
+			return Mathf.Max(1, Mathf.CeilToInt((1f - Mathf.Clamp01(progress)) * holdSeconds - roundingMargin));
 		}
 
 		#endregion
@@ -224,10 +301,31 @@ namespace DroneDDW.Neighborhood.Table
 			}
 		}
 
+		// A tick with each new number; the number disappears when the hand lets go or the button locks in
+		private void UpdateCountdown()
+		{
+			bool isHolding = !IsLocked && IsArmed && _pushCap.IsPressed;
+			int count = isHolding
+				? GetCountdown(_progress, NeighborhoodPushSettings.OrDefaults(_settings).LockHoldSeconds)
+				: 0;
+			if (count == _shownCount)
+			{
+				return;
+			}
+
+			_shownCount = count;
+			if (count > 0)
+			{
+				_countdownShownAtSeconds = Time.time;
+				Play(_countdownClips.Length > 0 ? _countdownClips[Mathf.Min(count, _countdownClips.Length) - 1] : null);
+			}
+		}
+
 		private void Lock()
 		{
 			IsLocked = true;
 			LockedDetent = _slider.Detent;
+			_lockedAtSeconds = Time.time;
 			_pushCap.Latch();
 			Play(_lockInClip);
 			OnLockIn?.Invoke(LockedDetent);
@@ -253,8 +351,10 @@ namespace DroneDDW.Neighborhood.Table
 		// The lowest underside of any tracked hand over the cap's face that may push it now, in the cap's heights (0 at the
 		// bottom of its travel); positive infinity when none does. Spheres are sampled along every hand bone, as the
 		// Scripted Button Stepper Test does, in this object's frame without its scale (the table model may be scaled).
-		private float FindLowestHandUnderside(float lowestCountedMeters)
+		// Also tells whether a hand is close above the cap.
+		private float FindLowestHandUnderside(float lowestCountedMeters, out bool isHovered)
 		{
+			isHovered = false;
 			if (_handBones == null)
 			{
 				return float.PositiveInfinity;
@@ -264,6 +364,7 @@ namespace DroneDDW.Neighborhood.Table
 			NeighborhoodPushSettings settings = NeighborhoodPushSettings.OrDefaults(_settings);
 			float spacingMeters = Mathf.Max(MinSampleSpacingMeters, settings.SampleSpacingMeters);
 			float radiusSquared = _capRadiusMeters * _capRadiusMeters;
+			float capTopMeters = _pushCap.HeightMeters;
 			Quaternion toLocal = Quaternion.Inverse(transform.rotation);
 			Vector3 origin = transform.position;
 			float lowestMeters = float.PositiveInfinity;
@@ -275,13 +376,18 @@ namespace DroneDDW.Neighborhood.Table
 				for (int sample = 0; sample <= segmentCount; sample++)
 				{
 					Vector3 point = Vector3.Lerp(start, end, (float)sample / segmentCount);
-					float undersideMeters = point.y - bone.RadiusMeters - _pressedTopMeters;
-					if (point.x * point.x + point.z * point.z > radiusSquared || undersideMeters < lowestCountedMeters)
+					if (point.x * point.x + point.z * point.z > radiusSquared)
 					{
 						continue;
 					}
 
-					lowestMeters = Mathf.Min(lowestMeters, undersideMeters);
+					float undersideMeters = point.y - bone.RadiusMeters - _pressedTopMeters;
+					float aboveCapMeters = undersideMeters - capTopMeters;
+					isHovered |= aboveCapMeters >= -_push.ContactToleranceMeters && aboveCapMeters <= _hoverRangeMeters;
+					if (undersideMeters >= lowestCountedMeters)
+					{
+						lowestMeters = Mathf.Min(lowestMeters, undersideMeters);
+					}
 				}
 			}
 
@@ -291,6 +397,16 @@ namespace DroneDDW.Neighborhood.Table
 		private void ApplyLook()
 		{
 			bool isArmed = IsArmed;
+			float now = Time.time;
+
+			// A slow breath while the armed button waits for a press
+			bool isWaitingForPress = isArmed && _progress <= 0f && !_pushCap.IsPressed;
+			float breath = isWaitingForPress
+				? _readyPulseGlow * (0.5f + 0.5f * Mathf.Sin(now * 2f * Mathf.PI * _readyPulseHertz))
+				: 0f;
+			float lockAge = now - _lockedAtSeconds;
+			float flash = lockAge >= 0f && lockAge < _lockFlashSeconds ? 1f - lockAge / _lockFlashSeconds : 0f;
+
 			Color capColor;
 			if (IsLocked)
 			{
@@ -305,16 +421,78 @@ namespace DroneDDW.Neighborhood.Table
 				capColor = isArmed ? Color.Lerp(_armedColor, _lockedColor, _progress) : _waitingColor;
 			}
 
-			SetColor(_capRenderer, capColor);
+			float capGlow = Mathf.Max(breath, _isHovered && _isAvailable && !IsLocked ? _hoverGlow : 0f, flash);
+			SetLook(_capRenderer, capColor, capColor * capGlow);
 			ApplyCapHeight();
+			ApplyLockBounce(lockAge);
 
-			// The segments light up one after another as the ring fills, the one being reached fading in
-			float litSegments = Progress * _ringSegments.Length;
+			// The segments light up one after another as the ring fills, the one being reached fading in; once locked a
+			// flash runs once around the ring
+			int segmentCount = _ringSegments.Length;
+			float litSegments = Progress * segmentCount;
+			float flashPosition = lockAge / _lockFlashSeconds * (segmentCount + 2f);
 			Color litColor = IsLocked ? _lockedColor : _armedColor;
-			for (int segment = 0; segment < _ringSegments.Length; segment++)
+			for (int segment = 0; segment < segmentCount; segment++)
 			{
+				Renderer segmentRenderer = _ringSegments[segment];
+				if (segmentRenderer == null)
+				{
+					continue;
+				}
+
 				float fill = isArmed || IsLocked ? Mathf.Clamp01(litSegments - segment) : 0f;
-				SetColor(_ringSegments[segment], Color.Lerp(_ringIdleColor, litColor, fill));
+				float wave = flash > 0f ? Mathf.Clamp01(1f - Mathf.Abs(flashPosition - segment) * 0.5f) : 0f;
+				Color color = Color.Lerp(_ringIdleColor, litColor, fill);
+				Color glow = litColor * (_ringGlow * fill + breath * 0.5f) + Color.white * wave;
+				SetLook(segmentRenderer, color, glow);
+				segmentRenderer.transform.localPosition = Vector3.up * (_segmentLiftMeters * fill);
+			}
+
+			ApplyCountdownLook(now);
+		}
+
+		// The cap swells for a moment as the button locks in
+		private void ApplyLockBounce(float lockAge)
+		{
+			if (_cap == null)
+			{
+				return;
+			}
+
+			float swell = lockAge >= 0f && lockAge < LockBounceSeconds
+				? LockBounceScale * Mathf.Sin(Mathf.PI * lockAge / LockBounceSeconds)
+				: 0f;
+			_cap.localScale = new Vector3(_capScale.x * (1f + swell), _capScale.y, _capScale.z * (1f + swell));
+		}
+
+		// Each number pops in and the text turns to face whoever looks at it
+		private void ApplyCountdownLook(float now)
+		{
+			if (_countdown == null)
+			{
+				return;
+			}
+
+			_countdown.enabled = _shownCount > 0;
+			if (_shownCount <= 0)
+			{
+				return;
+			}
+
+			_countdown.text = _shownCount.ToString();
+			float popAge = (now - _countdownShownAtSeconds) / _countdownPopSeconds;
+			float pop = popAge < 1f ? CountdownPopScale * (1f - popAge) * (1f - popAge) : 0f;
+			Transform countdownTransform = _countdown.transform;
+			countdownTransform.localScale = _countdownScale * (1f + pop);
+			Camera viewer = Camera.main;
+			if (viewer != null)
+			{
+				Vector3 away = countdownTransform.position - viewer.transform.position;
+				away.y = 0f;
+				if (away.sqrMagnitude > 0.0001f)
+				{
+					countdownTransform.rotation = Quaternion.LookRotation(away, Vector3.up);
+				}
 			}
 		}
 
@@ -326,7 +504,7 @@ namespace DroneDDW.Neighborhood.Table
 			}
 		}
 
-		private void SetColor(Renderer target, Color color)
+		private void SetLook(Renderer target, Color color, Color glow)
 		{
 			if (target == null)
 			{
@@ -334,6 +512,7 @@ namespace DroneDDW.Neighborhood.Table
 			}
 
 			_propertyBlock.SetColor(BaseColorId, color);
+			_propertyBlock.SetColor(EmissionColorId, glow);
 			target.SetPropertyBlock(_propertyBlock);
 		}
 

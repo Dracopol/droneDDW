@@ -97,6 +97,16 @@ namespace DroneDDW.Neighborhood.Table
 
         #region Setup
 
+        // Starts on the notch its handle stands at, so the choice is known (and the lock-in button can arm) before anyone
+        // moves it. In Awake, so it holds as soon as a hidden table is shown.
+        private void Awake()
+        {
+            if (_detent < 0 && _handle != null)
+            {
+                _detent = XToDetent(HandleX);
+            }
+        }
+
         private void OnDestroy()
         {
             if (_lifetime == null)

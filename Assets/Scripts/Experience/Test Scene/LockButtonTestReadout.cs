@@ -43,12 +43,6 @@ namespace DroneDDW.Experience.TestScene
 			_lockButton.OnLockIn -= HandleLockIn;
 		}
 
-		// The slider starts on the notch its handle stands at, so the button can be tried straight away
-		private void Start()
-		{
-			_slider.SetDetent(Mathf.RoundToInt(_slider.HandleBlend * (_slider.DetentCount - 1)), false);
-		}
-
 		#endregion
 
 		#region Update

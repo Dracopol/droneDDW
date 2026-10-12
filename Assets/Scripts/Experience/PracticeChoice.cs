@@ -24,6 +24,9 @@ namespace DroneDDW.Experience
 		[Tooltip("Moves the slider with the hands")]
 		[SerializeField] private NeighborhoodSliderHandDriver _sliderDriver;
 
+		[Tooltip("Arrows beside the handle, shown until the slider has been moved")]
+		[SerializeField] private NeighborhoodSliderHint _sliderHint;
+
 		[SerializeField] private NarratorOrbController _orb;
 
 		#endregion
@@ -68,12 +71,13 @@ namespace DroneDDW.Experience
 		#region Internal
 
 		internal void Configure(ExperienceProp table, NeighborhoodSlider slider, NeighborhoodLockButton lockButton,
-			NeighborhoodSliderHandDriver sliderDriver, NarratorOrbController orb)
+			NeighborhoodSliderHandDriver sliderDriver, NeighborhoodSliderHint sliderHint, NarratorOrbController orb)
 		{
 			_table = table;
 			_slider = slider;
 			_lockButton = lockButton;
 			_sliderDriver = sliderDriver;
+			_sliderHint = sliderHint;
 			_orb = orb;
 		}
 
@@ -100,12 +104,20 @@ namespace DroneDDW.Experience
 			_lockButton.IsAvailable = isAvailable;
 		}
 
-		// The slider was moved to another notch and let go
+		// The slider was moved to another notch and let go; the arrows beside its handle show how until then
 		internal async UniTask WaitForSliderMovedAsync(CancellationToken cancellationToken)
 		{
 			int startDetent = _slider.Detent;
-			await UniTask.WaitUntil(() => _slider.Detent != startDetent && !_slider.IsDragging,
-				cancellationToken: cancellationToken);
+			_sliderHint?.Show();
+			try
+			{
+				await UniTask.WaitUntil(() => _slider.Detent != startDetent && !_slider.IsDragging,
+					cancellationToken: cancellationToken);
+			}
+			finally
+			{
+				_sliderHint?.Hide();
+			}
 		}
 
 		internal async UniTask WaitForLockInAsync(CancellationToken cancellationToken)

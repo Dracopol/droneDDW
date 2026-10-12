@@ -6,7 +6,8 @@
         "Unity.XR.CoreUtils",
         "Unity.XR.Hands",
         "Unity.InputSystem",
-        "UniTask"
+        "UniTask",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

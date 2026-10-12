@@ -20,12 +20,16 @@ namespace DroneDDW.Neighborhood.Editor.Building
         /// <summary>The slider's hand driver; null without the XR Interaction Toolkit.</summary>
         public Component SliderDriver { get; }
 
+        /// <summary>The arrows showing the slider slides, hidden; on the practice table only, otherwise null.</summary>
+        public NeighborhoodSliderHint Hint { get; }
+
         #endregion
 
         #region Setup
 
         public NeighborhoodTableParts(GameObject root, NeighborhoodSlider slider, NeighborhoodModelPreview preview,
-            NeighborhoodLockButton lockButton, NeighborhoodHandBones handBones, Component sliderDriver)
+            NeighborhoodLockButton lockButton, NeighborhoodHandBones handBones, Component sliderDriver,
+            NeighborhoodSliderHint hint)
         {
             Root = root;
             Slider = slider;
@@ -33,6 +37,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             LockButton = lockButton;
             HandBones = handBones;
             SliderDriver = sliderDriver;
+            Hint = hint;
         }
 
         #endregion

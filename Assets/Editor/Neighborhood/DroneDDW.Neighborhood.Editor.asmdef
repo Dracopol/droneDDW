@@ -8,7 +8,8 @@
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.CoreUtils",
         "Unity.XR.Hands",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

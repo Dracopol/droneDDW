@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using DroneDDW.Neighborhood.Editor.Layout;
 using DroneDDW.Neighborhood.Table;
 using DroneDDW.Neighborhood.Versions;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -27,8 +29,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
     {
         #region Fields
 
-        /// <summary>Where the Neighborhood and the experience put the button, until the placement tests decide.</summary>
-        internal const NeighborhoodLockButtonPlacement DefaultPlacement = NeighborhoodLockButtonPlacement.TableCorner;
+        /// <summary>Where the Neighborhood and the experience put the button: on the stand, chosen after the placement tests.</summary>
+        internal const NeighborhoodLockButtonPlacement DefaultPlacement = NeighborhoodLockButtonPlacement.Stand;
 
         private const string TableModel = "Street_Table";
         private const string MiniaturesModel = "Street_Miniatures";
@@ -68,12 +70,47 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const float StandTopThicknessMeters = 0.04f;
         private const float StandLegWidthMeters = 0.05f;
 
+        // The check mark on the cap, as fractions of the cap's radius: a short stroke down to the corner, a long one up
+        private const float CheckStrokeWidth = 0.2f;
+        private const float CheckHeightMeters = 0.0015f;
+        private static readonly Vector2 CheckStart = new Vector2(-0.42f, 0.02f);
+        private static readonly Vector2 CheckCorner = new Vector2(-0.12f, -0.3f);
+        private static readonly Vector2 CheckEnd = new Vector2(0.46f, 0.3f);
+
+        // The countdown floats this far above the resting cap, as big as fits its box
+        private const float CountdownLiftMeters = 0.09f;
+        private const float CountdownBoxMeters = 0.1f;
+        private const float CountdownMaxFontSize = 1.2f;
+
+        // "Hold to confirm" on the stand's front edge, which turns to face the seat
+        private const string HoldLabelText = "HOLD TO CONFIRM";
+        private const float HoldLabelHeightMeters = 0.026f;
+        private const float HoldLabelMaxFontSize = 0.4f;
+        private static readonly Color HoldLabelColor = new Color(0.23f, 0.25f, 0.28f);
+        private static readonly Color CountdownColor = new Color(0.95f, 0.76f, 0.19f);
+
+        // The arrows beside the practice slider's handle
+        private const float HintArrowRadiusMeters = 0.011f;
+        private const float HintArrowHeightMeters = 0.004f;
+        private const float HintArrowOffsetMeters = 0.048f;
+        private const float HintArrowLiftMeters = 0.0045f;
+
+        private const string SemiBoldFontPath = "Assets/Content/Fonts/Inter/Inter SemiBold SDF.asset";
+        private const string DetentPrefix = "Rig_Detent_";
         private const float ButtonSoundMinDistance = 0.5f;
         private const float ButtonSoundMaxDistance = 10f;
-        private const string TouchClipPath = "Assets/Content/Audio/SFX/Button Touch.wav";
-        private const string PressClipPath = "Assets/Content/Audio/SFX/Button Press.wav";
-        private const string ReleaseClipPath = "Assets/Content/Audio/SFX/Button Release.wav";
-        private const string LockInClipPath = "Assets/Content/Audio/SFX/Lock In.wav";
+        private const string SoundsFolder = "Assets/Content/Audio/SFX";
+        private const string TouchClipPath = SoundsFolder + "/Button Touch.wav";
+        private const string PressClipPath = SoundsFolder + "/Button Press.wav";
+        private const string ReleaseClipPath = SoundsFolder + "/Button Release.wav";
+        private const string LockInClipPath = SoundsFolder + "/Lock In.wav";
+        private const string NotchClipPath = SoundsFolder + "/Slider Notch.wav";
+
+        // The countdown's ticks for 1, 2 and 3 seconds left, rising in pitch towards the lock-in
+        private static readonly string[] CountdownClipPaths =
+        {
+            SoundsFolder + "/Lock Tick 1.wav", SoundsFolder + "/Lock Tick 2.wav", SoundsFolder + "/Lock Tick 3.wav",
+        };
 
         private static readonly string[] RigParts = { "Rig_Slider", "Rig_Handle", "Rig_ModelRoot", "Rig_ViewCone" };
         private static readonly string[] VersionNames = { "Nature", "Balanced", "Efficiency" };
@@ -177,9 +214,13 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodHandBones handBones = slider.gameObject.AddComponent<NeighborhoodHandBones>();
             handBones.Configure(trackingSpace, settings);
             Component driver = AddHandInput(versionSlider, handle.gameObject, handBones, settings);
+            Material highlight = NeighborhoodAssetUtility.LoadOrCreateHighlightMaterial(root);
+            Material props = NeighborhoodAssetUtility.LoadPropsMaterial(root);
+            AddSliderLook(versionSlider, handle, driver as Behaviour, highlight);
+            NeighborhoodSliderHint hint = hasMiniatures ? null : AddSliderHint(root, handle, props);
             NeighborhoodLockButton lockButton = AddLockButton(root, rig.transform, versionSlider, handBones, settings,
-                placement);
-            return new NeighborhoodTableParts(rig, versionSlider, preview, lockButton, handBones, driver);
+                placement, head, highlight, props);
+            return new NeighborhoodTableParts(rig, versionSlider, preview, lockButton, handBones, driver, hint);
         }
 
         private static GameObject[] AttachMiniatures(GameObject miniatureModel, Transform modelRoot)
@@ -232,13 +273,73 @@ namespace DroneDDW.Neighborhood.Editor.Building
         }
 
         /// <summary>
+        /// The slider's look: its handle and notch markers drawn with the highlight material, so they can glow, and a
+        /// sound for the notches it passes.
+        /// </summary>
+        private static void AddSliderLook(NeighborhoodSlider slider, Transform handle, Behaviour handInput,
+            Material highlight)
+        {
+            Renderer handleRenderer = handle.GetComponent<Renderer>();
+            List<Renderer> notches = new List<Renderer>();
+            foreach (Transform part in slider.GetComponentsInChildren<Transform>(true))
+            {
+                if (part.name.StartsWith(DetentPrefix) && part.TryGetComponent(out Renderer notch))
+                {
+                    notches.Add(notch);
+                }
+            }
+
+            // In the slider's notch order: left to right along its axis
+            notches.Sort((first, second) =>
+                slider.transform.InverseTransformPoint(first.transform.position).x
+                    .CompareTo(slider.transform.InverseTransformPoint(second.transform.position).x));
+            foreach (Renderer part in notches.Append(handleRenderer))
+            {
+                if (part != null && highlight != null)
+                {
+                    part.sharedMaterial = highlight;
+                }
+            }
+
+            NeighborhoodSliderLook look = slider.gameObject.AddComponent<NeighborhoodSliderLook>();
+            look.Configure(slider, handInput, handleRenderer, notches.ToArray(), CreateAudioSource(slider.gameObject),
+                AssetDatabase.LoadAssetAtPath<AudioClip>(NotchClipPath));
+        }
+
+        /// <summary>Two orange arrows either side of the handle, pointing outwards, hidden until the experience shows them.</summary>
+        private static NeighborhoodSliderHint AddSliderHint(string root, Transform handle, Material material)
+        {
+            Mesh arrowMesh = NeighborhoodLowPolyMeshes.Save(NeighborhoodLowPolyMeshes.CreatePrism("Arrow", 3,
+                HintArrowRadiusMeters, 0f, HintArrowHeightMeters, NeighborhoodLowPolyMeshes.Orange,
+                NeighborhoodLowPolyMeshes.Orange, false), $"{GetGeneratedFolder(root)}/Street_SliderHint_Arrow.asset");
+            GameObject hintObject = new GameObject("Slider Hint");
+            hintObject.transform.SetParent(handle, false);
+
+            // The prism's point faces -Z; turned a quarter either way it points left or right along the slider
+            Transform[] arrows =
+            {
+                CreatePart("Arrow Left", hintObject.transform, arrowMesh, material).transform,
+                CreatePart("Arrow Right", hintObject.transform, arrowMesh, material).transform,
+            };
+            arrows[0].SetLocalPositionAndRotation(new Vector3(-HintArrowOffsetMeters, HintArrowLiftMeters, 0f),
+                Quaternion.Euler(0f, 90f, 0f));
+            arrows[1].SetLocalPositionAndRotation(new Vector3(HintArrowOffsetMeters, HintArrowLiftMeters, 0f),
+                Quaternion.Euler(0f, -90f, 0f));
+            NeighborhoodSliderHint hint = hintObject.AddComponent<NeighborhoodSliderHint>();
+            hint.Configure(arrows);
+            hintObject.SetActive(false);
+            return hint;
+        }
+
+        /// <summary>
         /// The lock-in button on the slider's line, right of its end: in the table's right corner, or on a stand beside the
-        /// table. A slate collar, the cap a press pushes down rising out of it, a ring of segments on the collar around the
-        /// cap that lights up while the button is held, and its own sounds; low-poly meshes in the table's palette, shaded
-        /// with the table's own material. The table's top, track and end glyphs are measured from the model.
+        /// table. A slate collar, the cap a press pushes down rising out of it with a check mark on top, a ring of segments
+        /// on the collar around the cap that lights up while the button is held, the countdown above it, and its own sounds;
+        /// low-poly meshes in the table's palette. The table's top, track and end glyphs are measured from the model.
         /// </summary>
         private static NeighborhoodLockButton AddLockButton(string root, Transform table, NeighborhoodSlider slider,
-            NeighborhoodHandBones handBones, NeighborhoodPushSettings settings, NeighborhoodLockButtonPlacement placement)
+            NeighborhoodHandBones handBones, NeighborhoodPushSettings settings, NeighborhoodLockButtonPlacement placement,
+            Transform head, Material highlight, Material props)
         {
             if (!TryGetBounds(table, NeighborhoodBuildUtility.FindDeep(table, TablePartName), out Bounds tableBounds)
                 || !TryGetBounds(table, NeighborhoodBuildUtility.FindDeep(table, TrackPartName), out Bounds trackBounds))
@@ -248,8 +349,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 return null;
             }
 
-            Material material = NeighborhoodAssetUtility.LoadPropsMaterial(root);
-            if (material == null)
+            if (props == null)
             {
                 Debug.LogError("[Neighborhood] Street_Mat_Props is missing, so the lock-in button has no material: build the "
                     + "Neighborhood scene once first.");
@@ -273,8 +373,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
             float lineZ = table.InverseTransformPoint(slider.transform.position).z;
             float surfaceY = tableBounds.max.y;
-            string folder = NeighborhoodAssetUtility.EnsureFolder(
-                NeighborhoodAssetUtility.EnsureFolder(root, NeighborhoodAssetUtility.ModelsFolder), GeneratedFolder);
+            string folder = GetGeneratedFolder(root);
+            TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(SemiBoldFontPath);
             float collarRadius;
             float travel;
             Vector3 center;
@@ -283,8 +383,13 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 collarRadius = StandCollarRadiusMeters;
                 travel = StandTravelMeters;
                 center = new Vector3(tableBounds.max.x + StandGapMeters + StandTopHalfWidthMeters, surfaceY, lineZ);
-                AddStand(folder, table, new Vector3(center.x, tableBounds.min.y, lineZ), surfaceY - tableBounds.min.y,
-                    material);
+
+                // Turned to face the seat, the stand's square top reaches further across: it moves out by as much
+                float yawRadians = FaceSeat(table, head, center, lineZ).eulerAngles.y * Mathf.Deg2Rad;
+                float reachMeters = StandTopHalfWidthMeters * (Mathf.Abs(Mathf.Cos(yawRadians)) + Mathf.Abs(Mathf.Sin(yawRadians)));
+                center.x = tableBounds.max.x + StandGapMeters + reachMeters;
+                AddStand(folder, table, new Vector3(center.x, tableBounds.min.y, lineZ), FaceSeat(table, head, center, lineZ),
+                    surfaceY - tableBounds.min.y, props, font);
             }
             else
             {
@@ -308,7 +413,9 @@ namespace DroneDDW.Neighborhood.Editor.Building
             Transform button = buttonObject.transform;
             button.SetParent(table, false);
             button.localPosition = center;
-            button.localRotation = Quaternion.identity;
+
+            // Facing the seat, so the check mark reads upright and the ring fills clockwise from the far side
+            button.localRotation = FaceSeat(table, head, center, lineZ);
 
             float capRadius = collarRadius - CapInsetMeters;
             float pressedTop = CollarHeightMeters + CapAboveCollarMeters;
@@ -324,9 +431,10 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 360f / RingSegmentCount - RingSegmentGapDegrees, RingSegmentSteps, CollarHeightMeters + RingLiftMeters,
                 NeighborhoodLowPolyMeshes.White), $"{meshPrefix}_RingSegment.asset");
 
-            CreatePart("Collar", button, collarMesh, material);
-            MeshRenderer capRenderer = CreatePart("Cap", button, capMesh, material);
+            CreatePart("Collar", button, collarMesh, props);
+            MeshRenderer capRenderer = CreatePart("Cap", button, capMesh, highlight);
             capRenderer.transform.localPosition = new Vector3(0f, pressedTop + travel, 0f);
+            AddCheckMark(capRenderer.transform, capRadius, meshPrefix, props);
 
             // Lit clockwise as seen from the seat, from the side furthest away
             Transform ring = new GameObject("Ring").transform;
@@ -334,32 +442,79 @@ namespace DroneDDW.Neighborhood.Editor.Building
             Renderer[] segments = new Renderer[RingSegmentCount];
             for (int segment = 0; segment < RingSegmentCount; segment++)
             {
-                MeshRenderer segmentRenderer = CreatePart($"Segment {segment + 1:00}", ring, segmentMesh, material);
+                MeshRenderer segmentRenderer = CreatePart($"Segment {segment + 1:00}", ring, segmentMesh, highlight);
                 segmentRenderer.transform.localRotation = Quaternion.Euler(0f, (segment + 0.5f) * 360f / RingSegmentCount, 0f);
                 segmentRenderer.shadowCastingMode = ShadowCastingMode.Off;
                 segments[segment] = segmentRenderer;
             }
 
-            AudioSource audio = buttonObject.AddComponent<AudioSource>();
-            audio.playOnAwake = false;
-            audio.spatialBlend = 1f;
-            audio.dopplerLevel = 0f;
-            audio.minDistance = ButtonSoundMinDistance;
-            audio.maxDistance = ButtonSoundMaxDistance;
+            TextMeshPro countdown = CreateText("Countdown", button, font, string.Empty,
+                new Vector2(CountdownBoxMeters, CountdownBoxMeters), CountdownMaxFontSize);
+            countdown.transform.localPosition = Vector3.up * (pressedTop + travel + CountdownLiftMeters);
+            countdown.color = CountdownColor;
 
             NeighborhoodLockButton lockButton = buttonObject.AddComponent<NeighborhoodLockButton>();
-            lockButton.Configure(slider, handBones, settings, capRenderer.transform, capRenderer, segments, audio,
-                AssetDatabase.LoadAssetAtPath<AudioClip>(TouchClipPath), AssetDatabase.LoadAssetAtPath<AudioClip>(PressClipPath),
-                AssetDatabase.LoadAssetAtPath<AudioClip>(ReleaseClipPath), AssetDatabase.LoadAssetAtPath<AudioClip>(LockInClipPath));
+            lockButton.Configure(slider, handBones, settings, capRenderer.transform, capRenderer, segments, countdown,
+                CreateAudioSource(buttonObject));
+            AudioClip[] countdownClips = new AudioClip[CountdownClipPaths.Length];
+            for (int clip = 0; clip < countdownClips.Length; clip++)
+            {
+                countdownClips[clip] = AssetDatabase.LoadAssetAtPath<AudioClip>(CountdownClipPaths[clip]);
+            }
+
+            lockButton.ConfigureSounds(AssetDatabase.LoadAssetAtPath<AudioClip>(TouchClipPath),
+                AssetDatabase.LoadAssetAtPath<AudioClip>(PressClipPath), AssetDatabase.LoadAssetAtPath<AudioClip>(ReleaseClipPath),
+                AssetDatabase.LoadAssetAtPath<AudioClip>(LockInClipPath), countdownClips);
             lockButton.ConfigureShape(capRadius, pressedTop, travel);
             return lockButton;
         }
 
         /// <summary>
-        /// A stand for the button in the table's style: one leg as thick as the table's and a top as thick as the table's,
-        /// wood with a cream top, from the floor up to the table's height.
+        /// A turn about the vertical whose back (-Z) faces the seat, where the rig's head is; straight along the table
+        /// when there is no head.
         /// </summary>
-        private static void AddStand(string folder, Transform table, Vector3 footCenter, float heightMeters, Material material)
+        private static Quaternion FaceSeat(Transform table, Transform head, Vector3 position, float lineZ)
+        {
+            Vector3 seat = head != null ? table.InverseTransformPoint(head.position) : new Vector3(position.x, 0f, lineZ - 1f);
+            Vector3 toSeat = Vector3.ProjectOnPlane(seat - position, Vector3.up);
+            return toSeat.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(-toSeat) : Quaternion.identity;
+        }
+
+        /// <summary>A slate check mark lying on the cap's top, readable from the seat: two flat strokes.</summary>
+        private static void AddCheckMark(Transform cap, float capRadius, string meshPrefix, Material material)
+        {
+            (string Name, Vector2 From, Vector2 To)[] strokes =
+            {
+                ("Check Short", CheckStart, CheckCorner),
+                ("Check Long", CheckCorner, CheckEnd),
+            };
+            float halfWidth = CheckStrokeWidth * capRadius * 0.5f;
+            foreach ((string name, Vector2 from, Vector2 to) in strokes)
+            {
+                Vector3 start = new Vector3(from.x, 0f, from.y) * capRadius;
+                Vector3 end = new Vector3(to.x, 0f, to.y) * capRadius;
+
+                // Each stroke runs a little past its ends so the two meet in a closed corner
+                float halfLength = Vector3.Distance(start, end) * 0.5f + halfWidth;
+                (Vector3 Min, Vector3 Max)[] box =
+                {
+                    (new Vector3(-halfWidth, 0f, -halfLength), new Vector3(halfWidth, CheckHeightMeters, halfLength)),
+                };
+                Mesh mesh = NeighborhoodLowPolyMeshes.Save(NeighborhoodLowPolyMeshes.CreateBoxes(name, box,
+                    NeighborhoodLowPolyMeshes.Slate, NeighborhoodLowPolyMeshes.Slate),
+                    $"{meshPrefix}_{name.Replace(" ", string.Empty)}.asset");
+                MeshRenderer stroke = CreatePart(name, cap, mesh, material);
+                stroke.transform.SetLocalPositionAndRotation((start + end) * 0.5f, Quaternion.LookRotation(end - start));
+                stroke.shadowCastingMode = ShadowCastingMode.Off;
+            }
+        }
+
+        /// <summary>
+        /// A stand for the button in the table's style: one leg as thick as the table's and a top as thick as the table's,
+        /// wood with a cream top, from the floor up to the table's height, with "Hold to confirm" on its front edge.
+        /// </summary>
+        private static void AddStand(string folder, Transform table, Vector3 footCenter, Quaternion facing,
+            float heightMeters, Material material, TMP_FontAsset font)
         {
             float legHalf = StandLegWidthMeters * 0.5f;
             float topBottom = heightMeters - StandTopThicknessMeters;
@@ -373,7 +528,52 @@ namespace DroneDDW.Neighborhood.Editor.Building
             Mesh mesh = NeighborhoodLowPolyMeshes.Save(NeighborhoodLowPolyMeshes.CreateBoxes("Stand", boxes,
                 NeighborhoodLowPolyMeshes.Wood, NeighborhoodLowPolyMeshes.Cream), $"{folder}/{ButtonMeshPrefix}_Stand.asset");
             MeshRenderer stand = CreatePart("Lock Button Stand", table, mesh, material);
-            stand.transform.localPosition = footCenter;
+            stand.transform.SetLocalPositionAndRotation(footCenter, facing);
+
+            TextMeshPro label = CreateText("Hold Label", stand.transform, font, HoldLabelText,
+                new Vector2(StandTopHalfWidthMeters * 1.8f, HoldLabelHeightMeters), HoldLabelMaxFontSize);
+            label.transform.localPosition = new Vector3(0f, heightMeters - StandTopThicknessMeters * 0.5f,
+                -StandTopHalfWidthMeters - 0.0005f);
+            label.color = HoldLabelColor;
+        }
+
+        /// <summary>World-space text in a box, as big as fits it (up to the given size), centred.</summary>
+        private static TextMeshPro CreateText(string name, Transform parent, TMP_FontAsset font, string text, Vector2 size,
+            float maxFontSize)
+        {
+            GameObject textObject = new GameObject(name, typeof(RectTransform));
+            textObject.transform.SetParent(parent, false);
+            TextMeshPro textMesh = textObject.AddComponent<TextMeshPro>();
+            textMesh.rectTransform.sizeDelta = size;
+            if (font != null)
+            {
+                textMesh.font = font;
+            }
+
+            textMesh.text = text;
+            textMesh.alignment = TextAlignmentOptions.Center;
+            textMesh.textWrappingMode = TextWrappingModes.NoWrap;
+            textMesh.enableAutoSizing = true;
+            textMesh.fontSizeMin = 0.01f;
+            textMesh.fontSizeMax = maxFontSize;
+            return textMesh;
+        }
+
+        private static AudioSource CreateAudioSource(GameObject host)
+        {
+            AudioSource audio = host.AddComponent<AudioSource>();
+            audio.playOnAwake = false;
+            audio.spatialBlend = 1f;
+            audio.dopplerLevel = 0f;
+            audio.minDistance = ButtonSoundMinDistance;
+            audio.maxDistance = ButtonSoundMaxDistance;
+            return audio;
+        }
+
+        private static string GetGeneratedFolder(string root)
+        {
+            return NeighborhoodAssetUtility.EnsureFolder(
+                NeighborhoodAssetUtility.EnsureFolder(root, NeighborhoodAssetUtility.ModelsFolder), GeneratedFolder);
         }
 
         /// <summary>A part of the button: the mesh, drawn with the material, no collider (the hands are tested in code).</summary>
