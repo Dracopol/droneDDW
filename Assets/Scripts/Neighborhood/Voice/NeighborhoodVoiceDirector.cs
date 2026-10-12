@@ -60,6 +60,8 @@ namespace DroneDDW.Neighborhood.Voice
         private int _sequenceId;
         private NeighborhoodVoiceLine _currentLine;
         private bool _isChangePending;
+        private bool _isHeld;
+        private bool _isReactionWaiting;
 
         #endregion
 
@@ -121,6 +123,7 @@ namespace DroneDDW.Neighborhood.Voice
         private void HandleVersionChange(NeighborhoodVersionChange change)
         {
             _isChangePending = !change.IsImmediate;
+            _isReactionWaiting = false;
             if (_isChangePending)
             {
                 Stop();
@@ -135,15 +138,45 @@ namespace DroneDDW.Neighborhood.Voice
             }
 
             _isChangePending = false;
-            if (_reactToChanges)
+            if (!_reactToChanges)
             {
-                StartSequence(ToArray(GetReactionIds(version, _stage)), _reactionDelay);
+                return;
             }
+
+            if (_isHeld)
+            {
+                _isReactionWaiting = true;
+                return;
+            }
+
+            StartSequence(ToArray(GetReactionIds(version, _stage)), _reactionDelay);
         }
 
         #endregion
 
         #region Public
+
+        /// <summary>
+        /// While the participant still moves the slider the street follows it, but the people wait: reactions to a
+        /// version the street reaches meanwhile are kept until <see cref="ReleaseReactions"/>.
+        /// </summary>
+        public void HoldReactions()
+        {
+            _isHeld = true;
+        }
+
+        /// <summary>The slider was let go: the people react to where the street is (now, or once it gets there).</summary>
+        public void ReleaseReactions()
+        {
+            _isHeld = false;
+            if (!_isReactionWaiting || _controller == null || _controller.IsTransitioning)
+            {
+                return;
+            }
+
+            _isReactionWaiting = false;
+            StartSequence(ToArray(GetReactionIds(_controller.CurrentVersion, _stage)), _reactionDelay);
+        }
 
         /// <summary>Plays one line (cutting off anything playing).</summary>
         public void PlayLine(string lineId)

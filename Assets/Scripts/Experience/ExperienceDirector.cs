@@ -16,9 +16,9 @@ namespace DroneDDW.Experience
 	//    recentres the scene in front of them (Reset player location)
 	// 3. Welcome: the orb appears and speaks
 	// 4. Hand check: line both hands up with the ghost hands
-	// 5. Practice choice: the table appears; moving the slider changes the orb; holding the button locks it in (not
-	//    recorded)
-	// 6. Characters: the three cards appear and each says their line in turn
+	// 5. Practice choice: the table appears; moving the slider changes the orb; the orb drifts above the lock-in button,
+	//    holding it locks the choice in (not recorded), and the orb drifts back
+	// 6. Characters: the three cards appear and each says their line in turn, the orb waiting to their left
 	// 7. Into the Neighborhood, behind a fade; the orb comes along
 	// 8. The real choice: the slider changes the street; holding the button locks it in and records it (Id, Group,
 	//    Form choice, Date, Time in Sessions.csv, through Session Control)
@@ -51,6 +51,9 @@ namespace DroneDDW.Experience
 
 		[Tooltip("Where it waits while the characters speak, out of the way of the cards")]
 		[SerializeField] private Transform _orbCharactersSpot;
+
+		[Tooltip("Where it floats during the practice choice: above the lock-in button, on the right")]
+		[SerializeField] private Transform _orbButtonSpot;
 
 		[Min(0.1f)]
 		[SerializeField] private float _orbDriftSeconds = 1.5f;
@@ -141,13 +144,14 @@ namespace DroneDDW.Experience
 		}
 
 		internal void ConfigureNarrator(NarratorOrbController orb, ExperienceProp orbProp, Transform orbHome,
-			Transform orbNeighborhoodSpot, Transform orbCharactersSpot)
+			Transform orbNeighborhoodSpot, Transform orbCharactersSpot, Transform orbButtonSpot)
 		{
 			_orb = orb;
 			_orbProp = orbProp;
 			_orbHome = orbHome;
 			_orbNeighborhoodSpot = orbNeighborhoodSpot;
 			_orbCharactersSpot = orbCharactersSpot;
+			_orbButtonSpot = orbButtonSpot;
 		}
 
 		internal void ConfigureSteps(HandAlignmentCondition handCheck, PracticeChoice practice, ExperienceProp cardsProp,
@@ -260,12 +264,17 @@ namespace DroneDDW.Experience
 		{
 			SetPhase(ExperiencePhase.PracticeChoice);
 			_practice.Show();
+
 			await RunGuidedStepAsync("Move the slider", _practice.WaitForSliderMovedAsync, null, _settings.Slider,
 				cancellationToken);
+
+			// The orb shows the way to the button while it explains it, and comes back once the practice is locked in
+			await DriftOrbAsync(_orbButtonSpot, cancellationToken);
 			SetPracticeLockOpen(true);
 			await RunGuidedStepAsync("Lock in the practice choice", _practice.WaitForLockInAsync, null,
 				_settings.PracticeLockIn, cancellationToken);
 			SetPracticeLockOpen(false);
+			await DriftOrbAsync(_orbHome, cancellationToken);
 		}
 
 		private async UniTask CharactersAsync(CancellationToken cancellationToken)
@@ -541,14 +550,19 @@ namespace DroneDDW.Experience
 				: OrbDriftUtil.DriftAsync(_orb, spot.position, _orbDriftSeconds, cancellationToken);
 		}
 
+		// In the Neighborhood the orb isn't seen: its lines play as a stereo voice-over
 		private void MoveOrbToNeighborhood()
 		{
 			_orb.MoveTo(_orbNeighborhoodSpot.position);
+			_orb.SetVisible(false);
+			_orb.SetSpatial(false);
 		}
 
 		private void MoveOrbHome()
 		{
 			_orb.MoveTo(_orbHome.position);
+			_orb.SetVisible(true);
+			_orb.SetSpatial(true);
 		}
 
 		private void SetPhase(ExperiencePhase phase)

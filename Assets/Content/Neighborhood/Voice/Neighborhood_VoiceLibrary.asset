@@ -22,7 +22,7 @@ MonoBehaviour:
     _trigger: Introduction
     _text: I come to the pond every evening to feed my ducks. I hope it stays just
       like this.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: fe8ca3c9ec3b8811d7cfc2b73ffce21b, type: 3}
   - _id: GRA_02
     _character: 0
     _emotion: 0
@@ -111,7 +111,7 @@ MonoBehaviour:
     _trigger: Introduction
     _text: That lamp post by the path has been dark for a week. I'm waiting on a
       part.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: 7a6b0551a14c43b66af955883949572f, type: 3}
   - _id: WOR_02
     _character: 1
     _emotion: 2
@@ -167,7 +167,7 @@ MonoBehaviour:
     _stage: 0
     _trigger: Introduction
     _text: I walk her here every day. Honestly, this park could use a bit of an upgrade.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: 5cf76883082c6505d1f8ea5cfa344d16, type: 3}
   - _id: STU_02
     _character: 2
     _emotion: 0

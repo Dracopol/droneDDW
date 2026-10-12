@@ -103,7 +103,8 @@ part of a hand pushes, the finger grab takes over when the fingers close; the ve
 touched or held the handle for 0.3 s), `NeighborhoodHandBones` (bones read from the XR hand subsystem). Push
 radii, margin, push box padding and the grab box live in
 `Content/Neighborhood/Data/Neighborhood Push Settings.asset` (created once, never overwritten; saved when Play
-mode ends). While dragging, the miniature previews the detent's version; on commit the street changes.
+mode ends). As the handle passes each notch, the miniature and the street change to that version together; the people hold their
+reactions until the slider is let go (commit), then react to where the street is.
 
 ## The lock-in button
 

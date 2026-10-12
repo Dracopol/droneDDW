@@ -246,6 +246,28 @@ namespace DroneDDW.NarratorOrb
 			_voice.Stop();
 		}
 
+		// Shows or hides the orb without stopping it: it keeps speaking (and reacting) while unseen
+		public void SetVisible(bool isVisible)
+		{
+			foreach (MeshRenderer part in new[] { _particles, _halos, _innerGlow, _rippleRings })
+			{
+				if (part != null)
+				{
+					part.enabled = isVisible;
+				}
+			}
+		}
+
+		// Spatial: the voice comes from where the orb floats. Otherwise it plays as plain stereo, like a narrator's
+		// voice-over, so an unseen orb isn't heard from a spot in the room
+		public void SetSpatial(bool isSpatial)
+		{
+			if (_voice != null)
+			{
+				_voice.spatialBlend = isSpatial ? 1f : 0f;
+			}
+		}
+
 		// Moves the orb and turns it straight to whoever it faces, without the usual eased turn
 		public void MoveTo(Vector3 position)
 		{

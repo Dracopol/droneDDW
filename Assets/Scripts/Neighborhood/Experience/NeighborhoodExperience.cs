@@ -10,8 +10,8 @@ namespace DroneDDW.Neighborhood.Experience
 {
     /// <summary>
     /// Wires the pieces together through their events:
-    /// slider dragged over a notch, the table miniature previews that version;
-    /// slider released, the street moves to that version;
+    /// slider dragged over a notch, the table miniature and the street move to that version (the people hold their
+    /// reactions until the slider is let go);
     /// street version changed (from the slider, keys or code), miniature, slider and ambience follow;
     /// someone speaks, the ambience dips so the line is easy to hear;
     /// the lock-in button locks the choice in: the slider stays put and OnLockIn tells the experience, which records it.
@@ -155,11 +155,24 @@ namespace DroneDDW.Neighborhood.Experience
 
         #region Event handlers
 
+        // The street follows the slider as it passes each notch, together with the miniature; the people keep their
+        // reactions until it is let go
         private void HandleDetentChange(int detent)
         {
+            NeighborhoodVersion version = NeighborhoodVersions.Clamp(detent);
             if (_preview != null)
             {
-                _preview.ShowVersion(NeighborhoodVersions.Clamp(detent));
+                _preview.ShowVersion(version);
+            }
+
+            if (_voice != null)
+            {
+                _voice.HoldReactions();
+            }
+
+            if (_controller != null)
+            {
+                _controller.RequestVersion(version);
             }
         }
 
@@ -168,6 +181,11 @@ namespace DroneDDW.Neighborhood.Experience
             if (_controller != null)
             {
                 _controller.RequestVersion(NeighborhoodVersions.Clamp(detent));
+            }
+
+            if (_voice != null)
+            {
+                _voice.ReleaseReactions();
             }
         }
 
