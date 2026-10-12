@@ -12,7 +12,8 @@ namespace DroneDDW.Experience
 	// Runs a participant's session, one awaited part after another (logged as [Experience]):
 	// 1. Check-in: waits for the admin menu's Start session
 	// 2. Handover: shows the admin "Give the headset to participant 104" and waits for the headset to come off and go
-	//    back on (or A), lets the participant settle, and recentres the scene in front of them (Reset player location)
+	//    back on (or A); then asks the participant to adjust the headset and waits until the admin holds A / X, and
+	//    recentres the scene in front of them (Reset player location)
 	// 3. Welcome: the orb appears and speaks
 	// 4. Hand check: line both hands up with the ghost hands
 	// 5. Practice choice: the table appears; moving the slider changes the orb; holding the button locks it in (not
@@ -226,12 +227,15 @@ namespace DroneDDW.Experience
 			_notice.Hide();
 		}
 
-		// A moment for the participant to settle, then the scene recentres in front of them
+		// People adjust the headset before they are ready, so the admin starts when they are; the scene then recentres in
+		// front of them as they now sit (Reset player location)
 		private async UniTask SettleAsync(CancellationToken cancellationToken)
 		{
 			if (!IsFastForward)
 			{
-				await SkippableAsync(SettleDelayAsync, cancellationToken);
+				_notice.Show(_settings.ReadyText);
+				await SkippableAsync(WaitForStartAsync, cancellationToken);
+				_notice.Hide();
 			}
 
 			_session.ResetPlayerLocation();
@@ -494,10 +498,9 @@ namespace DroneDDW.Experience
 					cancellationToken: cancellationToken);
 		}
 
-		private UniTask SettleDelayAsync(CancellationToken cancellationToken)
+		private UniTask WaitForStartAsync(CancellationToken cancellationToken)
 		{
-			return UniTask.Delay(TimeSpan.FromSeconds(_settings.HandoverSettleSeconds), DelayType.Realtime,
-				cancellationToken: cancellationToken);
+			return _presence.WaitForStartHoldAsync(_settings.StartHoldSeconds, cancellationToken);
 		}
 
 		private async UniTask WaitForNeighborhoodLockInAsync(CancellationToken cancellationToken)

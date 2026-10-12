@@ -1,5 +1,6 @@
 using System;
 using DroneDDW.Neighborhood.Audio;
+using DroneDDW.Neighborhood.Characters;
 using DroneDDW.Neighborhood.Table;
 using DroneDDW.Neighborhood.Versions;
 using DroneDDW.Neighborhood.Voice;
@@ -46,6 +47,9 @@ namespace DroneDDW.Neighborhood.Experience
 
         [SerializeField, Tooltip("The hands the slider and the button read. Optional.")]
         private NeighborhoodHandBones _handBones;
+
+        [SerializeField, Tooltip("The people's turn toward the viewer while they speak; they look at the attached rig's head.")]
+        private NeighborhoodCharacterLook[] _looks = Array.Empty<NeighborhoodCharacterLook>();
 
 #if NEIGHBORHOOD_XRI
         [SerializeField, Tooltip("Moves the slider with the hands. Optional.")]
@@ -239,6 +243,14 @@ namespace DroneDDW.Neighborhood.Experience
             {
                 _handBones.SetTrackingSpace(trackingSpace);
             }
+
+            foreach (NeighborhoodCharacterLook look in _looks)
+            {
+                if (look != null)
+                {
+                    look.SetTarget(head);
+                }
+            }
         }
 
         /// <summary>Whether the hands can move the slider (off once locked in, and while the session is paused).</summary>
@@ -273,6 +285,11 @@ namespace DroneDDW.Neighborhood.Experience
             _preview = preview;
             _ambience = ambience;
             _voice = voice;
+        }
+
+        internal void ConfigureCharacters(NeighborhoodCharacterLook[] looks)
+        {
+            _looks = looks ?? Array.Empty<NeighborhoodCharacterLook>();
         }
 
         internal void ConfigureTable(NeighborhoodLockButton lockButton, NeighborhoodHandBones handBones,

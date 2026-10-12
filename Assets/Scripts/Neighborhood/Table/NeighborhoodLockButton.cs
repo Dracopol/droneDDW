@@ -12,8 +12,8 @@ namespace DroneDDW.Neighborhood.Table
 	/// press only counts while the button is armed (available, and the slider resting on a notch without a hand on it), so
 	/// reaching for the slider can't lock in by accident; letting go early empties the ring again. The cap only moves while
 	/// the button is available, and once locked it stays down and green until <see cref="ResetLock"/>.
-	/// To be noticed by people new to VR, the armed button breathes a soft glow, brightens when a finger comes close, and
-	/// a flash runs around the ring when it locks in. Pushed by the slider's hand bones
+	/// The cap is grey while it can't be pressed and a steady green while it can (and once locked); a flash runs around
+	/// the ring when it locks in. Pushed by the slider's hand bones
 	/// (<see cref="NeighborhoodHandBones"/>), timed by the shared push settings, on scaled time, so a paused session holds
 	/// it still.
 	/// </summary>
@@ -77,11 +77,11 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Tooltip("While the button can't be used.")]
 		private Color _unavailableColor = new Color(0.29f, 0.31f, 0.34f);
 
-		[SerializeField, Tooltip("Usable, but the slider is still moving.")]
-		private Color _waitingColor = new Color(0.64f, 0.62f, 0.58f);
+		[SerializeField, Tooltip("Usable, but the slider is still moving or a hand is on it: it can't be pressed yet.")]
+		private Color _waitingColor = new Color(0.29f, 0.31f, 0.34f);
 
 		[SerializeField, Tooltip("Ready to be pressed: the slider rests on a notch.")]
-		private Color _armedColor = new Color(0.95f, 0.76f, 0.19f);
+		private Color _armedColor = new Color(0.27f, 0.94f, 0.54f);
 
 		[SerializeField] private Color _lockedColor = new Color(0.27f, 0.94f, 0.54f);
 
@@ -95,11 +95,11 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Min(0.05f), Tooltip("How fast the armed button breathes, in breaths per second.")]
 		private float _readyPulseHertz = 0.6f;
 
-		[SerializeField, Min(0f), Tooltip("How brightly the armed button glows at the top of a breath.")]
-		private float _readyPulseGlow = 0.5f;
+		[SerializeField, Min(0f), Tooltip("How brightly the armed button glows at the top of a breath. 0: a steady colour.")]
+		private float _readyPulseGlow;
 
-		[SerializeField, Min(0f), Tooltip("How brightly the cap glows while a finger is close above it.")]
-		private float _hoverGlow = 0.45f;
+		[SerializeField, Min(0f), Tooltip("How brightly the cap glows while a finger is close above it. 0: no change.")]
+		private float _hoverGlow;
 
 		[SerializeField, Min(0f), Tooltip("How far above the cap's top a finger counts as close.")]
 		private float _hoverRangeMeters = 0.06f;

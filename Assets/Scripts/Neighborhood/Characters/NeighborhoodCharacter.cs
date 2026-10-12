@@ -17,6 +17,16 @@ namespace DroneDDW.Neighborhood.Characters
     [AddComponentMenu("DroneDDW/Neighborhood/Neighborhood Character")]
     public sealed class NeighborhoodCharacter : MonoBehaviour
     {
+        #region Events
+
+        /// <summary>A line starts (also when a new line takes over from one still being spoken).</summary>
+        public event Action OnSpeechStart;
+
+        /// <summary>The person stopped speaking: the line ended or was cut off.</summary>
+        public event Action OnSpeechEnd;
+
+        #endregion
+
         #region Serialized fields
 
         [SerializeField] private NeighborhoodCharacterId _id;
@@ -178,6 +188,7 @@ namespace DroneDDW.Neighborhood.Characters
                 _face.SetEmotion(emotion);
             }
 
+            OnSpeechStart?.Invoke();
             if (_hasClip)
             {
                 _voice.Stop();
@@ -336,6 +347,7 @@ namespace DroneDDW.Neighborhood.Characters
 
         private void EndSpeech()
         {
+            bool wasSpeaking = _isSpeaking;
             _isSpeaking = false;
             if (_hasClip && _voice != null && _voice.isPlaying)
             {
@@ -343,13 +355,16 @@ namespace DroneDDW.Neighborhood.Characters
             }
 
             _hasClip = false;
-            if (_face == null)
+            if (_face != null)
             {
-                return;
+                _face.SetMouthOpen(false);
+                _face.SetEmotion(_restingEmotion);
             }
 
-            _face.SetMouthOpen(false);
-            _face.SetEmotion(_restingEmotion);
+            if (wasSpeaking)
+            {
+                OnSpeechEnd?.Invoke();
+            }
         }
 
         #endregion

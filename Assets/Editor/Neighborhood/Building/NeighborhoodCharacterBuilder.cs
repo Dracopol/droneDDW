@@ -20,6 +20,11 @@ namespace DroneDDW.Neighborhood.Editor.Building
         #region Fields
 
         private const string HeadBone = "Head";
+        private const string NeckBone = "Neck";
+        private const string SpineBone = "Spine1";
+        private const string BodyMesh = "Body";
+        private const float SpeakerPoolHeight = 0.075f;
+        private const float SpeakerPoolRadius = 1.2f;
         private const string PreviewClipPrefix = "__preview__";
         private const float LeashWidth = 0.014f;
         private const int LeashPoints = 10;
@@ -68,6 +73,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 AudioSource voice = BuildVoice(instance, entry);
                 NeighborhoodCharacter character = instance.AddComponent<NeighborhoodCharacter>();
                 character.Configure((NeighborhoodCharacterId)entry.Id, animator, face, voice, controller, ToPoses(entry));
+                BuildLook(instance, character, entry.Name);
+                BuildSpeakerLight(instance, character, materials.SpeakerPool);
                 AttachProps(instance, entry, clips, layout, elementNodes, materials.Leash);
 
                 // Leave the scene showing the start pose and face.
@@ -191,6 +198,70 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
             Debug.LogWarning($"[Neighborhood] {characterName} has no face part {part}.");
             return null;
+        }
+
+        /// <summary>The turn toward the viewer while speaking, on the upper spine, neck and head.</summary>
+        private static void BuildLook(GameObject instance, NeighborhoodCharacter character, string characterName)
+        {
+            Transform head = NeighborhoodBuildUtility.FindDeep(instance.transform, HeadBone);
+            if (head == null)
+            {
+                Debug.LogWarning($"[Neighborhood] {characterName} has no {HeadBone} bone; they won't turn to the viewer.");
+                return;
+            }
+
+            NeighborhoodCharacterLook look = instance.AddComponent<NeighborhoodCharacterLook>();
+            look.Configure(character, NeighborhoodBuildUtility.FindDeep(instance.transform, SpineBone),
+                NeighborhoodBuildUtility.FindDeep(instance.transform, NeckBone), head,
+                MeasureFaceForward(instance, characterName, head));
+        }
+
+        /// <summary>
+        /// Where the face points in the head bone's own axes. In the bind pose the person faces the model's forward,
+        /// so that direction is read from the body mesh's bind pose of the head. Falls back to the current pose.
+        /// </summary>
+        private static Vector3 MeasureFaceForward(GameObject instance, string characterName, Transform head)
+        {
+            Transform bodyNode = NeighborhoodBuildUtility.FindDeep(instance.transform, $"{characterName}_{BodyMesh}");
+            if (bodyNode != null && bodyNode.TryGetComponent(out SkinnedMeshRenderer body) && body.sharedMesh != null)
+            {
+                int index = System.Array.IndexOf(body.bones, head);
+                Matrix4x4[] bindposes = body.sharedMesh.bindposes;
+                if (index >= 0 && index < bindposes.Length)
+                {
+                    Quaternion headAtBind = (body.transform.localToWorldMatrix * bindposes[index].inverse).rotation;
+                    return Quaternion.Inverse(headAtBind) * instance.transform.forward;
+                }
+            }
+
+            Debug.LogWarning($"[Neighborhood] No bind pose for {characterName}'s head; the face direction comes from the current pose.");
+            return Quaternion.Inverse(head.rotation) * instance.transform.forward;
+        }
+
+        /// <summary>A light pool at the person's feet that shows while they speak (dark and switched off until then).</summary>
+        private static void BuildSpeakerLight(GameObject instance, NeighborhoodCharacter character, Material material)
+        {
+            Mesh quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+            if (material == null || quad == null)
+            {
+                Debug.LogWarning("[Neighborhood] No speaker light pool material; the light under whoever speaks is skipped.");
+                return;
+            }
+
+            GameObject poolObject = new GameObject("Speaker Light");
+            poolObject.transform.SetParent(instance.transform, false);
+            poolObject.transform.localPosition = new Vector3(0f, SpeakerPoolHeight, 0f);
+            poolObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            poolObject.transform.localScale = new Vector3(SpeakerPoolRadius * 2f, SpeakerPoolRadius * 2f, 1f);
+            poolObject.AddComponent<MeshFilter>().sharedMesh = quad;
+            MeshRenderer renderer = poolObject.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            renderer.enabled = false;
+            instance.AddComponent<NeighborhoodSpeakerLight>().Configure(character, renderer);
         }
 
         private static AudioSource BuildVoice(GameObject instance, NeighborhoodLayoutCharacter entry)

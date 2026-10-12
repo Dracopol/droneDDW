@@ -14,6 +14,9 @@ namespace DroneDDW.Neighborhood.Editor.Building
         /// <summary>Light pool material per light kind (Warm, Led).</summary>
         public Dictionary<string, Material> LightPools { get; } = new Dictionary<string, Material>();
 
+        /// <summary>The pool under whoever speaks (its colour is set per person while they talk).</summary>
+        public Material SpeakerPool { get; set; }
+
         public Material Leash { get; set; }
         public Material Skybox { get; set; }
 

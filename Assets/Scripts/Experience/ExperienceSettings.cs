@@ -54,9 +54,10 @@ namespace DroneDDW.Experience
 		[SerializeField] private float _hintRepeatSeconds = 15f;
 
 		[Header("Timing")]
-		[Tooltip("After the participant puts the headset on, before the scene recentres and the intro starts")]
-		[Min(0f)]
-		[SerializeField] private float _handoverSettleSeconds = 2f;
+		[Tooltip("How long the admin holds A / X (Space in the Editor) to start, once the participant has the headset on "
+			+ "and has adjusted it; the scene then recentres and the intro starts")]
+		[Min(0.1f)]
+		[SerializeField] private float _startHoldSeconds = 1f;
 
 		[Tooltip("Between two lines in a row")]
 		[Min(0f)]
@@ -73,6 +74,10 @@ namespace DroneDDW.Experience
 		[Header("Texts in the headset")]
 		[Tooltip("For the admin after Start session; {0} is the participant number")]
 		[SerializeField] private string _handoverText = "Give the headset to participant {0}";
+
+		[Tooltip("For the participant once the headset is on, until the admin starts")]
+		[SerializeField] private string _readyText =
+			"Adjust the headset until it sits comfortably and the view is sharp.\nWe'll start in a moment.";
 
 		[Tooltip("For the participant at the end")]
 		[SerializeField] private string _goodbyeText = "Thank you! You can take off the headset now.";
@@ -96,10 +101,11 @@ namespace DroneDDW.Experience
 		public AudioClip Goodbye => _goodbye;
 		public float FirstHintDelaySeconds => _firstHintDelaySeconds;
 		public float HintRepeatSeconds => _hintRepeatSeconds;
-		public float HandoverSettleSeconds => _handoverSettleSeconds;
+		public float StartHoldSeconds => _startHoldSeconds;
 		public float PauseBetweenLinesSeconds => _pauseBetweenLinesSeconds;
 		public float FadeSeconds => _fadeSeconds;
 		public float BlackHoldSeconds => _blackHoldSeconds;
+		public string ReadyText => _readyText;
 		public string GoodbyeText => _goodbyeText;
 
 		#endregion

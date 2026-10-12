@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48ee77eda4fd4354fab394e35851731c, type: 3}
+  m_Name: Neighborhood Staging
+  m_EditorClassIdentifier: DroneDDW.Neighborhood.Editor::DroneDDW.Neighborhood.Editor.Staging.NeighborhoodStaging
+  _isEnabled: 1
+  _spots:
+  - _character: 0
+    _position: {x: -3, y: 0, z: 7.4}
+    _turnFromSeatDegrees: 57
+    _props:
+    - GrandmaBench_N_01
+    - GrandmaBench_B_01
+    - GrandmaBench_E_01
+    _removedObjects: []
+  - _character: 1
+    _position: {x: 2, y: 0, z: 10.2}
+    _turnFromSeatDegrees: 0
+    _props:
+    - CastProps_N_01
+    - WorkerLamp_N_01
+    - WorkerLamp_N_02
+    - WorkerLamp_B_01
+    - Lamps_B_01
+    - WorkerLamp_E_01
+    - WorkerLamp_E_02
+    - Lamps_E_01
+    - Robots_E_02
+    - Robots_E_03
+    - Drones_E_02
+    _removedObjects: []
+  - _character: 2
+    _position: {x: 3.6, y: 0, z: 7.6}
+    _turnFromSeatDegrees: 0
+    _props:
+    - Dog_N_01
+    - Dog_B_01
+    - Dog_E_01
+    _removedObjects: []

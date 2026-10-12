@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.IO;
 using DroneDDW.Neighborhood.Editor.Import;
 using DroneDDW.Neighborhood.Editor.Layout;
+using DroneDDW.Neighborhood.Editor.Staging;
 using DroneDDW.Neighborhood.Table;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DroneDDW.Neighborhood.Editor.Building
 {
@@ -29,11 +31,13 @@ namespace DroneDDW.Neighborhood.Editor.Building
         internal const string PaletteFileName = "Street_Palette.png";
 
         private const string PushSettingsFileName = "Neighborhood Push Settings.asset";
+        private const string StagingFileName = "Neighborhood Staging.asset";
         private const string PaletteSearch = "Street_Palette t:Texture2D";
         private const string LightPoolTextureName = "Street_LightPool.png";
         private const string CharacterTextureName = "Street_Characters.png";
         private const string PalettePrefix = "Street_Mat_";
         private const string LightPoolPrefix = "Street_LightPool_";
+        private const string SpeakerPoolKind = "Speaker";
         private const string LeashMaterialName = "Street_Mat_Leash";
         private const string SkyMaterialName = "Street_Sky_Dusk";
         private const string UrpLitShader = "Universal Render Pipeline/Lit";
@@ -47,6 +51,13 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const float MatteSmoothness = 0.1f;
         private const float WaterSmoothness = 0.85f;
         private const float GlassSmoothness = 0.6f;
+
+        // The light pools on the ground draw after the street's solid objects (2000) but before the people, so a pool
+        // shows on the ground and the props while the people's feet always cover it, instead of being cut by its quad a few
+        // centimetres above the ground. The people get there through URP Lit's queue offset (its maximum, 50), which the
+        // material inspector keeps; the pools' own shader takes the queue as it is.
+        private const int GroundLightQueue = 2040;
+        private const float CharacterQueueOffset = 50f;
 
         private static readonly string[] PaletteKeys =
         {
@@ -105,6 +116,26 @@ namespace DroneDDW.Neighborhood.Editor.Building
             AssetDatabase.CreateAsset(settings, path);
             AssetDatabase.SaveAssets();
             return settings;
+        }
+
+        /// <summary>
+        /// Where the people go (Data/Neighborhood Staging.asset under the root): created with the defaults the first
+        /// time, never overwritten after, so edits survive every rebuild.
+        /// </summary>
+        internal static NeighborhoodStaging LoadOrCreateStaging(string root)
+        {
+            string path = $"{EnsureFolder(root, DataFolder)}/{StagingFileName}";
+            NeighborhoodStaging staging = AssetDatabase.LoadAssetAtPath<NeighborhoodStaging>(path);
+            if (staging != null)
+            {
+                return staging;
+            }
+
+            staging = ScriptableObject.CreateInstance<NeighborhoodStaging>();
+            staging.SetDefaults();
+            AssetDatabase.CreateAsset(staging, path);
+            AssetDatabase.SaveAssets();
+            return staging;
         }
 
         internal static GameObject LoadModel(string root, string fileName)
@@ -184,6 +215,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 SetFloatIfPresent(material, "_Glossiness", entry.Smoothness);
                 SetFloatIfPresent(material, "_Metallic", 0f);
                 SetEmission(material, null, 0f);
+                SetFloatIfPresent(material, "_QueueOffset", CharacterQueueOffset);
+                material.renderQueue = (int)RenderQueue.Geometry + (int)CharacterQueueOffset;
                 EditorUtility.SetDirty(material);
                 set.ByName.Add(material.name, material);
             }
@@ -214,9 +247,18 @@ namespace DroneDDW.Neighborhood.Editor.Building
                     // _Color is a Vector property in the shader, so this linear value reaches it unchanged.
                     Color linear = light.Color.linear * light.PoolIntensity;
                     pool.SetVector("_Color", new Vector4(linear.r, linear.g, linear.b, 1f));
+                    pool.renderQueue = GroundLightQueue;
                     EditorUtility.SetDirty(pool);
                     set.LightPools.Add(light.Kind, pool);
                 }
+
+                Material speaker = LoadOrCreate(folder, LightPoolPrefix + SpeakerPoolKind, poolShader);
+                speaker.mainTexture = poolTexture;
+                speaker.enableInstancing = true;
+                speaker.SetVector("_Color", Vector4.zero);
+                speaker.renderQueue = GroundLightQueue;
+                EditorUtility.SetDirty(speaker);
+                set.SpeakerPool = speaker;
             }
 
             Shader skyShader = Shader.Find(PanoramicSkyShader);

@@ -129,6 +129,38 @@ namespace DroneDDW.Neighborhood.Motion
             _isFacingTravel = isFacingTravel;
         }
 
+        /// <summary>Puts a Path or Orbit mover where it will be when play starts, so the edited scene matches.</summary>
+        internal void PlaceAtStart()
+        {
+            if (_kind != NeighborhoodMotionKind.Path && _kind != NeighborhoodMotionKind.Orbit)
+            {
+                return;
+            }
+
+            Vector3 position = Evaluate(0f, out Vector3 direction);
+            direction.y = 0f;
+            Quaternion rotation = _isFacingTravel && direction.sqrMagnitude > 1e-6f
+                ? Quaternion.LookRotation(_isFrontOnNegativeZ ? -direction : direction, Vector3.up)
+                : transform.rotation;
+            transform.SetPositionAndRotation(position, rotation);
+        }
+
+        /// <summary>
+        /// Moves the route (path points, orbit centre; both in world space) with a staged spot, then puts the mover at
+        /// its start on the new route. Hover and Hop movers keep to where their object is, so they need nothing.
+        /// </summary>
+        internal void ApplyStaging(Matrix4x4 move)
+        {
+            for (int i = 0; i < _points.Length; i++)
+            {
+                _points[i] = move.MultiplyPoint3x4(_points[i]);
+            }
+
+            _center = move.MultiplyPoint3x4(_center);
+            MeasurePath();
+            PlaceAtStart();
+        }
+
         /// <summary>Where a Path or Orbit mover is at a time (also used to place it in edit mode).</summary>
         internal Vector3 Evaluate(float time, out Vector3 direction)
         {

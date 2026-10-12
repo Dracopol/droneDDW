@@ -121,6 +121,33 @@ namespace DroneDDW.Experience
 				cancellationToken: cancellationToken);
 		}
 
+		// The admin held the button (A / X, Space in the Editor) for the given time: the participant is ready. A press
+		// that was already down when this started (e.g. the one standing in for the sensor) has to be let go first, and a
+		// shorter press doesn't count, so a bump doesn't start the session.
+		internal async UniTask WaitForStartHoldAsync(float holdSeconds, CancellationToken cancellationToken)
+		{
+			await UniTask.WaitUntil(() => !_fallbackAction.IsPressed(), cancellationToken: cancellationToken);
+			float pressedAt = -1f;
+			while (true)
+			{
+				if (!_fallbackAction.IsPressed())
+				{
+					pressedAt = -1f;
+				}
+				else if (pressedAt < 0f)
+				{
+					pressedAt = Time.unscaledTime;
+				}
+				else if (Time.unscaledTime - pressedAt >= holdSeconds)
+				{
+					Debug.Log("[Experience] The admin started the session.", this);
+					return;
+				}
+
+				await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+			}
+		}
+
 		// The headset came off, or the admin pressed the button. On the Quest the app sleeps while the headset is off,
 		// so this completes when the next person puts it on.
 		internal async UniTask WaitForTakenOffAsync(CancellationToken cancellationToken)

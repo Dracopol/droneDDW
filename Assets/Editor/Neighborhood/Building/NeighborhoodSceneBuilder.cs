@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using DroneDDW.Neighborhood.Audio;
 using DroneDDW.Neighborhood.Characters;
 using DroneDDW.Neighborhood.Editor.Layout;
+using DroneDDW.Neighborhood.Editor.Staging;
 using DroneDDW.Neighborhood.Experience;
 using DroneDDW.Neighborhood.Motion;
 using DroneDDW.Neighborhood.Table;
@@ -21,7 +22,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
     ///    Street_ FBX with them; fills the voice library and links the WAVs found in the project.
     /// 2. Builds Scenes/Neighborhood/Neighborhood.unity: the shared street (static), every changing object tagged with its
     ///    versions, lamps with their lights and light pools, drones, robots and ducks that move, the three
-    ///    people with their poses, faces, voices, props and the leash, the table with the three-notch slider,
+    ///    people with their poses, faces, voices, props and the leash (moved with their props to where
+    ///    Data/Neighborhood Staging.asset puts them, in front of the seat), the table with the three-notch slider,
     ///    the miniatures and the lock-in button, the project's XR rig at the seat, ambience, the dusk sky, sun, ambient
     ///    light and fog. The rig is saved switched off: NeighborhoodStandaloneRig switches it on only when the scene is
     ///    opened on its own, since the experience loads this scene on top of its own and brings its own rig.
@@ -153,12 +155,15 @@ namespace DroneDDW.Neighborhood.Editor.Building
             seat.transform.position = new Vector3(0f, layout.SeatHeight, 0f);
             Transform head = SetUpViewer(scene, layout, seat.transform, out Transform trackingSpace);
             GameObject street = new GameObject("Neighborhood");
-            NeighborhoodBuildUtility.InstantiateUnpacked(NeighborhoodAssetUtility.LoadModel(root, SharedModel), street.transform, "Shared");
+            GameObject shared = NeighborhoodBuildUtility.InstantiateUnpacked(NeighborhoodAssetUtility.LoadModel(root, SharedModel),
+                street.transform, "Shared");
             GameObject elementsRoot = NeighborhoodBuildUtility.InstantiateUnpacked(NeighborhoodAssetUtility.LoadModel(root, ElementsModel),
                 street.transform, "Elements");
             Dictionary<string, Transform> nodes = NeighborhoodBuildUtility.IndexDeep(elementsRoot.transform);
 
             Dictionary<string, List<Light>> lightsByOwner = CreateLights(layout, nodes, materials, street.transform);
+            NeighborhoodStaging staging = NeighborhoodAssetUtility.LoadOrCreateStaging(root);
+            HashSet<string> removed = RemoveObjects(NeighborhoodStagingBuilder.CollectRemovedObjects(staging), nodes);
             List<NeighborhoodVersionElement> elements = new List<NeighborhoodVersionElement>();
             int missing = 0;
             int movers = 0;
@@ -166,7 +171,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             {
                 if (!nodes.TryGetValue(entry.Name, out Transform node))
                 {
-                    missing++;
+                    missing += removed.Contains(entry.Name) ? 0 : 1;
                     continue;
                 }
 
@@ -188,6 +193,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodVersionController controller = experience.AddComponent<NeighborhoodVersionController>();
             controller.Configure(elements.ToArray(), seat.transform, start);
             NeighborhoodCharacter[] characters = NeighborhoodCharacterBuilder.Build(root, layout, nodes, materials, controller, street.transform, start);
+            List<string> overlaps = NeighborhoodStagingBuilder.Apply(staging, layout, characters, nodes, shared.transform, seat.transform.position);
             controller.ShowVersionInEditor(start);
 
             NeighborhoodPushSettings pushSettings = NeighborhoodAssetUtility.LoadOrCreatePushSettings(root);
@@ -201,6 +207,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodExperience coordinator = experience.AddComponent<NeighborhoodExperience>();
             coordinator.Configure(controller, table.Slider, table.Preview, ambience, voice);
             coordinator.ConfigureTable(table.LockButton, table.HandBones, table.SliderDriver);
+            coordinator.ConfigureCharacters(FindLooks(characters));
             NeighborhoodDebugKeys debugKeys = experience.AddComponent<NeighborhoodDebugKeys>();
             debugKeys.Configure(controller, voice);
             if (trackingSpace != null)
@@ -221,8 +228,47 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             Debug.Log($"[Neighborhood] Built {scenePath}: {elements.Count} changing objects ({movers} moving), "
-                + $"{characters.Length} people, starting at {start}.");
+                + $"{characters.Length} people, starting at {start}. Staging {(staging.IsEnabled ? "on" : "off")}: "
+                + $"{removed.Count} objects removed, {overlaps.Count} overlaps.");
             return scenePath;
+        }
+
+        private static NeighborhoodCharacterLook[] FindLooks(NeighborhoodCharacter[] characters)
+        {
+            List<NeighborhoodCharacterLook> looks = new List<NeighborhoodCharacterLook>();
+            foreach (NeighborhoodCharacter character in characters)
+            {
+                if (character.TryGetComponent(out NeighborhoodCharacterLook look))
+                {
+                    looks.Add(look);
+                }
+            }
+
+            return looks.ToArray();
+        }
+
+        /// <summary>
+        /// Takes the street objects the staging leaves out (with the lights under them) out of the scene and the index.
+        /// Returns the names removed.
+        /// </summary>
+        private static HashSet<string> RemoveObjects(HashSet<string> names, Dictionary<string, Transform> nodes)
+        {
+            HashSet<string> removed = new HashSet<string>();
+            foreach (string name in names)
+            {
+                if (nodes.TryGetValue(name, out Transform node) && node != null)
+                {
+                    Object.DestroyImmediate(node.gameObject);
+                    nodes.Remove(name);
+                    removed.Add(name);
+                }
+                else
+                {
+                    Debug.LogWarning($"[Neighborhood] Staging: the object {name} to remove is not in the street.");
+                }
+            }
+
+            return removed;
         }
 
         private static void SetUpLighting(NeighborhoodLayoutDusk dusk, Material skybox)
@@ -354,21 +400,11 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             NeighborhoodMover mover = target.AddComponent<NeighborhoodMover>();
-            NeighborhoodMotionKind kind = (NeighborhoodMotionKind)entry.Kind;
-            mover.Configure(kind, points, entry.Center, entry.RadiusX, entry.RadiusZ, entry.Speed, entry.Phase,
-                entry.Clockwise, entry.BobHeight, entry.BobPeriod, entry.FaceTravel);
-            if (kind != NeighborhoodMotionKind.Path && kind != NeighborhoodMotionKind.Orbit)
-            {
-                return;
-            }
+            mover.Configure((NeighborhoodMotionKind)entry.Kind, points, entry.Center, entry.RadiusX, entry.RadiusZ, entry.Speed,
+                entry.Phase, entry.Clockwise, entry.BobHeight, entry.BobPeriod, entry.FaceTravel);
 
             // Put it where it will be when play starts, so the scene view matches.
-            Vector3 position = mover.Evaluate(0f, out Vector3 direction);
-            direction.y = 0f;
-            Quaternion rotation = entry.FaceTravel && direction.sqrMagnitude > 1e-6f
-                ? Quaternion.LookRotation(-direction, Vector3.up)
-                : target.transform.rotation;
-            target.transform.SetPositionAndRotation(position, rotation);
+            mover.PlaceAtStart();
         }
 
         private static NeighborhoodAmbience BuildAmbience(Transform parent)

@@ -65,11 +65,8 @@ namespace DroneDDW.Neighborhood.Characters
             _collar = collar;
         }
 
-        #endregion
-
-        #region Private
-
-        private void Refresh()
+        /// <summary>Redraws the line between the grip and the collar now (the builder calls it after moving them).</summary>
+        internal void Refresh()
         {
             if (_line == null || _grip == null || _collar == null)
             {

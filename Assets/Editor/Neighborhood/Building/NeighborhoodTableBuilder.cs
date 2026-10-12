@@ -82,11 +82,6 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const float CountdownBoxMeters = 0.1f;
         private const float CountdownMaxFontSize = 1.2f;
 
-        // "Hold to confirm" on the stand's front edge, which turns to face the seat
-        private const string HoldLabelText = "HOLD TO CONFIRM";
-        private const float HoldLabelHeightMeters = 0.026f;
-        private const float HoldLabelMaxFontSize = 0.4f;
-        private static readonly Color HoldLabelColor = new Color(0.23f, 0.25f, 0.28f);
         private static readonly Color CountdownColor = new Color(0.95f, 0.76f, 0.19f);
 
         // The arrows beside the practice slider's handle
@@ -389,7 +384,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 float reachMeters = StandTopHalfWidthMeters * (Mathf.Abs(Mathf.Cos(yawRadians)) + Mathf.Abs(Mathf.Sin(yawRadians)));
                 center.x = tableBounds.max.x + StandGapMeters + reachMeters;
                 AddStand(folder, table, new Vector3(center.x, tableBounds.min.y, lineZ), FaceSeat(table, head, center, lineZ),
-                    surfaceY - tableBounds.min.y, props, font);
+                    surfaceY - tableBounds.min.y, props);
             }
             else
             {
@@ -450,7 +445,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
             TextMeshPro countdown = CreateText("Countdown", button, font, string.Empty,
                 new Vector2(CountdownBoxMeters, CountdownBoxMeters), CountdownMaxFontSize);
-            countdown.transform.localPosition = Vector3.up * (pressedTop + travel + CountdownLiftMeters);
+            PlaceText(countdown, Vector3.up * (pressedTop + travel + CountdownLiftMeters));
             countdown.color = CountdownColor;
 
             NeighborhoodLockButton lockButton = buttonObject.AddComponent<NeighborhoodLockButton>();
@@ -511,10 +506,10 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
         /// <summary>
         /// A stand for the button in the table's style: one leg as thick as the table's and a top as thick as the table's,
-        /// wood with a cream top, from the floor up to the table's height, with "Hold to confirm" on its front edge.
+        /// wood with a cream top, from the floor up to the table's height.
         /// </summary>
         private static void AddStand(string folder, Transform table, Vector3 footCenter, Quaternion facing,
-            float heightMeters, Material material, TMP_FontAsset font)
+            float heightMeters, Material material)
         {
             float legHalf = StandLegWidthMeters * 0.5f;
             float topBottom = heightMeters - StandTopThicknessMeters;
@@ -529,12 +524,6 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 NeighborhoodLowPolyMeshes.Wood, NeighborhoodLowPolyMeshes.Cream), $"{folder}/{ButtonMeshPrefix}_Stand.asset");
             MeshRenderer stand = CreatePart("Lock Button Stand", table, mesh, material);
             stand.transform.SetLocalPositionAndRotation(footCenter, facing);
-
-            TextMeshPro label = CreateText("Hold Label", stand.transform, font, HoldLabelText,
-                new Vector2(StandTopHalfWidthMeters * 1.8f, HoldLabelHeightMeters), HoldLabelMaxFontSize);
-            label.transform.localPosition = new Vector3(0f, heightMeters - StandTopThicknessMeters * 0.5f,
-                -StandTopHalfWidthMeters - 0.0005f);
-            label.color = HoldLabelColor;
         }
 
         /// <summary>World-space text in a box, as big as fits it (up to the given size), centred.</summary>
@@ -557,6 +546,17 @@ namespace DroneDDW.Neighborhood.Editor.Building
             textMesh.fontSizeMin = 0.01f;
             textMesh.fontSizeMax = maxFontSize;
             return textMesh;
+        }
+
+        /// <summary>
+        /// Puts a label at a local position through its anchored position, which is what the scene stores for it. Set
+        /// through localPosition alone, the empty countdown came out of a batch build back at its parent's origin,
+        /// inside the button.
+        /// </summary>
+        private static void PlaceText(TextMeshPro text, Vector3 localPosition)
+        {
+            text.rectTransform.anchoredPosition3D = localPosition;
+            text.rectTransform.localPosition = localPosition;
         }
 
         private static AudioSource CreateAudioSource(GameObject host)
