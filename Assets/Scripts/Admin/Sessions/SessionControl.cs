@@ -242,7 +242,7 @@ namespace DroneDDW.Admin.Sessions
 			_origin.RotateAroundCameraUsingOriginUp(angleDegrees);
 
 			Vector3 target = _playerSpot.Position;
-			target.y = head.position.y;
+			target.y = _playerSpot.HasEyeHeight ? _playerSpot.EyeY : head.position.y;
 			_origin.MoveCameraToWorldLocation(target);
 			Debug.Log($"[Admin] Player location reset: turned {angleDegrees:0} degrees, head now at {head.position}.", this);
 			OnPlayerLocationReset?.Invoke();

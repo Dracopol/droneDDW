@@ -32,8 +32,9 @@ namespace DroneDDW.Experience.Editor
 	// to it and the Neighborhood (which it loads on top of itself for the VR part):
 	// - a copy of the main scene's XR rig and passthrough layer at the Neighborhood's seat, so the practice table stands
 	//   where the street's table will, with the Interaction Tests hand visuals and the finger grab
-	// - Session Control with check-in on, the Player Spot at the seat facing the table, the admin menu, and the ticket
-	//   scanner the menu's check-in screen switches on (Passthrough Camera Access, off otherwise)
+	// - Session Control with check-in on, the Player Spot at the seat facing the table and setting the eye height, the
+	//   admin menu, and the ticket scanner the menu's check-in screen switches on (Passthrough Camera Access, off
+	//   otherwise)
 	// - the Narrator Orb above the table, the practice table (the Neighborhood's table, slider and lock-in button, no
 	//   miniatures), the three portrait cards behind it, the Questionnaire's ghost hands (with the ported hand check),
 	//   the notice panel, the view fade, a light for passthrough
@@ -207,7 +208,7 @@ namespace DroneDDW.Experience.Editor
 				: head.parent;
 
 			ExperienceProp light = CreateLight();
-			SessionControl session = CreateSession(origin, adminSettings);
+			SessionControl session = CreateSession(origin, adminSettings, seatHeight, eyeHeight);
 			TicketScanner scanner = CreateTicketScanner();
 			PlaceAdminMenu(menuPrefab, scene, session, head, scanner);
 
@@ -380,10 +381,14 @@ namespace DroneDDW.Experience.Editor
 			return lightObject.AddComponent<ExperienceProp>();
 		}
 
-		// Check-in on; the Player Spot at the seat, facing the table
-		private static SessionControl CreateSession(XROrigin origin, AdminMenuSettings adminSettings)
+		// Check-in on; the Player Spot at the seat, facing the table, putting the eyes at the Neighborhood's eye height
+		// whatever the real chair and the headset's floor
+		private static SessionControl CreateSession(XROrigin origin, AdminMenuSettings adminSettings, float seatHeight,
+			float eyeHeight)
 		{
 			PlayerSpot spot = new GameObject("Player Spot").AddComponent<PlayerSpot>();
+			spot.transform.position = new Vector3(0f, seatHeight, 0f);
+			spot.Configure(eyeHeight);
 			SessionControl session = new GameObject("Session Control").AddComponent<SessionControl>();
 			session.Configure(origin, spot);
 			session.ConfigureSessions(adminSettings, true);
