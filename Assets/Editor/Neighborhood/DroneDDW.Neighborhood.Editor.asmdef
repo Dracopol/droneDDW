@@ -3,6 +3,7 @@
     "rootNamespace": "DroneDDW.Neighborhood.Editor",
     "references": [
         "DroneDDW.Neighborhood",
+        "DroneDDW.Voice",
         "DroneDDW.FingerGrab",
         "DroneDDW.FingerGrab.Editor",
         "Unity.XR.Interaction.Toolkit",

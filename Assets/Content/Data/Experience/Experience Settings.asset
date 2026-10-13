@@ -33,7 +33,7 @@ MonoBehaviour:
   _neighborhoodWelcome: {fileID: 8300000, guid: 310f6e811274c269e354a882060a60ec, type: 3}
   _neighborhoodLockIn:
     _prompt: {fileID: 8300000, guid: d0b309f634ed72481cca60a6db0c0980, type: 3}
-    _stuck: {fileID: 8300000, guid: cb9963f582471414ca597dd4532d7d73, type: 3}
+    _stuck: {fileID: 0}
     _success: {fileID: 8300000, guid: c4561206c3e0669e1719e90819068c43, type: 3}
   _outro: {fileID: 8300000, guid: b9ecaee922b372541a1ece881ad14072, type: 3}
   _goodbye: {fileID: 8300000, guid: 9bc6ba8a4cf8db1eca260eac9d9387c4, type: 3}

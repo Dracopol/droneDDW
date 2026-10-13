@@ -12,8 +12,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
 {
     /// <summary>
     /// Creates or updates Voice/Neighborhood_VoiceLibrary.asset from the layout's copy of the voice script and links
-    /// every AudioClip in the project whose file name is a line ID (GRA_01.wav and so on). Clips linked by hand
-    /// and reaction sets edited in the asset are kept, unless the layout carries a newer version of the script:
+    /// every AudioClip in the project whose file name is a line ID (GRA_01.wav and so on). Clips linked by hand,
+    /// emotions and reaction sets edited in the asset are kept, unless the layout carries a newer version of the script:
     /// then the reaction sets go back to its defaults and every clip is linked again by name, because IDs may have
     /// moved. Menu: DroneDDW / Neighborhood / Link Voice Lines.
     /// </summary>
@@ -49,8 +49,14 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             Dictionary<string, AudioClip> kept = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, NeighborhoodEmotion> keptEmotions = new Dictionary<string, NeighborhoodEmotion>(StringComparer.OrdinalIgnoreCase);
             foreach (NeighborhoodVoiceLine line in library.Lines)
             {
+                if (!isNewScript && line != null)
+                {
+                    keptEmotions[line.Id] = line.Emotion;
+                }
+
                 if (!isNewScript && line != null && line.Clip != null)
                 {
                     kept[line.Id] = line.Clip;
@@ -67,7 +73,10 @@ namespace DroneDDW.Neighborhood.Editor.Building
                     linked++;
                 }
 
-                lines.Add(new NeighborhoodVoiceLine(entry.Id, (NeighborhoodCharacterId)entry.Character, (NeighborhoodEmotion)entry.Emotion,
+                NeighborhoodEmotion emotion = keptEmotions.TryGetValue(entry.Id, out NeighborhoodEmotion edited)
+                    ? edited
+                    : (NeighborhoodEmotion)entry.Emotion;
+                lines.Add(new NeighborhoodVoiceLine(entry.Id, (NeighborhoodCharacterId)entry.Character, emotion,
                     (NeighborhoodVoiceSide)entry.Side, (NeighborhoodVoiceStage)entry.Stage, entry.Trigger, entry.Text, clip));
             }
 

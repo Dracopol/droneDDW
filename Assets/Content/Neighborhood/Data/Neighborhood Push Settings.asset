@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d92bb025e3dcb34884a425b6e9df5ab, type: 3}
   m_Name: Neighborhood Push Settings
   m_EditorClassIdentifier: DroneDDW.Neighborhood::DroneDDW.Neighborhood.Table.NeighborhoodPushSettings
-  _wristRadiusMeters: 0.02
-  _palmRadiusMeters: 0.015
-  _thumbBaseRadiusMeters: 0.013
-  _fingerBaseRadiusMeters: 0.01
-  _fingerMiddleRadiusMeters: 0.009
-  _fingerTipRadiusMeters: 0.008
-  _touchMarginMeters: 0.005
-  _sampleSpacingMeters: 0.01
-  _pushBoxPaddingMeters: 0
+  _wristRadiusMeters: 0.0228
+  _palmRadiusMeters: 0.0083
+  _thumbBaseRadiusMeters: 0.0036
+  _fingerBaseRadiusMeters: 0.005
+  _fingerMiddleRadiusMeters: 0.0016
+  _fingerTipRadiusMeters: 0
+  _touchMarginMeters: 0.0037
+  _sampleSpacingMeters: 0.0084
+  _pushBoxPaddingMeters: -0.0004
   _grabBoxCenter: {x: 0, y: 0.03, z: 0}
   _grabBoxSize: {x: 0.08, y: 0.07, z: 0.08}

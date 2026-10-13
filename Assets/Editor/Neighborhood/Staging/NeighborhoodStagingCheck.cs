@@ -79,6 +79,9 @@ namespace DroneDDW.Neighborhood.Editor.Staging
         private const float FullLevel = 0.95f;
         private const float OffLevel = 0.01f;
 
+        // After the held change has arrived, how long nobody may speak
+        private const float HeldSilenceSeconds = 1.5f;
+
         private static readonly Dictionary<NeighborhoodCharacterId, string> IntroductionLines =
             new Dictionary<NeighborhoodCharacterId, string>
             {
@@ -276,6 +279,61 @@ namespace DroneDDW.Neighborhood.Editor.Staging
                 Steps.Add(new CheckStep($"the {id} turns back and the light goes out", TurnedBackSeconds,
                     () => CheckTurnedBack(id)));
             }
+
+            // A change of the street: once it has arrived, the version's three people react one after another
+            Steps.Add(new CheckStep("the street changes to Efficiency", 0f, () => RequestVersion(NeighborhoodVersion.Efficiency)));
+            foreach (string line in FindVoice().GetReactionIds(NeighborhoodVersion.Efficiency, FindVoice().Stage))
+            {
+                Steps.Add(new CheckStep($"{line} plays after the change", 0f, () => null, () => IsSaying(line)));
+            }
+
+            // While the slider is held the street follows it, but the people wait until it is let go
+            Steps.Add(new CheckStep("the line ends", 0f, () => null, () => !FindVoice().IsPlaying));
+            Steps.Add(new CheckStep("the slider is held and the street changes to Nature", 0f, HoldAndChangeToNature));
+            Steps.Add(new CheckStep("the street arrives at Nature", 0f, () => null, () => !FindController().IsTransitioning));
+            Steps.Add(new CheckStep("nobody reacts while the slider is held", HeldSilenceSeconds, CheckSilent));
+            Steps.Add(new CheckStep("the slider is let go", 0f, ReleaseReactions));
+            string firstNatureLine = FindVoice().GetReactionIds(NeighborhoodVersion.Nature, FindVoice().Stage).FirstOrDefault();
+            Steps.Add(new CheckStep($"{firstNatureLine} plays once it is let go", 0f, () => null,
+                () => IsSaying(firstNatureLine)));
+            Steps.Add(new CheckStep("the voices stop", 0f, StopVoices));
+        }
+
+        private static string RequestVersion(NeighborhoodVersion version)
+        {
+            FindController().RequestVersion(version);
+            return null;
+        }
+
+        private static bool IsSaying(string lineId)
+        {
+            NeighborhoodVoiceLine line = FindVoice().CurrentLine;
+            return line != null && line.Id == lineId;
+        }
+
+        private static string HoldAndChangeToNature()
+        {
+            FindVoice().HoldReactions();
+            FindController().RequestVersion(NeighborhoodVersion.Nature);
+            return null;
+        }
+
+        private static string CheckSilent()
+        {
+            NeighborhoodVoiceLine line = FindVoice().CurrentLine;
+            return line != null ? $"{line.Id} started while the slider was held" : null;
+        }
+
+        private static string ReleaseReactions()
+        {
+            FindVoice().ReleaseReactions();
+            return null;
+        }
+
+        private static string StopVoices()
+        {
+            FindVoice().Stop();
+            return null;
         }
 
         private static string StartLine(NeighborhoodCharacterId id)

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using DroneDDW.Neighborhood.Characters;
 using DroneDDW.Neighborhood.Editor.Layout;
 using DroneDDW.Neighborhood.Versions;
+using DroneDDW.Neighborhood.Voice;
+using DroneDDW.Voice;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -40,7 +42,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
         #region Internal
 
         internal static NeighborhoodCharacter[] Build(string root, NeighborhoodLayout layout, Dictionary<string, Transform> elementNodes,
-            NeighborhoodMaterialSet materials, NeighborhoodVersionController controller, Transform parent, NeighborhoodVersion start)
+            NeighborhoodMaterialSet materials, NeighborhoodVersionController controller, Transform parent, NeighborhoodVersion start,
+            NeighborhoodVoiceLibrary library)
         {
             GameObject group = new GameObject("Characters");
             group.transform.SetParent(parent, false);
@@ -72,7 +75,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 NeighborhoodFace face = BuildFace(instance, entry.Name);
                 AudioSource voice = BuildVoice(instance, entry);
                 NeighborhoodCharacter character = instance.AddComponent<NeighborhoodCharacter>();
-                character.Configure((NeighborhoodCharacterId)entry.Id, animator, face, voice, controller, ToPoses(entry));
+                NeighborhoodCharacterPose[] poses = ToPoses(entry, library);
+                character.Configure((NeighborhoodCharacterId)entry.Id, animator, face, voice, controller, poses);
                 BuildLook(instance, character, entry.Name);
                 BuildSpeakerLight(instance, character, materials.SpeakerPool);
                 AttachProps(instance, entry, clips, layout, elementNodes, materials.Leash);
@@ -81,7 +85,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 if (startPose != null && clips.TryGetValue(startPose.Clip, out AnimationClip startClip))
                 {
                     startClip.SampleAnimation(instance, 0f);
-                    face.SetEmotion((NeighborhoodEmotion)startPose.Emotion);
+                    face.SetEmotion(RestingEmotion(entry, startPose, library));
                 }
 
                 characters.Add(character);
@@ -121,16 +125,40 @@ namespace DroneDDW.Neighborhood.Editor.Building
             return null;
         }
 
-        private static NeighborhoodCharacterPose[] ToPoses(NeighborhoodLayoutCharacter entry)
+        private static NeighborhoodCharacterPose[] ToPoses(NeighborhoodLayoutCharacter entry, NeighborhoodVoiceLibrary library)
         {
             NeighborhoodCharacterPose[] poses = new NeighborhoodCharacterPose[entry.Poses.Count];
             for (int i = 0; i < poses.Length; i++)
             {
                 NeighborhoodLayoutPose pose = entry.Poses[i];
-                poses[i] = new NeighborhoodCharacterPose(NeighborhoodVersions.Clamp(pose.Version), pose.Clip, (NeighborhoodEmotion)pose.Emotion);
+                poses[i] = new NeighborhoodCharacterPose(NeighborhoodVersions.Clamp(pose.Version), pose.Clip,
+                    RestingEmotion(entry, pose, library));
             }
 
             return poses;
+        }
+
+        /// <summary>
+        /// The face a person rests with in a version: the emotion of their line in that version's reactions, so the face
+        /// doesn't change when they start or stop talking. Without a line there, the export's face, never angry.
+        /// </summary>
+        private static NeighborhoodEmotion RestingEmotion(NeighborhoodLayoutCharacter entry, NeighborhoodLayoutPose pose,
+            NeighborhoodVoiceLibrary library)
+        {
+            if (library != null)
+            {
+                NeighborhoodVersion version = NeighborhoodVersions.Clamp(pose.Version);
+                foreach (string lineId in library.GetReactions(version, NeighborhoodVoiceStage.Now))
+                {
+                    if (library.TryGetLine(lineId, out NeighborhoodVoiceLine line) && (int)line.Character == entry.Id)
+                    {
+                        return line.Emotion;
+                    }
+                }
+            }
+
+            NeighborhoodEmotion exported = (NeighborhoodEmotion)pose.Emotion;
+            return exported == NeighborhoodEmotion.Angry ? NeighborhoodEmotion.Natural : exported;
         }
 
         /// <summary>
@@ -282,7 +310,21 @@ namespace DroneDDW.Neighborhood.Editor.Building
             source.minDistance = VoiceMinDistance;
             source.maxDistance = VoiceMaxDistance;
             source.dopplerLevel = 0f;
+            AddVoiceGain(voiceObject, entry.Name);
             return source;
+        }
+
+        /// <summary>Their level from Voice Levels (the recordings came in quieter than the narrator's lines).</summary>
+        private static void AddVoiceGain(GameObject voiceObject, string characterName)
+        {
+            VoiceLevels levels = AssetDatabase.LoadAssetAtPath<VoiceLevels>(VoiceLevels.AssetPath);
+            if (levels == null || !System.Enum.TryParse(characterName, out VoiceRole role))
+            {
+                Debug.LogWarning($"[Neighborhood] No voice level for {characterName} ({VoiceLevels.AssetPath}); they play as recorded.");
+                return;
+            }
+
+            voiceObject.AddComponent<VoiceGain>().Configure(levels, role);
         }
 
         /// <summary>

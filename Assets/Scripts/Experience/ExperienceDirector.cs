@@ -39,6 +39,9 @@ namespace DroneDDW.Experience
 		[SerializeField] private EnvironmentSwitch _environment;
 		[SerializeField] private NoticePanel _notice;
 
+		[Tooltip("What is said, low in the view. Optional.")]
+		[SerializeField] private ExperienceSubtitles _subtitles;
+
 		[Header("Narrator")]
 		[SerializeField] private NarratorOrbController _orb;
 		[SerializeField] private ExperienceProp _orbProp;
@@ -152,6 +155,11 @@ namespace DroneDDW.Experience
 			_orbNeighborhoodSpot = orbNeighborhoodSpot;
 			_orbCharactersSpot = orbCharactersSpot;
 			_orbButtonSpot = orbButtonSpot;
+		}
+
+		internal void ConfigureSubtitles(ExperienceSubtitles subtitles)
+		{
+			_subtitles = subtitles;
 		}
 
 		internal void ConfigureSteps(HandAlignmentCondition handCheck, PracticeChoice practice, ExperienceProp cardsProp,
@@ -319,6 +327,10 @@ namespace DroneDDW.Experience
 			await _environment.ToNeighborhoodAsync(_settings.FadeSeconds, _settings.BlackHoldSeconds,
 				MoveOrbToNeighborhood, cancellationToken);
 			_neighborhood = _environment.Neighborhood;
+			if (_subtitles != null && _neighborhood != null)
+			{
+				_subtitles.AttachNeighborhood(_neighborhood.Voice);
+			}
 		}
 
 		private async UniTask NeighborhoodChoiceAsync(CancellationToken cancellationToken)
@@ -355,6 +367,10 @@ namespace DroneDDW.Experience
 		{
 			SetPhase(ExperiencePhase.ToPassthrough);
 			_neighborhood = null;
+			if (_subtitles != null)
+			{
+				_subtitles.DetachNeighborhood();
+			}
 			await _environment.ToPassthroughAsync(_settings.FadeSeconds, _settings.BlackHoldSeconds, MoveOrbHome,
 				cancellationToken);
 			SetPhase(ExperiencePhase.Outro);
@@ -469,6 +485,7 @@ namespace DroneDDW.Experience
 			}
 
 			_orb.Speak(clip);
+			int subtitle = ShowSubtitle(clip);
 			try
 			{
 				await UniTask.WaitUntil(() => !_orb.IsSpeaking, cancellationToken: cancellationToken);
@@ -477,6 +494,10 @@ namespace DroneDDW.Experience
 			{
 				_orb.StopSpeaking();
 				throw;
+			}
+			finally
+			{
+				HideSubtitle(subtitle);
 			}
 		}
 
@@ -488,6 +509,7 @@ namespace DroneDDW.Experience
 			}
 
 			card.Speak(clip);
+			int subtitle = ShowSubtitle(clip);
 			try
 			{
 				await SkippableAsync(token => UniTask.WaitUntil(() => !card.IsSpeaking, cancellationToken: token),
@@ -496,6 +518,7 @@ namespace DroneDDW.Experience
 			finally
 			{
 				card.Stop();
+				HideSubtitle(subtitle);
 			}
 		}
 
@@ -548,6 +571,19 @@ namespace DroneDDW.Experience
 			return IsFastForward
 				? UniTask.CompletedTask
 				: OrbDriftUtil.DriftAsync(_orb, spot.position, _orbDriftSeconds, cancellationToken);
+		}
+
+		private int ShowSubtitle(AudioClip clip)
+		{
+			return _subtitles != null ? _subtitles.ShowClip(clip) : 0;
+		}
+
+		private void HideSubtitle(int ticket)
+		{
+			if (_subtitles != null)
+			{
+				_subtitles.Hide(ticket);
+			}
 		}
 
 		// In the Neighborhood the orb isn't seen: its lines play as a stereo voice-over

@@ -192,7 +192,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
             GameObject experience = new GameObject("Neighborhood_Experience");
             NeighborhoodVersionController controller = experience.AddComponent<NeighborhoodVersionController>();
             controller.Configure(elements.ToArray(), seat.transform, start);
-            NeighborhoodCharacter[] characters = NeighborhoodCharacterBuilder.Build(root, layout, nodes, materials, controller, street.transform, start);
+            NeighborhoodCharacter[] characters = NeighborhoodCharacterBuilder.Build(root, layout, nodes, materials, controller, street.transform, start,
+                library);
             List<string> overlaps = NeighborhoodStagingBuilder.Apply(staging, layout, characters, nodes, shared.transform, seat.transform.position);
             controller.ShowVersionInEditor(start);
 

@@ -25,12 +25,12 @@ MonoBehaviour:
     _clip: {fileID: 8300000, guid: fe8ca3c9ec3b8811d7cfc2b73ffce21b, type: 3}
   - _id: GRA_02
     _character: 0
-    _emotion: 0
+    _emotion: 1
     _side: 1
     _stage: 1
     _trigger: Drones keep away from the pond
     _text: Quiet again. Just me and the ducks.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: f2f63b5dc7d630abdce3e7edf5c22f89, type: 3}
   - _id: GRA_03
     _character: 0
     _emotion: 0
@@ -70,10 +70,10 @@ MonoBehaviour:
     _stage: 1
     _trigger: Some drones, ducks still there
     _text: A few drones, a few ducks. I suppose we can share.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: 884ec8175a2cd01aafe95104f56d474f, type: 3}
   - _id: GRA_08
     _character: 0
-    _emotion: 2
+    _emotion: 0
     _side: 3
     _stage: 1
     _trigger: First drones over the pond
@@ -81,12 +81,12 @@ MonoBehaviour:
     _clip: {fileID: 0}
   - _id: GRA_09
     _character: 0
-    _emotion: 2
+    _emotion: 0
     _side: 3
     _stage: 1
     _trigger: Ducks leave
     _text: Where did my ducks go?
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: bf4cf5d35da5b5945607c4ee361793b2, type: 3}
   - _id: GRA_10
     _character: 0
     _emotion: 0
@@ -97,7 +97,7 @@ MonoBehaviour:
     _clip: {fileID: 0}
   - _id: GRA_11
     _character: 0
-    _emotion: 2
+    _emotion: 0
     _side: 3
     _stage: 2
     _trigger: Five years on, pond is gone
@@ -114,12 +114,12 @@ MonoBehaviour:
     _clip: {fileID: 8300000, guid: 7a6b0551a14c43b66af955883949572f, type: 3}
   - _id: WOR_02
     _character: 1
-    _emotion: 2
+    _emotion: 0
     _side: 1
     _stage: 1
     _trigger: Part is still on its way
     _text: Still waiting on that part. Taking the scenic route, apparently.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: 4a7d228daf47f1ccb675c58387fbeb77, type: 3}
   - _id: WOR_03
     _character: 1
     _emotion: 1
@@ -143,7 +143,7 @@ MonoBehaviour:
     _stage: 1
     _trigger: Part arrives after a few days
     _text: Took a few days. Can't complain.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: 326c9ac9beaa9d8e742f3622437be4e7, type: 3}
   - _id: WOR_06
     _character: 1
     _emotion: 1
@@ -159,7 +159,7 @@ MonoBehaviour:
     _stage: 2
     _trigger: Five years on
     _text: Pads, towers, lights. A lot more to maintain now. Keeps me busy.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: f87d78b9809390a98877210e97121ce2, type: 3}
   - _id: STU_01
     _character: 2
     _emotion: 0
@@ -178,12 +178,12 @@ MonoBehaviour:
     _clip: {fileID: 0}
   - _id: STU_03
     _character: 2
-    _emotion: 2
+    _emotion: 0
     _side: 1
     _stage: 1
     _trigger: Order is slow
     _text: My orders take ages out here. Nothing ever changes in this park.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: af69a1420c3b3108b058bd3fe0af295d, type: 3}
   - _id: STU_04
     _character: 2
     _emotion: 0
@@ -199,7 +199,7 @@ MonoBehaviour:
     _stage: 1
     _trigger: Order arrives in reasonable time
     _text: Not bad. Could be faster, but not bad.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: 740e23373de0b34aaa7b236b5a88a59d, type: 3}
   - _id: STU_06
     _character: 2
     _emotion: 1
@@ -215,7 +215,7 @@ MonoBehaviour:
     _stage: 2
     _trigger: Five years on, towers light up
     _text: Look at that skyline. This place finally feels like the future.
-    _clip: {fileID: 0}
+    _clip: {fileID: 8300000, guid: c3c9c8d926448ba1f5326ef6d60a1403, type: 3}
   - _id: STU_08
     _character: 2
     _emotion: 0
@@ -228,7 +228,7 @@ MonoBehaviour:
   - _version: 0
     _stage: 1
     _lineIds:
-    - GRA_04
+    - GRA_02
     - WOR_02
     - STU_03
   - _version: 1
@@ -240,15 +240,15 @@ MonoBehaviour:
   - _version: 2
     _stage: 1
     _lineIds:
-    - GRA_08
-    - WOR_06
-    - STU_06
+    - GRA_09
+    - WOR_07
+    - STU_07
   - _version: 0
     _stage: 2
     _lineIds:
-    - GRA_05
-    - WOR_04
-    - STU_04
+    - GRA_02
+    - WOR_02
+    - STU_03
   - _version: 1
     _stage: 2
     _lineIds:
@@ -258,6 +258,6 @@ MonoBehaviour:
   - _version: 2
     _stage: 2
     _lineIds:
-    - GRA_11
+    - GRA_09
     - WOR_07
     - STU_07

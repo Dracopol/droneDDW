@@ -206,6 +206,13 @@ namespace DroneDDW.Characters.Editor
 			voice.maxDistance = VoiceMaxDistance;
 			VoiceLiveTap liveTap = root.AddComponent<VoiceLiveTap>();
 
+			// The card plays the person's own recording, at their level from Voice Levels
+			VoiceLevels levels = AssetDatabase.LoadAssetAtPath<VoiceLevels>(VoiceLevels.AssetPath);
+			if (levels != null && System.Enum.TryParse(portraits.DisplayName, out VoiceRole role))
+			{
+				root.AddComponent<VoiceGain>().Configure(levels, role);
+			}
+
 			RectTransform body = CreateBody(root.transform);
 			Image border = CreatePanelImage("Border", body, panel, portraits.AccentColor, 0f, CardCornerRadius);
 			CreatePanelImage("Panel", body, panel, PanelColor, BorderWidth, CardCornerRadius - BorderWidth);

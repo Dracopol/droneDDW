@@ -22,8 +22,8 @@
   <Project Path="DroneDDW.Experience.Tests.csproj" />
   <Project Path="DroneDDW.FingerGrab.csproj" />
   <Project Path="DroneDDW.NarratorOrb.Tests.csproj" />
-  <Project Path="DroneDDW.Characters.csproj" />
   <Project Path="DroneDDW.Voice.csproj" />
+  <Project Path="DroneDDW.Characters.csproj" />
   <Project Path="DroneDDW.FingerGrab.Editor.csproj" />
   <Project Path="DroneDDW.Neighborhood.Tests.csproj" />
   <Project Path="DroneDDW.Characters.Tests.csproj" />

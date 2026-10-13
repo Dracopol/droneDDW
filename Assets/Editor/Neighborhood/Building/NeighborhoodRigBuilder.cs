@@ -23,6 +23,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
         private const string LeftHandVisualName = "LeftHandQuestVisual";
         private const string HandVisualizerName = "Hand Visualizer";
+        private const string NearFarInteractorName = "Near-Far Interactor";
 
         #endregion
 
@@ -95,6 +96,15 @@ namespace DroneDDW.Neighborhood.Editor.Building
         {
             SetActiveInRig(rig, LeftHandVisualName, true);
             SetActiveInRig(rig, HandVisualizerName, false);
+
+            // No rays from the palms: the slider and the button read the hand bones, nothing uses the far interactors
+            foreach (Transform part in rig.GetComponentsInChildren<Transform>(true))
+            {
+                if (part.name == NearFarInteractorName)
+                {
+                    part.gameObject.SetActive(false);
+                }
+            }
         }
 
         private static void SetActiveInRig(Transform rig, string objectName, bool isActive)

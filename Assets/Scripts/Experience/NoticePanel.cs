@@ -74,6 +74,13 @@ namespace DroneDDW.Experience
 			_text = text;
 		}
 
+		// How far in front of the head it floats and how far below the eyes (the subtitles sit lower than the notices)
+		internal void ConfigurePlacement(float distanceMeters, float dropMeters)
+		{
+			_distanceMeters = distanceMeters;
+			_dropMeters = dropMeters;
+		}
+
 		internal void Show(string message)
 		{
 			_text.text = message;
