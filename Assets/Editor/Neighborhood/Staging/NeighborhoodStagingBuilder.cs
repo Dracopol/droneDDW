@@ -10,7 +10,8 @@ namespace DroneDDW.Neighborhood.Editor.Staging
     /// <summary>
     /// Applies <see cref="NeighborhoodStaging"/> while the Neighborhood scene is built. Each person and their props
     /// move and turn as one group (lights and light pools hang under their props, held props and the leash under the
-    /// people, so they come along); path and orbit routes among the props move with them. Then, version by version, it
+    /// people, so they come along); path and orbit routes among the props move with them. Groups of street objects can
+    /// also move on their own (the Balanced pond nearer to Grandma). Then, version by version, it
     /// looks for what the moved people and props now overlap (street objects, the houses and the seat, the other
     /// people) and logs it: a hint to move the spot or to add the object to the spot's removed objects. The build goes
     /// on either way.
@@ -192,7 +193,7 @@ namespace DroneDDW.Neighborhood.Editor.Staging
         private const float HeadroomMetres = 2.2f;
 
         // Surfaces people stand on: never in the way
-        private static readonly HashSet<string> GroundGroups = new HashSet<string>
+        internal static readonly HashSet<string> GroundGroups = new HashSet<string>
         {
             "Paving", "Plaza", "Paths", "LightInlays", "RobotLane", "StreetMarkings",
         };
@@ -269,6 +270,14 @@ namespace DroneDDW.Neighborhood.Editor.Staging
                 staged.Add(Move(spot, character.transform, FindProps(spot, nodes), seat));
             }
 
+            foreach (NeighborhoodStagingShift shift in staging.Shifts)
+            {
+                if (shift != null)
+                {
+                    Shift(shift, nodes);
+                }
+            }
+
             Dictionary<string, NeighborhoodLayoutElement> elements = new Dictionary<string, NeighborhoodLayoutElement>();
             foreach (NeighborhoodLayoutElement element in layout.Elements)
             {
@@ -324,6 +333,31 @@ namespace DroneDDW.Neighborhood.Editor.Staging
             Debug.Log($"[Neighborhood] Staging: {spot.Character} now {Describe(spot.Position - seat)}, "
                 + $"{FacingDescription(spot.TurnFromSeatDegrees)}; {props.Count} props moved with them.");
             return new StagedSpot(spot, person, props);
+        }
+
+        private static void Shift(NeighborhoodStagingShift shift, IReadOnlyDictionary<string, Transform> nodes)
+        {
+            Matrix4x4 move = Matrix4x4.Translate(shift.Offset);
+            int moved = 0;
+            foreach (string name in shift.Objects)
+            {
+                if (string.IsNullOrWhiteSpace(name) || !nodes.TryGetValue(name.Trim(), out Transform node) || node == null)
+                {
+                    Debug.LogWarning($"[Neighborhood] Staging: {name}, to move for {shift.Label}, is not in the street.");
+                    continue;
+                }
+
+                node.position += shift.Offset;
+                if (node.TryGetComponent(out NeighborhoodMover mover))
+                {
+                    mover.ApplyStaging(move);
+                }
+
+                moved++;
+            }
+
+            Debug.Log($"[Neighborhood] Staging: moved {moved} objects {shift.Offset.magnitude:0.0} m "
+                + $"({shift.Offset.x:0.0}, {shift.Offset.z:0.0}) for {shift.Label}.");
         }
 
         private static NeighborhoodCharacter FindCharacter(IReadOnlyList<NeighborhoodCharacter> characters, NeighborhoodCharacterId id)

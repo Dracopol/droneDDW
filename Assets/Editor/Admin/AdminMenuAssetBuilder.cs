@@ -11,12 +11,14 @@ namespace DroneDDW.Admin.Editor
 {
 	// Menu: DroneDDW > Admin Menu > Build Admin Menu Assets. Safe to run again: every asset keeps its GUID.
 	// 1. Makes TMP font assets from Inter Regular and SemiBold (Content/Fonts/Inter, OFL licence), static, with the
-	//    characters the menu uses, plus copies of their materials at the menu's render queue
-	// 2. Makes the menu's image material (UI/Default) at that queue and the pause dimmer's material
+	//    characters the menu uses, plus copies of their materials at the menu's render queue, on TMP's Overlay shader
+	// 2. Makes the menu's image material (Content/Shaders/Admin/Admin Menu UI: UI/Default ignoring depth) at that queue
+	//    and the pause dimmer's material
 	// 3. Draws the rounded rectangle and the table frame as 9-slice sprites, and bakes the icons (AdminMenuIconBaker)
 	// 4. Creates the settings asset if it is missing (never overwrites it)
 	// 5. Builds the prefab, Content/Prefabs/Admin/Admin Menu.prefab (AdminMenuPrefabBuilder); edit the builders, not it
 	// The menu draws at render queue 3600, after the dimmer (3500), which draws after the world's transparent objects.
+	// Its text and images ignore depth, like the subtitles, so the table and the world never cover it.
 	internal static class AdminMenuAssetBuilder
 	{
 		#region Fields
@@ -44,6 +46,8 @@ namespace DroneDDW.Admin.Editor
 		private const string RegularTtfPath = FontFolder + "/Inter-Regular.ttf";
 		private const string SemiBoldTtfPath = FontFolder + "/Inter-SemiBold.ttf";
 		private const string MaterialFolder = "Assets/Content/Materials/Admin";
+		private const string UiShaderPath = "Assets/Content/Shaders/Admin/Admin Menu UI.shader";
+		private const string TextShaderName = "TextMeshPro/Mobile/Distance Field Overlay";
 		private const string TextureFolder = "Assets/Content/Textures/Admin";
 		private const string RoundedRectPath = TextureFolder + "/Rounded Rect.png";
 		private const string TableFramePath = TextureFolder + "/Table Frame.png";
@@ -189,7 +193,7 @@ namespace DroneDDW.Admin.Editor
 
 		private static Material SaveTextMaterial(TMP_FontAsset fontAsset, string name)
 		{
-			Material material = LoadOrCreateMaterial(name, fontAsset.material.shader);
+			Material material = LoadOrCreateMaterial(name, Shader.Find(TextShaderName));
 			material.CopyPropertiesFromMaterial(fontAsset.material);
 			material.renderQueue = MenuRenderQueue;
 			EditorUtility.SetDirty(material);
@@ -198,7 +202,7 @@ namespace DroneDDW.Admin.Editor
 
 		private static Material SaveUiMaterial()
 		{
-			Material material = LoadOrCreateMaterial("Admin Menu UI", Shader.Find("UI/Default"));
+			Material material = LoadOrCreateMaterial("Admin Menu UI", AssetDatabase.LoadAssetAtPath<Shader>(UiShaderPath));
 			material.renderQueue = MenuRenderQueue;
 			EditorUtility.SetDirty(material);
 			return material;

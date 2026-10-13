@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace DroneDDW.Neighborhood.Characters
 {
-    /// <summary>What a character does in one version: the animator state (a looping pose clip) and the face.</summary>
+    /// <summary>
+    /// What a character does in one version: the animator state (a looping pose clip), the face, and whether they
+    /// stand (and how far below their origin their soles reach) or sit.
+    /// </summary>
     [Serializable]
     public sealed class NeighborhoodCharacterPose
     {
@@ -18,6 +21,14 @@ namespace DroneDDW.Neighborhood.Characters
         [SerializeField, Tooltip("Face while not talking in this version.")]
         private NeighborhoodEmotion _emotion;
 
+        [SerializeField, Tooltip("On: the person stands, their soles on the ground. Off: they sit, on a seat that "
+            + "stands on the same ground. Either way they rise and sink with the ground (the paving comes and goes).")]
+        private bool _isStanding;
+
+        [SerializeField, Min(0f), Tooltip("How far below the person's origin their soles reach in this pose, in metres; "
+            + "a standing person is raised by this so they rest on the ground.")]
+        private float _soleDepth;
+
         #endregion
 
         #region Properties
@@ -25,6 +36,8 @@ namespace DroneDDW.Neighborhood.Characters
         public NeighborhoodVersion Version => _version;
         public string State => _state;
         public NeighborhoodEmotion Emotion => _emotion;
+        public bool IsStanding => _isStanding;
+        public float SoleDepth => _soleDepth;
 
         #endregion
 
@@ -39,6 +52,16 @@ namespace DroneDDW.Neighborhood.Characters
             _version = version;
             _state = state;
             _emotion = emotion;
+        }
+
+        #endregion
+
+        #region Internal
+
+        internal void SetStance(bool isStanding, float soleDepth)
+        {
+            _isStanding = isStanding;
+            _soleDepth = Mathf.Max(0f, soleDepth);
         }
 
         #endregion

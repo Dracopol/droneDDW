@@ -9,8 +9,9 @@ namespace DroneDDW.Neighborhood.Characters
 {
     /// <summary>
     /// One of the three people. Follows the street: when the wave reaches them, they cross-fade to the pose of
-    /// the new version (a looping, breathing clip) and put on that version's face. Speaks voice lines through
-    /// the audio source at the head: the face shows the line's emotion and the mouth opens with the sound
+    /// the new version (a looping, breathing clip) and put on that version's face. They ride on the ground under
+    /// them, rising and sinking with the paving as it comes and goes (a seat stands on it too). Speaks voice lines
+    /// through the audio source at the head: the face shows the line's emotion and the mouth opens with the sound
     /// (or moves at a steady rate when a line has no clip yet, or when a spatializer hides the output data).
     /// </summary>
     [DisallowMultipleComponent]
@@ -56,6 +57,14 @@ namespace DroneDDW.Neighborhood.Characters
         [SerializeField, Min(1f), Tooltip("Mouth movements per second for a line without a clip.")]
         private float _silentTalkRate = 6f;
 
+        [Header("Ground")]
+        [SerializeField, Tooltip("The surfaces under the person (paving, plaza, paths), whichever versions they belong to.")]
+        private NeighborhoodVersionElement[] _groundElements = Array.Empty<NeighborhoodVersionElement>();
+
+        [SerializeField, Tooltip("A point on each surface's top under the person, in that surface's own space, so it "
+            + "rises and sinks with it.")]
+        private Vector3[] _groundPoints = Array.Empty<Vector3>();
+
         #endregion
 
         #region Fields
@@ -68,6 +77,8 @@ namespace DroneDDW.Neighborhood.Characters
         private readonly float[] _samples = new float[SampleCount];
         private readonly NeighborhoodLifetime _lifetime = new NeighborhoodLifetime();
         private NeighborhoodVersion _version;
+        private NeighborhoodCharacterPose _pose;
+        private float _bareGroundY;
         private NeighborhoodEmotion _restingEmotion;
         private int _poseRequestId;
         private int _speechId;
@@ -88,9 +99,35 @@ namespace DroneDDW.Neighborhood.Characters
         public NeighborhoodFace Face => _face;
         public Transform VoiceAnchor => _voice != null ? _voice.transform : transform;
 
+        /// <summary>The top of the ground under the person right now: the highest surface shown, else bare ground.</summary>
+        public float GroundY
+        {
+            get
+            {
+                float ground = _bareGroundY;
+                int count = Mathf.Min(_groundElements.Length, _groundPoints.Length);
+                for (int i = 0; i < count; i++)
+                {
+                    NeighborhoodVersionElement element = _groundElements[i];
+                    if (element != null && element.Presence > 0f)
+                    {
+                        ground = Mathf.Max(ground, element.transform.TransformPoint(_groundPoints[i]).y);
+                    }
+                }
+
+                return ground;
+            }
+        }
+
         #endregion
 
         #region Setup
+
+        private void Awake()
+        {
+            // The builder leaves the person on bare ground; paving under them lifts them from there
+            _bareGroundY = transform.position.y;
+        }
 
         private void OnEnable()
         {
@@ -148,6 +185,19 @@ namespace DroneDDW.Neighborhood.Characters
 
             _face.SetMouthOpen(isOpen);
             _mouthHoldUntil = now + _mouthMinHold;
+        }
+
+        // After the street has moved its elements this frame
+        private void LateUpdate()
+        {
+            bool isStanding = _pose != null && _pose.IsStanding;
+            Vector3 position = transform.position;
+            float y = GroundY + (isStanding ? _pose.SoleDepth : 0f);
+            if (!Mathf.Approximately(position.y, y))
+            {
+                position.y = y;
+                transform.position = position;
+            }
         }
 
         #endregion
@@ -244,6 +294,12 @@ namespace DroneDDW.Neighborhood.Characters
             _poses = poses ?? Array.Empty<NeighborhoodCharacterPose>();
         }
 
+        internal void ConfigureGround(NeighborhoodVersionElement[] groundElements, Vector3[] groundPoints)
+        {
+            _groundElements = groundElements ?? Array.Empty<NeighborhoodVersionElement>();
+            _groundPoints = groundPoints ?? Array.Empty<Vector3>();
+        }
+
         internal NeighborhoodCharacterPose FindPose(NeighborhoodVersion version)
         {
             foreach (NeighborhoodCharacterPose pose in _poses)
@@ -289,6 +345,8 @@ namespace DroneDDW.Neighborhood.Characters
             {
                 return;
             }
+
+            _pose = pose;
 
             _restingEmotion = pose.Emotion;
             if (!_isSpeaking && _face != null)

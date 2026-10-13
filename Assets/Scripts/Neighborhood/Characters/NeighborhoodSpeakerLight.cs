@@ -5,10 +5,13 @@ namespace DroneDDW.Neighborhood.Characters
     /// <summary>
     /// A soft warm pool of light on the ground under a person while they speak, so it is clear from the seat who is
     /// talking. It is a quad with the light pool shader, like the street lamps' pools (no realtime light): its colour
-    /// fades in when a line starts and out after it ends, and the quad is switched off while dark.
+    /// fades in when a line starts and out after it ends, and the quad is switched off while dark. It lies just above
+    /// whatever ground the person is on (bare ground or paving), around their shoes rather than through them.
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("DroneDDW/Neighborhood/Neighborhood Speaker Light")]
+    // After the person: the pool hangs under them, so it is placed once they stand where they belong this frame
+    [DefaultExecutionOrder(100)]
     public sealed class NeighborhoodSpeakerLight : MonoBehaviour
     {
         #region Serialized fields
@@ -27,6 +30,9 @@ namespace DroneDDW.Neighborhood.Characters
         #region Fields
 
         private static readonly int ColorId = Shader.PropertyToID("_Color");
+
+        // Above the ground's top, so the pool never sinks into it
+        private const float GroundGapMetres = 0.01f;
 
         private MaterialPropertyBlock _block;
         private bool _isSpeaking;
@@ -78,6 +84,19 @@ namespace DroneDDW.Neighborhood.Characters
             {
                 SetLevel(level);
             }
+        }
+
+        private void LateUpdate()
+        {
+            if (_pool == null || !_pool.enabled || _character == null)
+            {
+                return;
+            }
+
+            Transform pool = _pool.transform;
+            Vector3 position = pool.position;
+            position.y = _character.GroundY + GroundGapMetres;
+            pool.position = position;
         }
 
         #endregion

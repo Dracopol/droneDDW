@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DroneDDW.Neighborhood.Characters;
 using DroneDDW.Neighborhood.Editor.Layout;
+using DroneDDW.Neighborhood.Editor.Staging;
 using DroneDDW.Neighborhood.Versions;
 using DroneDDW.Neighborhood.Voice;
 using DroneDDW.Voice;
@@ -15,7 +16,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
     /// Puts the three people in the street: each model at its spot, an animator controller with one state per
     /// clip (the pose clips are named Pose_Nature, Pose_Balanced, Pose_Efficiency), the face parts, a spatial
     /// voice source on the head bone, the props they hold (parented to the hand bone while the matching pose
-    /// is sampled, so they sit in the hand) and the student's leash.
+    /// is sampled, so they sit in the hand) and the student's leash. Measures per pose whether they stand or sit,
+    /// and, once they stand at their final spots, the ground surfaces under them, which they ride on while playing.
     /// </summary>
     internal static class NeighborhoodCharacterBuilder
     {
@@ -25,8 +27,12 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const string NeckBone = "Neck";
         private const string SpineBone = "Spine1";
         private const string BodyMesh = "Body";
-        private const float SpeakerPoolHeight = 0.075f;
+        private const string HipsBone = "Hips";
+        // Just above the ground; the light keeps it there as the paving comes and goes
+        private const float SpeakerPoolHeight = 0.01f;
         private const float SpeakerPoolRadius = 1.2f;
+        // Hips less than this above the soles: the person sits (standing, the hips are about 0.8 m up, seated 0.55 m)
+        private const float MinStandingHipsMetres = 0.65f;
         private const string PreviewClipPrefix = "__preview__";
         private const float LeashWidth = 0.014f;
         private const int LeashPoints = 10;
@@ -76,6 +82,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 AudioSource voice = BuildVoice(instance, entry);
                 NeighborhoodCharacter character = instance.AddComponent<NeighborhoodCharacter>();
                 NeighborhoodCharacterPose[] poses = ToPoses(entry, library);
+                MeasureStances(instance, entry, clips, poses);
                 character.Configure((NeighborhoodCharacterId)entry.Id, animator, face, voice, controller, poses);
                 BuildLook(instance, character, entry.Name);
                 BuildSpeakerLight(instance, character, materials.SpeakerPool);
@@ -92,6 +99,53 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             return characters.ToArray();
+        }
+
+        /// <summary>
+        /// Gives each person the ground surfaces under their feet (paving, plaza, paths, from any version), with a point
+        /// on each top, so they ride on them while playing. Runs once the people stand at their final spots (after the
+        /// staging) and before the street shows its start version (the surfaces still at their places).
+        /// </summary>
+        internal static void PlaceOnGround(IReadOnlyList<NeighborhoodCharacter> characters, NeighborhoodLayout layout,
+            IReadOnlyDictionary<string, Transform> elementNodes)
+        {
+            foreach (NeighborhoodCharacter character in characters)
+            {
+                Vector3 origin = character.transform.position;
+                List<NeighborhoodVersionElement> surfaces = new List<NeighborhoodVersionElement>();
+                List<Vector3> points = new List<Vector3>();
+                float[] groundByVersion = new float[VersionNames.Length];
+                foreach (NeighborhoodLayoutElement entry in layout.Elements)
+                {
+                    if (!NeighborhoodStagingBuilder.GroundGroups.Contains(entry.Group)
+                        || !elementNodes.TryGetValue(entry.Name, out Transform node) || node == null
+                        || !node.TryGetComponent(out NeighborhoodVersionElement element)
+                        || !NeighborhoodGroundBuilder.TryReadTop(node, origin, out Vector3 top))
+                    {
+                        continue;
+                    }
+
+                    surfaces.Add(element);
+                    points.Add(node.InverseTransformPoint(top));
+                    for (int version = 0; version < groundByVersion.Length; version++)
+                    {
+                        if ((entry.Mask & (1 << version)) != 0)
+                        {
+                            groundByVersion[version] = Mathf.Max(groundByVersion[version], top.y - origin.y);
+                        }
+                    }
+                }
+
+                character.ConfigureGround(surfaces.ToArray(), points.ToArray());
+                List<string> grounds = new List<string>();
+                for (int version = 0; version < groundByVersion.Length; version++)
+                {
+                    grounds.Add($"{VersionNames[version]} {groundByVersion[version] * 100f:0.0} cm");
+                }
+
+                Debug.Log($"[Neighborhood] {character.name} has {surfaces.Count} ground surfaces under them; the ground "
+                    + $"there is {string.Join(", ", grounds)} above bare ground.");
+            }
         }
 
         #endregion
@@ -136,6 +190,59 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             return poses;
+        }
+
+        /// <summary>
+        /// Per pose, whether the person stands or sits (how high the hips are above the soles) and how far below the
+        /// origin the soles reach, from the body in that pose.
+        /// </summary>
+        private static void MeasureStances(GameObject instance, NeighborhoodLayoutCharacter entry,
+            Dictionary<string, AnimationClip> clips, NeighborhoodCharacterPose[] poses)
+        {
+            Transform hips = NeighborhoodBuildUtility.FindDeep(instance.transform, HipsBone);
+            SkinnedMeshRenderer[] bodies = instance.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (hips == null || bodies.Length == 0)
+            {
+                Debug.LogWarning($"[Neighborhood] {entry.Name} has no {HipsBone} bone or no skinned body; they stay where "
+                    + "they were placed in every version.");
+                return;
+            }
+
+            Mesh baked = new Mesh();
+            List<string> stances = new List<string>();
+            foreach (NeighborhoodCharacterPose pose in poses)
+            {
+                if (!clips.TryGetValue(pose.State, out AnimationClip clip))
+                {
+                    continue;
+                }
+
+                clip.SampleAnimation(instance, 0f);
+                float lowest = float.PositiveInfinity;
+                foreach (SkinnedMeshRenderer body in bodies)
+                {
+                    body.BakeMesh(baked, true);
+                    Matrix4x4 world = Matrix4x4.TRS(body.transform.position, body.transform.rotation, Vector3.one);
+                    foreach (Vector3 vertex in baked.vertices)
+                    {
+                        lowest = Mathf.Min(lowest, world.MultiplyPoint3x4(vertex).y);
+                    }
+                }
+
+                if (float.IsPositiveInfinity(lowest))
+                {
+                    continue;
+                }
+
+                bool isStanding = hips.position.y - lowest >= MinStandingHipsMetres;
+                float soleDepth = instance.transform.position.y - lowest;
+                pose.SetStance(isStanding, soleDepth);
+                stances.Add($"{VersionNames[(int)pose.Version]} {(isStanding ? "stands" : "sits")}, soles "
+                    + $"{soleDepth * 100f:0.0} cm below the origin");
+            }
+
+            Object.DestroyImmediate(baked);
+            Debug.Log($"[Neighborhood] {entry.Name}: {string.Join("; ", stances)}.");
         }
 
         /// <summary>

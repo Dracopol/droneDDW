@@ -195,6 +195,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodCharacter[] characters = NeighborhoodCharacterBuilder.Build(root, layout, nodes, materials, controller, street.transform, start,
                 library);
             List<string> overlaps = NeighborhoodStagingBuilder.Apply(staging, layout, characters, nodes, shared.transform, seat.transform.position);
+            NeighborhoodGroundBuilder.PlaceElements(layout, nodes, street.transform.position.y);
+            NeighborhoodCharacterBuilder.PlaceOnGround(characters, layout, nodes);
             controller.ShowVersionInEditor(start);
 
             NeighborhoodPushSettings pushSettings = NeighborhoodAssetUtility.LoadOrCreatePushSettings(root);

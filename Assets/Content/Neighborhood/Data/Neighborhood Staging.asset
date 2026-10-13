@@ -46,3 +46,16 @@ MonoBehaviour:
     - Dog_B_01
     - Dog_E_01
     _removedObjects: []
+  _shifts:
+  - _label: the Balanced pond nearer to Grandma
+    _offset: {x: 1.4, y: 0, z: 0}
+    _objects:
+    - Pond_B_01
+    - Pond_B_02
+    - Pond_B_03
+    - Pond_B_04
+    - Pond_B_05
+    - Pond_B_06
+    - Pond_B_07
+    - Ducks_B_01
+    - Ducks_B_02

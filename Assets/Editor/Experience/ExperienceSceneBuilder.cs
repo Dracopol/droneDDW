@@ -106,6 +106,7 @@ namespace DroneDDW.Experience.Editor
 		private const string LeftHandVisualName = "LeftHandQuestVisual";
 		private const string HandVisualizerName = "Hand Visualizer";
 		private const string NearFarInteractorName = "Near-Far Interactor";
+		private const string PinchVisualName = "Pinch Visual";
 
 		// The fade draws over the world and the pause dimmer (3500), under the admin menu (3600)
 		private const int FadeRenderQueue = 3550;
@@ -847,8 +848,10 @@ namespace DroneDDW.Experience.Editor
 			return anchor;
 		}
 
-		// The hands' far interactors draw rays from the palms; nothing here uses them (the tables read the hand bones, the
-		// admin menu the controllers), so they go
+		// The hands' far interactors draw rays from the palms, and their pinch points a glow ahead of the pinch while
+		// nothing is poked; nothing here uses them (the tables read the hand bones, the admin menu the controllers), so
+		// they go. The pinch points themselves stay on, only their glow's renderer goes: the hands' tracking events call
+		// them directly, and switched off they throw, which stops the hand meshes from showing.
 		private static void RemoveHandRays(Transform rig)
 		{
 			int removed = 0;
@@ -858,6 +861,10 @@ namespace DroneDDW.Experience.Editor
 				{
 					part.gameObject.SetActive(false);
 					removed++;
+				}
+				else if (part.name == PinchVisualName && part.TryGetComponent(out Renderer glow))
+				{
+					glow.enabled = false;
 				}
 			}
 
