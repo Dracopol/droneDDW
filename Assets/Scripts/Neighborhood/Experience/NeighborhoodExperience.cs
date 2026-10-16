@@ -205,12 +205,18 @@ namespace DroneDDW.Neighborhood.Experience
             }
         }
 
-        // The slider stays where it was locked in
+        // The slider stays where it was locked in, and the people stop talking so the narrator isn't spoken over
         private void HandleLockIn(int detent)
         {
             NeighborhoodVersion version = NeighborhoodVersions.Clamp(detent);
             LockedVersion = version;
             SetSliderEnabled(false);
+            if (_voice != null)
+            {
+                _voice.ReactToChanges = false;
+                _voice.Stop();
+            }
+
             Debug.Log($"[Neighborhood] Locked in {version}.", this);
             OnLockIn?.Invoke(version);
         }

@@ -130,13 +130,7 @@ namespace DroneDDW.Experience.Editor
 
 		// Where the orb floats, from the seated eyes (the Neighborhood's eye height above its seat, as its camera)
 		internal static readonly Vector3 OrbHomeOffset = new(0f, -0.05f, 1f);
-		private static readonly Vector3 OrbCharactersOffset = new(-0.5f, -0.22f, 0.8f);
 		private static readonly Vector3 OrbNeighborhoodOffset = new(0.6f, 0.25f, 0.9f);
-
-		// During the practice choice the orb floats above the lock-in button, to the participant's right so it isn't in
-		// front of the cap or the slider
-		private const float OrbButtonLiftMeters = 0.32f;
-		private const float OrbButtonSideMeters = 0.3f;
 
 		private static readonly Color NoticeBackground = new(0.07f, 0.08f, 0.1f, 0.92f);
 
@@ -232,9 +226,7 @@ namespace DroneDDW.Experience.Editor
 			Transform anchors = new GameObject("Orb Spots").transform;
 			anchors.SetParent(experience.transform, false);
 			Transform orbHome = CreateAnchor("Home", anchors, eyes + OrbHomeOffset);
-			Transform orbCharacters = CreateAnchor("While The Characters Speak", anchors, eyes + OrbCharactersOffset);
 			Transform orbNeighborhood = CreateAnchor("In The Neighborhood", anchors, eyes + OrbNeighborhoodOffset);
-			Transform orbButton = CreateAnchor("Above The Button", anchors, GetOrbButtonSpot(table));
 
 			HeadsetPresence presence = experience.AddComponent<HeadsetPresence>();
 			presence.Configure(CreateButtonAction("Headset Fallback", "<Keyboard>/space", "PrimaryButton"));
@@ -250,7 +242,7 @@ namespace DroneDDW.Experience.Editor
 
 			ExperienceDirector director = experience.AddComponent<ExperienceDirector>();
 			director.Configure(settings, session, presence, environment, notice);
-			director.ConfigureNarrator(orb, orbProp, orbHome, orbNeighborhood, orbCharacters, orbButton);
+			director.ConfigureNarrator(orb, orbProp, orbHome, orbNeighborhood);
 			director.ConfigureSteps(handCheck, practice, cardsProp, cards);
 			ExperienceSubtitles subtitles = experience.AddComponent<ExperienceSubtitles>();
 			subtitles.Configure(subtitlePanel, subtitleTable, CreateSubtitleSpeakers(portraitSets));
@@ -829,14 +821,6 @@ namespace DroneDDW.Experience.Editor
 			action.AddBinding($"<XRController>{{LeftHand}}/{{{controllerUsage}}}");
 			action.AddBinding($"<XRController>{{RightHand}}/{{{controllerUsage}}}");
 			return action;
-		}
-
-		// Above the practice table's lock-in button and to the participant's right, so it doesn't hang between the eyes and
-		// the slider behind the button
-		private static Vector3 GetOrbButtonSpot(NeighborhoodTableParts table)
-		{
-			Vector3 button = table.LockButton.transform.position;
-			return button + table.Root.transform.right * OrbButtonSideMeters + Vector3.up * OrbButtonLiftMeters;
 		}
 
 		private static Transform CreateAnchor(string name, Transform parent, Vector3 position)

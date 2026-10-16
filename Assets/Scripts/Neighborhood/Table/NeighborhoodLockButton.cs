@@ -101,6 +101,15 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Min(0f), Tooltip("How brightly the cap glows while a finger is close above it. 0: no change.")]
 		private float _hoverGlow;
 
+		[SerializeField, Tooltip("The highlight while the button is being explained: the slider handle's glow colour.")]
+		private Color _hintColor = new Color(0.95f, 0.76f, 0.19f);
+
+		[SerializeField, Min(0f), Tooltip("How brightly the cap and ring glow at the top of a highlight pulse.")]
+		private float _hintGlow = 1.2f;
+
+		[SerializeField, Min(0.05f), Tooltip("Highlight pulses per second.")]
+		private float _hintPulseHertz = 1f;
+
 		[SerializeField, Min(0f), Tooltip("How far above the cap's top a finger counts as close.")]
 		private float _hoverRangeMeters = 0.06f;
 
@@ -154,6 +163,12 @@ namespace DroneDDW.Neighborhood.Table
 		}
 
 		public bool IsLocked { get; private set; }
+
+		/// <summary>
+		/// Pulses the cap and ring orange, like the slider handle, until the button is pressed: the practice turns it on
+		/// while it explains the button.
+		/// </summary>
+		public bool IsHinted { get; set; }
 
 		/// <summary>The notch locked in, or -1 before a lock.</summary>
 		public int LockedDetent { get; private set; } = -1;
@@ -421,8 +436,12 @@ namespace DroneDDW.Neighborhood.Table
 				capColor = isArmed ? Color.Lerp(_armedColor, _lockedColor, _progress) : _waitingColor;
 			}
 
+			float hint = IsHinted && !IsLocked && _progress <= 0f
+				? 0.5f + 0.5f * Mathf.Sin(now * 2f * Mathf.PI * _hintPulseHertz)
+				: 0f;
+			Color hintGlow = _hintColor * (_hintGlow * hint);
 			float capGlow = Mathf.Max(breath, _isHovered && _isAvailable && !IsLocked ? _hoverGlow : 0f, flash);
-			SetLook(_capRenderer, capColor, capColor * capGlow);
+			SetLook(_capRenderer, Color.Lerp(capColor, _hintColor, hint * 0.5f), capColor * capGlow + hintGlow);
 			ApplyCapHeight();
 			ApplyLockBounce(lockAge);
 
@@ -442,8 +461,8 @@ namespace DroneDDW.Neighborhood.Table
 
 				float fill = isArmed || IsLocked ? Mathf.Clamp01(litSegments - segment) : 0f;
 				float wave = flash > 0f ? Mathf.Clamp01(1f - Mathf.Abs(flashPosition - segment) * 0.5f) : 0f;
-				Color color = Color.Lerp(_ringIdleColor, litColor, fill);
-				Color glow = litColor * (_ringGlow * fill + breath * 0.5f) + Color.white * wave;
+				Color color = Color.Lerp(Color.Lerp(_ringIdleColor, _hintColor, hint), litColor, fill);
+				Color glow = litColor * (_ringGlow * fill + breath * 0.5f) + Color.white * wave + hintGlow;
 				SetLook(segmentRenderer, color, glow);
 				segmentRenderer.transform.localPosition = Vector3.up * (_segmentLiftMeters * fill);
 			}

@@ -11,9 +11,9 @@ namespace DroneDDW.Neighborhood.Voice
 {
     /// <summary>
     /// Plays the voice lines through the three characters, one at a time. By default the people react after
-    /// every change the participant makes: when the street has settled, the reaction set for the new version
-    /// and the current stage plays (Now, or FiveYearsOn once the experience moves on). A new change cuts off
-    /// whatever is being said. Lines can also be played by ID, as a list, or as the introductions.
+    /// every change the participant makes: a moment after it (or after the slider is let go), while the street still
+    /// changes, the reaction set for the new version and the current stage plays (Now, or FiveYearsOn once the
+    /// experience moves on). A new change cuts off whatever is being said. Lines can also be played by ID, as a list, or as the introductions.
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("DroneDDW/Neighborhood/Neighborhood Voice Director")]
@@ -44,7 +44,8 @@ namespace DroneDDW.Neighborhood.Voice
         [SerializeField, Tooltip("Play the reaction set automatically when the street settles after a change.")]
         private bool _reactToChanges = true;
 
-        [SerializeField, Min(0f), Tooltip("Seconds between the street settling and the first reaction.")]
+        [SerializeField, Min(0f), Tooltip("Seconds between a change (or letting go of the slider) and the first reaction; "
+            + "the street keeps changing meanwhile.")]
         private float _reactionDelay = 0.5f;
 
         [SerializeField, Min(0f), Tooltip("Seconds of silence between two lines.")]
@@ -59,7 +60,6 @@ namespace DroneDDW.Neighborhood.Voice
         private CancellationTokenSource _sequence;
         private int _sequenceId;
         private NeighborhoodVoiceLine _currentLine;
-        private bool _isChangePending;
         private bool _isHeld;
         private bool _isReactionWaiting;
 
@@ -97,7 +97,6 @@ namespace DroneDDW.Neighborhood.Voice
             }
 
             _controller.OnVersionChange += HandleVersionChange;
-            _controller.OnTransitionComplete += HandleTransitionComplete;
         }
 
         private void OnDisable()
@@ -105,7 +104,6 @@ namespace DroneDDW.Neighborhood.Voice
             if (_controller != null)
             {
                 _controller.OnVersionChange -= HandleVersionChange;
-                _controller.OnTransitionComplete -= HandleTransitionComplete;
             }
 
             Stop();
@@ -120,24 +118,16 @@ namespace DroneDDW.Neighborhood.Voice
 
         #region Event handlers
 
+        // The people react while the street is still changing (the tall buildings take a while), not once it has settled
         private void HandleVersionChange(NeighborhoodVersionChange change)
         {
-            _isChangePending = !change.IsImmediate;
             _isReactionWaiting = false;
-            if (_isChangePending)
-            {
-                Stop();
-            }
-        }
-
-        private void HandleTransitionComplete(NeighborhoodVersion version)
-        {
-            if (!_isChangePending)
+            if (change.IsImmediate)
             {
                 return;
             }
 
-            _isChangePending = false;
+            Stop();
             if (!_reactToChanges)
             {
                 return;
@@ -149,7 +139,7 @@ namespace DroneDDW.Neighborhood.Voice
                 return;
             }
 
-            StartSequence(ToArray(GetReactionIds(version, _stage)), _reactionDelay);
+            StartSequence(ToArray(GetReactionIds(change.Next, _stage)), _reactionDelay);
         }
 
         #endregion
@@ -169,7 +159,7 @@ namespace DroneDDW.Neighborhood.Voice
         public void ReleaseReactions()
         {
             _isHeld = false;
-            if (!_isReactionWaiting || _controller == null || _controller.IsTransitioning)
+            if (!_isReactionWaiting || !_reactToChanges || _controller == null)
             {
                 return;
             }

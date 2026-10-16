@@ -202,6 +202,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodPushSettings pushSettings = NeighborhoodAssetUtility.LoadOrCreatePushSettings(root);
             NeighborhoodTableParts table = NeighborhoodTableBuilder.Build(root, layout, street.transform, head, trackingSpace,
                 pushSettings, start);
+            MoveTableSitters(layout, nodes, table);
             GameObject voiceObject = new GameObject("Voice");
             voiceObject.transform.SetParent(experience.transform, false);
             NeighborhoodVoiceDirector voice = voiceObject.AddComponent<NeighborhoodVoiceDirector>();
@@ -392,6 +393,27 @@ namespace DroneDDW.Neighborhood.Editor.Building
             renderer.lightProbeUsage = LightProbeUsage.Off;
             renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
             poolObject.transform.SetParent(parent, true);
+        }
+
+        // The layout puts the hopping robin on the table where the layout's table stands; the table placement then moves the
+        // table where its settings say, so the robin goes along by the same amount
+        private static void MoveTableSitters(NeighborhoodLayout layout, IReadOnlyDictionary<string, Transform> nodes,
+            NeighborhoodTableParts table)
+        {
+            if (table.Root == null)
+            {
+                return;
+            }
+
+            Vector3 shift = table.Root.transform.position - layout.Table.Position;
+            foreach (NeighborhoodLayoutElement entry in layout.Elements)
+            {
+                if (entry.Mover.Kind == (int)NeighborhoodMotionKind.Hop && nodes.TryGetValue(entry.Name, out Transform node)
+                    && node != null)
+                {
+                    node.position += shift;
+                }
+            }
         }
 
         private static void AddMover(GameObject target, NeighborhoodLayoutMover entry)

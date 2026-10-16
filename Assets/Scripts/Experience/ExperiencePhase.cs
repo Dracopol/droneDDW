@@ -4,7 +4,6 @@ namespace DroneDDW.Experience
 	public enum ExperiencePhase
 	{
 		CheckIn,
-		Handover,
 		Welcome,
 		HandCheck,
 		PracticeChoice,

@@ -120,9 +120,18 @@ namespace DroneDDW.Experience
 			}
 		}
 
+		// Locked in; the button pulses orange until then
 		internal async UniTask WaitForLockInAsync(CancellationToken cancellationToken)
 		{
-			await UniTask.WaitUntil(() => _lockButton.IsLocked, cancellationToken: cancellationToken);
+			_lockButton.IsHinted = true;
+			try
+			{
+				await UniTask.WaitUntil(() => _lockButton.IsLocked, cancellationToken: cancellationToken);
+			}
+			finally
+			{
+				_lockButton.IsHinted = false;
+			}
 		}
 
 		#endregion

@@ -48,7 +48,7 @@ namespace DroneDDW.Neighborhood.Versions
         private float _waveSpeed = 20f;
 
         [SerializeField, Min(0f), Tooltip("Nothing waits longer than this for the ring (the far streets and the skyline).")]
-        private float _maxWaveDelay = 2.4f;
+        private float _maxWaveDelay = 1.2f;
 
         [SerializeField, Min(0.05f), Tooltip("Seconds one element takes to leave or arrive.")]
         private float _elementDuration = 0.9f;

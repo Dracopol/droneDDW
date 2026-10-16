@@ -11,21 +11,21 @@ namespace DroneDDW.Experience
 {
 	// Runs a participant's session, one awaited part after another (logged as [Experience]):
 	// 1. Check-in: waits for the admin menu's Start session
-	// 2. Handover: shows the admin "Give the headset to participant 104" and waits for the headset to come off and go
-	//    back on (or A); then asks the participant to adjust the headset and waits until the admin holds A / X, and
-	//    recentres the scene in front of them (Reset player location)
+	// 2. Settle: asks the participant to adjust the headset and waits until the admin holds A / X, and recentres the
+	//    scene in front of them (Reset player location). No handover screen: while casting the headset never sleeps,
+	//    so it can't notice being passed on
 	// 3. Welcome: the orb appears and speaks
 	// 4. Hand check: line both hands up with the ghost hands
-	// 5. Practice choice: the table appears; moving the slider changes the orb; the orb drifts above the lock-in button,
-	//    holding it locks the choice in (not recorded), and the orb drifts back
-	// 6. Characters: the three cards appear and each says their line in turn, the orb waiting to their left
+	// 5. Practice choice: the table appears; moving the slider changes the orb; the lock-in button pulses orange,
+	//    holding it locks the choice in (not recorded)
+	// 6. Characters: the three cards appear and each says their line in turn, the orb drifting under the speaker
 	// 7. Into the Neighborhood, behind a fade; the orb comes along
 	// 8. The real choice: the slider changes the street; holding the button locks it in and records it (Id, Group,
 	//    Form choice, Date, Time in Sessions.csv, through Session Control)
 	// 9. Back to passthrough for the orb's outro, then goodbye
 	// 10. When the headset comes off (or A), End session: the scene reloads on check-in for the next participant
 	// Every step that waits for the participant gets the settings' stuck lines. Reset session (the same participant)
-	// starts over without check-in and handover. While the session is paused the tables' hands are switched off, since
+	// starts over without check-in. While the session is paused the tables' hands are switched off, since
 	// freezing time doesn't stop them.
 	[DisallowMultipleComponent]
 	[AddComponentMenu("DroneDDW/Experience/Experience Director")]
@@ -52,14 +52,13 @@ namespace DroneDDW.Experience
 		[Tooltip("Where it floats in the Neighborhood, out of the way of the street")]
 		[SerializeField] private Transform _orbNeighborhoodSpot;
 
-		[Tooltip("Where it waits while the characters speak, out of the way of the cards")]
-		[SerializeField] private Transform _orbCharactersSpot;
-
-		[Tooltip("Where it floats during the practice choice: above the lock-in button, on the right")]
-		[SerializeField] private Transform _orbButtonSpot;
-
 		[Min(0.1f)]
 		[SerializeField] private float _orbDriftSeconds = 1.5f;
+
+		[Tooltip("While a character speaks the orb floats under their card, this far below the card's centre (the card is "
+			+ "0.3 m high)")]
+		[Min(0f)]
+		[SerializeField] private float _orbBelowCardMeters = 0.3f;
 
 		[Header("Steps")]
 		[SerializeField] private HandAlignmentCondition _handCheck;
@@ -147,14 +146,12 @@ namespace DroneDDW.Experience
 		}
 
 		internal void ConfigureNarrator(NarratorOrbController orb, ExperienceProp orbProp, Transform orbHome,
-			Transform orbNeighborhoodSpot, Transform orbCharactersSpot, Transform orbButtonSpot)
+			Transform orbNeighborhoodSpot)
 		{
 			_orb = orb;
 			_orbProp = orbProp;
 			_orbHome = orbHome;
 			_orbNeighborhoodSpot = orbNeighborhoodSpot;
-			_orbCharactersSpot = orbCharactersSpot;
-			_orbButtonSpot = orbButtonSpot;
 		}
 
 		internal void ConfigureSubtitles(ExperienceSubtitles subtitles)
@@ -187,11 +184,6 @@ namespace DroneDDW.Experience
 			try
 			{
 				await CheckInAsync(cancellationToken);
-				if (!_session.IsRestart)
-				{
-					await HandoverAsync(cancellationToken);
-				}
-
 				await SettleAsync(cancellationToken);
 				await WelcomeAsync(cancellationToken);
 				await HandCheckAsync(cancellationToken);
@@ -225,18 +217,6 @@ namespace DroneDDW.Experience
 			}
 
 			await UniTask.WaitUntil(() => _session.HasParticipant, cancellationToken: cancellationToken);
-		}
-
-		private async UniTask HandoverAsync(CancellationToken cancellationToken)
-		{
-			SetPhase(ExperiencePhase.Handover);
-			_notice.Show(_settings.GetHandoverText(_session.ParticipantId));
-			if (!IsFastForward)
-			{
-				await SkippableAsync(_presence.WaitForHandoverAsync, cancellationToken);
-			}
-
-			_notice.Hide();
 		}
 
 		// People adjust the headset before they are ready, so the admin starts when they are; the scene then recentres in
@@ -276,20 +256,17 @@ namespace DroneDDW.Experience
 			await RunGuidedStepAsync("Move the slider", _practice.WaitForSliderMovedAsync, null, _settings.Slider,
 				cancellationToken);
 
-			// The orb shows the way to the button while it explains it, and comes back once the practice is locked in
-			await DriftOrbAsync(_orbButtonSpot, cancellationToken);
+			// The button pulses orange while the orb explains it
 			SetPracticeLockOpen(true);
 			await RunGuidedStepAsync("Lock in the practice choice", _practice.WaitForLockInAsync, null,
 				_settings.PracticeLockIn, cancellationToken);
 			SetPracticeLockOpen(false);
-			await DriftOrbAsync(_orbHome, cancellationToken);
 		}
 
 		private async UniTask CharactersAsync(CancellationToken cancellationToken)
 		{
 			SetPhase(ExperiencePhase.Characters);
 			await SayAsync(_settings.CharactersIntro, cancellationToken);
-			await DriftOrbAsync(_orbCharactersSpot, cancellationToken);
 
 			// Shown first: a card reads its line ahead with what it sets up when it wakes
 			_cardsProp.Show();
@@ -309,7 +286,9 @@ namespace DroneDDW.Experience
 					_cards[index].SetHighlighted(index == speaker);
 				}
 
-				await SayAsCharacterAsync(_cards[speaker], _settings.GetCharacterLine(speaker), cancellationToken);
+				// The orb drifts under the speaker while they start talking
+				await UniTask.WhenAll(DriftOrbUnderAsync(_cards[speaker].transform, cancellationToken),
+					SayAsCharacterAsync(_cards[speaker], _settings.GetCharacterLine(speaker), cancellationToken));
 				await PauseBetweenLinesAsync(cancellationToken);
 			}
 
@@ -571,6 +550,14 @@ namespace DroneDDW.Experience
 			return IsFastForward
 				? UniTask.CompletedTask
 				: OrbDriftUtil.DriftAsync(_orb, spot.position, _orbDriftSeconds, cancellationToken);
+		}
+
+		private UniTask DriftOrbUnderAsync(Transform card, CancellationToken cancellationToken)
+		{
+			return IsFastForward
+				? UniTask.CompletedTask
+				: OrbDriftUtil.DriftAsync(_orb, card.position + Vector3.down * _orbBelowCardMeters, _orbDriftSeconds,
+					cancellationToken);
 		}
 
 		private int ShowSubtitle(AudioClip clip)
