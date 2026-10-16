@@ -4,8 +4,8 @@ using UnityEngine;
 namespace DroneDDW.Neighborhood.Editor.Inspectors
 {
     /// <summary>
-    /// Writes the shared tuning assets to disk as Play mode ends: the slider's push settings and the finger grab
-    /// settings. Unity keeps changes made in Play mode in memory anyway, but until they are saved a crash would lose them.
+    /// Writes the shared tuning assets to disk as Play mode ends: the slider's push settings, the table's placement and
+    /// the finger grab settings. Unity keeps changes made in Play mode in memory anyway, but until they are saved a crash would lose them.
     /// </summary>
     [InitializeOnLoad]
     internal static class NeighborhoodTuningAutoSave
@@ -13,7 +13,10 @@ namespace DroneDDW.Neighborhood.Editor.Inspectors
         #region Fields
 
         // Found by type name, so this needs no reference to the finger grab's internals
-        private static readonly string[] AssetTypes = { "NeighborhoodPushSettings", "FingerGrabSettings" };
+        private static readonly string[] AssetTypes =
+        {
+            "NeighborhoodPushSettings", "NeighborhoodTableSettings", "FingerGrabSettings",
+        };
 
         #endregion
 

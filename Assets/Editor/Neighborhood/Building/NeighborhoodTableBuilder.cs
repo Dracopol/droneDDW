@@ -19,18 +19,19 @@ namespace DroneDDW.Neighborhood.Editor.Building
     /// <summary>
     /// The table in front of the seat: the rig from Street_Table.fbx, the three miniatures under its model
     /// root, the three-notch slider, pushed by any part of a hand and grabbed once the fingers close
-    /// (the same input as the park's slider, tuned by the push settings), and the lock-in button right of the slider's
-    /// end, a push button held down to lock the choice in: in the table's right corner or on a stand beside the table
-    /// (<see cref="NeighborhoodLockButtonPlacement"/>), made in the table's low-poly palette style. The experience also
-    /// builds a practice table with it: the same table, slider and button in the same place, without the miniatures, for
-    /// the passthrough part before the Neighborhood.
+    /// (the same input as the park's slider, tuned by the push settings), and the lock-in button, a push button held down
+    /// to lock the choice in: in the middle in front of the slider on a deeper top, in the table's right corner or on a
+    /// stand beside the table (<see cref="NeighborhoodLockButtonPlacement"/>), made in the table's low-poly palette style.
+    /// With the button in front the table stands where the table settings say. The experience also builds a practice
+    /// table with it: the same table, slider and button in the same place, without the miniatures, for the passthrough
+    /// part before the Neighborhood.
     /// </summary>
     internal static class NeighborhoodTableBuilder
     {
         #region Fields
 
-        /// <summary>Where the Neighborhood and the experience put the button: on the stand, chosen after the placement tests.</summary>
-        internal const NeighborhoodLockButtonPlacement DefaultPlacement = NeighborhoodLockButtonPlacement.Stand;
+        /// <summary>Where the Neighborhood and the experience put the button: on the table, in front of the slider.</summary>
+        internal const NeighborhoodLockButtonPlacement DefaultPlacement = NeighborhoodLockButtonPlacement.TableFront;
 
         private const string TableModel = "Street_Table";
         private const string MiniaturesModel = "Street_Miniatures";
@@ -69,6 +70,16 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const float StandTopHalfWidthMeters = 0.09f;
         private const float StandTopThicknessMeters = 0.04f;
         private const float StandLegWidthMeters = 0.05f;
+
+        // In front of the slider: the stand's button, this far from the slider's near side and from the table's near edge.
+        // The top is made deeper for it, as thick as the model's, on legs as thick as the model's and as far in from its
+        // corners.
+        private const float FrontGapMeters = 0.05f;
+        private const float FrontEdgeMarginMeters = 0.04f;
+        private const float TableTopThicknessMeters = 0.04f;
+        private const float TableLegWidthMeters = 0.05f;
+        private const float TableLegInsetMeters = 0.03f;
+        private const string TableMeshPrefix = "Street_Table_Front";
 
         // The check mark on the cap, as fractions of the cap's radius: a short stroke down to the corner, a long one up
         private const float CheckStrokeWidth = 0.2f;
@@ -128,25 +139,41 @@ namespace DroneDDW.Neighborhood.Editor.Building
         internal static NeighborhoodTableParts BuildPractice(Transform head, Transform trackingSpace,
             NeighborhoodLockButtonPlacement placement = DefaultPlacement)
         {
+            return BuildOnItsOwn(head, trackingSpace, false, placement);
+        }
+
+        /// <summary>
+        /// The Neighborhood's whole table, miniatures included, without the street: for the table tuning scene. Empty
+        /// parts when the Neighborhood content is missing.
+        /// </summary>
+        internal static NeighborhoodTableParts BuildForTuning(Transform head, Transform trackingSpace)
+        {
+            return BuildOnItsOwn(head, trackingSpace, true, DefaultPlacement);
+        }
+
+        #endregion
+
+        #region Private
+
+        // A table outside the Neighborhood scene, reading the layout and push settings itself, on the middle notch
+        private static NeighborhoodTableParts BuildOnItsOwn(Transform head, Transform trackingSpace, bool hasMiniatures,
+            NeighborhoodLockButtonPlacement placement)
+        {
             string root = NeighborhoodAssetUtility.FindRootFolder();
             TextAsset json = string.IsNullOrEmpty(root)
                 ? null
                 : AssetDatabase.LoadAssetAtPath<TextAsset>($"{root}/{NeighborhoodAssetUtility.LayoutsFolder}/{LayoutFileName}");
             if (json == null)
             {
-                Debug.LogError($"[Neighborhood] The practice table needs the Neighborhood content and {LayoutFileName}.");
+                Debug.LogError($"[Neighborhood] The table needs the Neighborhood content and {LayoutFileName}.");
                 return default;
             }
 
             NeighborhoodLayout layout = JsonUtility.FromJson<NeighborhoodLayout>(json.text);
             NeighborhoodPushSettings settings = NeighborhoodAssetUtility.LoadOrCreatePushSettings(root);
-            return BuildTable(root, layout, null, head, trackingSpace, settings, NeighborhoodVersion.Balanced, false,
-                placement);
+            return BuildTable(root, layout, null, head, trackingSpace, settings, NeighborhoodVersion.Balanced,
+                hasMiniatures, placement);
         }
-
-        #endregion
-
-        #region Private
 
         private static NeighborhoodTableParts BuildTable(string root, NeighborhoodLayout layout, Transform streetRoot,
             Transform head, Transform trackingSpace, NeighborhoodPushSettings settings, NeighborhoodVersion start,
@@ -214,7 +241,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             AddSliderLook(versionSlider, handle, driver as Behaviour, highlight);
             NeighborhoodSliderHint hint = hasMiniatures ? null : AddSliderHint(root, handle, props);
             NeighborhoodLockButton lockButton = AddLockButton(root, rig.transform, versionSlider, handBones, settings,
-                placement, head, highlight, props);
+                placement, head, new Vector3(0f, layout.SeatHeight, 0f), highlight, props);
             return new NeighborhoodTableParts(rig, versionSlider, preview, lockButton, handBones, driver, hint);
         }
 
@@ -327,14 +354,15 @@ namespace DroneDDW.Neighborhood.Editor.Building
         }
 
         /// <summary>
-        /// The lock-in button on the slider's line, right of its end: in the table's right corner, or on a stand beside the
-        /// table. A slate collar, the cap a press pushes down rising out of it with a check mark on top, a ring of segments
+        /// The lock-in button: in the middle in front of the slider, on a top made deeper for it, with the table moved where
+        /// its settings say (from the seat); or on the slider's line, right of its end, in the table's right corner or on a
+        /// stand beside the table. A slate collar, the cap a press pushes down rising out of it with a check mark on top, a ring of segments
         /// on the collar around the cap that lights up while the button is held, the countdown above it, and its own sounds;
         /// low-poly meshes in the table's palette. The table's top, track and end glyphs are measured from the model.
         /// </summary>
         private static NeighborhoodLockButton AddLockButton(string root, Transform table, NeighborhoodSlider slider,
             NeighborhoodHandBones handBones, NeighborhoodPushSettings settings, NeighborhoodLockButtonPlacement placement,
-            Transform head, Material highlight, Material props)
+            Transform head, Vector3 seat, Material highlight, Material props)
         {
             if (!TryGetBounds(table, NeighborhoodBuildUtility.FindDeep(table, TablePartName), out Bounds tableBounds)
                 || !TryGetBounds(table, NeighborhoodBuildUtility.FindDeep(table, TrackPartName), out Bounds trackBounds))
@@ -386,6 +414,15 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 AddStand(folder, table, new Vector3(center.x, tableBounds.min.y, lineZ), FaceSeat(table, head, center, lineZ),
                     surfaceY - tableBounds.min.y, props);
             }
+            else if (placement == NeighborhoodLockButtonPlacement.TableFront)
+            {
+                collarRadius = StandCollarRadiusMeters;
+                travel = StandTravelMeters;
+                float sliderNearZ = sliderParts.Min(part => part.min.z);
+                center = new Vector3(trackBounds.center.x, surfaceY, sliderNearZ - FrontGapMeters - collarRadius);
+                tableBounds = BuildFrontTable(root, folder, table, tableBounds,
+                    center.z - collarRadius - FrontEdgeMarginMeters, seat);
+            }
             else
             {
                 float roomMeters = tableBounds.max.x - sliderEndX;
@@ -402,7 +439,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             CheckFootprint(center, collarRadius, sliderParts,
-                placement == NeighborhoodLockButtonPlacement.TableCorner ? tableBounds : (Bounds?)null);
+                placement == NeighborhoodLockButtonPlacement.Stand ? (Bounds?)null : tableBounds);
 
             GameObject buttonObject = new GameObject("Lock Button");
             Transform button = buttonObject.transform;
@@ -524,6 +561,50 @@ namespace DroneDDW.Neighborhood.Editor.Building
                 NeighborhoodLowPolyMeshes.Wood, NeighborhoodLowPolyMeshes.Cream), $"{folder}/{ButtonMeshPrefix}_Stand.asset");
             MeshRenderer stand = CreatePart("Lock Button Stand", table, mesh, material);
             stand.transform.SetLocalPositionAndRotation(footCenter, facing);
+        }
+
+        /// <summary>
+        /// The model's top made deeper towards the seat, down to <paramref name="nearZ"/>, in its colours: the same width,
+        /// far edge, height and thickness, drawn by Rig_Table itself. Its legs are a mesh of their own, one metre high, that
+        /// the table's placement stretches down to the floor; the placement then moves the table where the settings say.
+        /// Returns the new top's bounds in the table's space.
+        /// </summary>
+        private static Bounds BuildFrontTable(string root, string folder, Transform table, Bounds modelTop, float nearZ,
+            Vector3 seat)
+        {
+            Transform top = NeighborhoodBuildUtility.FindDeep(table, TablePartName);
+            Vector3 min = new Vector3(modelTop.min.x, modelTop.max.y - TableTopThicknessMeters, nearZ);
+            Vector3 max = new Vector3(modelTop.max.x, modelTop.max.y, modelTop.max.z);
+            Mesh topMesh = NeighborhoodLowPolyMeshes.Save(NeighborhoodLowPolyMeshes.CreateBoxes("Table Top",
+                new[] { (min, max) }, NeighborhoodLowPolyMeshes.Wood, NeighborhoodLowPolyMeshes.Cream),
+                $"{folder}/{TableMeshPrefix}_Top.asset");
+
+            // The generated meshes are in the table's space, so the part sits on the table's origin
+            top.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            top.localScale = Vector3.one;
+            top.GetComponent<MeshFilter>().sharedMesh = topMesh;
+
+            float[] legX = { min.x + TableLegInsetMeters, max.x - TableLegInsetMeters - TableLegWidthMeters };
+            float[] legZ = { min.z + TableLegInsetMeters, max.z - TableLegInsetMeters - TableLegWidthMeters };
+            List<(Vector3 Min, Vector3 Max)> legs = new List<(Vector3 Min, Vector3 Max)>();
+            foreach (float x in legX)
+            {
+                foreach (float z in legZ)
+                {
+                    legs.Add((new Vector3(x, 0f, z), new Vector3(x + TableLegWidthMeters, 1f, z + TableLegWidthMeters)));
+                }
+            }
+
+            Mesh legsMesh = NeighborhoodLowPolyMeshes.Save(NeighborhoodLowPolyMeshes.CreateBoxes("Table Legs", legs,
+                NeighborhoodLowPolyMeshes.Wood, NeighborhoodLowPolyMeshes.Wood), $"{folder}/{TableMeshPrefix}_Legs.asset");
+            MeshRenderer legsRenderer = CreatePart("Rig_Table_Legs", top, legsMesh,
+                top.GetComponent<MeshRenderer>().sharedMaterial);
+
+            NeighborhoodTablePlacement placement = table.gameObject.AddComponent<NeighborhoodTablePlacement>();
+            placement.Configure(NeighborhoodAssetUtility.LoadOrCreateTableSettings(root), seat, nearZ, max.y,
+                TableTopThicknessMeters, legsRenderer.transform);
+            placement.Apply();
+            return new Bounds((min + max) * 0.5f, max - min);
         }
 
         /// <summary>World-space text in a box, as big as fits it (up to the given size), centred.</summary>

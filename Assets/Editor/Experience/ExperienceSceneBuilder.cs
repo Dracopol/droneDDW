@@ -133,10 +133,10 @@ namespace DroneDDW.Experience.Editor
 		private static readonly Vector3 OrbCharactersOffset = new(-0.5f, -0.22f, 0.8f);
 		private static readonly Vector3 OrbNeighborhoodOffset = new(0.6f, 0.25f, 0.9f);
 
-		// During the practice choice the orb floats above the lock-in button, a little further out so it isn't in front
-		// of the cap
+		// During the practice choice the orb floats above the lock-in button, to the participant's right so it isn't in
+		// front of the cap or the slider
 		private const float OrbButtonLiftMeters = 0.32f;
-		private const float OrbButtonOutMeters = 0.1f;
+		private const float OrbButtonSideMeters = 0.3f;
 
 		private static readonly Color NoticeBackground = new(0.07f, 0.08f, 0.1f, 0.92f);
 
@@ -831,13 +831,12 @@ namespace DroneDDW.Experience.Editor
 			return action;
 		}
 
-		// Above the practice table's lock-in button, moved out from the table's middle (to the participant's right)
+		// Above the practice table's lock-in button and to the participant's right, so it doesn't hang between the eyes and
+		// the slider behind the button
 		private static Vector3 GetOrbButtonSpot(NeighborhoodTableParts table)
 		{
 			Vector3 button = table.LockButton.transform.position;
-			Vector3 outward = button - table.Root.transform.position;
-			outward.y = 0f;
-			return button + outward.normalized * OrbButtonOutMeters + Vector3.up * OrbButtonLiftMeters;
+			return button + table.Root.transform.right * OrbButtonSideMeters + Vector3.up * OrbButtonLiftMeters;
 		}
 
 		private static Transform CreateAnchor(string name, Transform parent, Vector3 position)

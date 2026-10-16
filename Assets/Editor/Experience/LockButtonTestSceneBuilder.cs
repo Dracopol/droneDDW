@@ -112,13 +112,14 @@ namespace DroneDDW.Experience.Editor
 			GameObject readoutObject = new("Lock Button Test");
 			LockButtonTestReadout readout = readoutObject.AddComponent<LockButtonTestReadout>();
 			readout.Configure(table.LockButton, table.Slider,
-				CreateLabel(readoutObject.transform, new Vector3(0f, seatHeight + eyeHeight, 0f) + LabelOffsetFromEyes, font));
+				CreateLabel(readoutObject.transform, new Vector3(0f, seatHeight + eyeHeight, 0f) + LabelOffsetFromEyes, font,
+					new Vector2(LabelWidth, LabelHeight)));
 
 			EditorSceneManager.SaveScene(scene, GetScenePath(sceneName));
 			return true;
 		}
 
-		private static void CreateLight()
+		internal static void CreateLight()
 		{
 			GameObject lightObject = new("Light");
 			lightObject.AddComponent<Light>().type = LightType.Directional;
@@ -126,7 +127,7 @@ namespace DroneDDW.Experience.Editor
 		}
 
 		// A dark panel with the readout's lines, facing the seat
-		private static TMP_Text CreateLabel(Transform parent, Vector3 position, TMP_FontAsset font)
+		internal static TMP_Text CreateLabel(Transform parent, Vector3 position, TMP_FontAsset font, Vector2 size)
 		{
 			GameObject labelObject = new("Label", typeof(RectTransform));
 			RectTransform labelRect = (RectTransform)labelObject.transform;
@@ -135,7 +136,7 @@ namespace DroneDDW.Experience.Editor
 			canvas.renderMode = RenderMode.WorldSpace;
 			canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.TexCoord1
 				| AdditionalCanvasShaderChannels.Normal | AdditionalCanvasShaderChannels.Tangent;
-			labelRect.sizeDelta = new Vector2(LabelWidth, LabelHeight);
+			labelRect.sizeDelta = size;
 			labelRect.localScale = Vector3.one * MetersPerMillimeter;
 			labelRect.position = position;
 
@@ -171,7 +172,7 @@ namespace DroneDDW.Experience.Editor
 			rect.offsetMax = new Vector2(-inset, -inset);
 		}
 
-		private static void EnsureFolder(string folder)
+		internal static void EnsureFolder(string folder)
 		{
 			if (AssetDatabase.IsValidFolder(folder))
 			{

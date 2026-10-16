@@ -32,6 +32,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
         private const string PushSettingsFileName = "Neighborhood Push Settings.asset";
         private const string StagingFileName = "Neighborhood Staging.asset";
+        private const string TableSettingsFileName = "Neighborhood Table Settings.asset";
         private const string PaletteSearch = "Street_Palette t:Texture2D";
         private const string LightPoolTextureName = "Street_LightPool.png";
         private const string CharacterTextureName = "Street_Characters.png";
@@ -113,6 +114,25 @@ namespace DroneDDW.Neighborhood.Editor.Building
             }
 
             settings = ScriptableObject.CreateInstance<NeighborhoodPushSettings>();
+            AssetDatabase.CreateAsset(settings, path);
+            AssetDatabase.SaveAssets();
+            return settings;
+        }
+
+        /// <summary>
+        /// Where the table stands (Data/Neighborhood Table Settings.asset under the root): created with the defaults the
+        /// first time, never overwritten after, so tuning survives every rebuild.
+        /// </summary>
+        internal static NeighborhoodTableSettings LoadOrCreateTableSettings(string root)
+        {
+            string path = $"{EnsureFolder(root, DataFolder)}/{TableSettingsFileName}";
+            NeighborhoodTableSettings settings = AssetDatabase.LoadAssetAtPath<NeighborhoodTableSettings>(path);
+            if (settings != null)
+            {
+                return settings;
+            }
+
+            settings = ScriptableObject.CreateInstance<NeighborhoodTableSettings>();
             AssetDatabase.CreateAsset(settings, path);
             AssetDatabase.SaveAssets();
             return settings;
