@@ -38,6 +38,19 @@ namespace DroneDDW.Experience
 		[Tooltip("Make the real choice in the Neighborhood and lock it in")]
 		[SerializeField] private GuidedStepLines _neighborhoodLockIn = new();
 
+		[Header("Neighborhood table")]
+		[Tooltip("Plays as the slider, then the lock-in button, pop in after the Neighborhood welcome")]
+		[SerializeField] private AudioClip _tablePopClip;
+
+		[Tooltip("Between the slider popping in and the button popping in")]
+		[Min(0f)]
+		[SerializeField] private float _tablePopGapSeconds = 0.4f;
+
+		[Tooltip("How long each one takes to grow in")]
+		[Min(0.01f)]
+		[SerializeField] private float _tablePopGrowSeconds = 0.25f;
+
+		[Header("Narration (the orb), back in passthrough")]
 		[Tooltip("Back in passthrough")]
 		[SerializeField] private AudioClip _outro;
 
@@ -97,6 +110,9 @@ namespace DroneDDW.Experience
 		public AudioClip CharactersIntro => _charactersIntro;
 		public AudioClip NeighborhoodWelcome => _neighborhoodWelcome;
 		public GuidedStepLines NeighborhoodLockIn => _neighborhoodLockIn;
+		public AudioClip TablePopClip => _tablePopClip;
+		public float TablePopGapSeconds => _tablePopGapSeconds;
+		public float TablePopGrowSeconds => _tablePopGrowSeconds;
 		public AudioClip Outro => _outro;
 		public AudioClip Goodbye => _goodbye;
 		public float FirstHintDelaySeconds => _firstHintDelaySeconds;

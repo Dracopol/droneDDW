@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using DroneDDW.Neighborhood.Audio;
 using DroneDDW.Neighborhood.Characters;
 using DroneDDW.Neighborhood.Table;
@@ -295,6 +298,81 @@ namespace DroneDDW.Neighborhood.Experience
             {
                 _lockButton.IsAvailable = isEnabled;
             }
+        }
+
+        /// <summary>
+        /// Hides the slider and the lock-in button at once, e.g. while the narrator speaks, so nobody can move the
+        /// slider (and set the people talking) before they are meant to.
+        /// </summary>
+        public void HideTableControls()
+        {
+            foreach (Transform part in GetTableControls())
+            {
+                part.gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>Brings the slider, then the lock-in button, back one by one, each growing in with the clip.</summary>
+        public async UniTask RevealTableControlsAsync(AudioClip popClip, float gapSeconds, float growSeconds,
+            CancellationToken cancellationToken)
+        {
+            Transform[] parts = GetTableControls();
+            for (int index = 0; index < parts.Length; index++)
+            {
+                if (index > 0)
+                {
+                    await UniTask.Delay(TimeSpan.FromSeconds(gapSeconds), cancellationToken: cancellationToken);
+                }
+
+                Transform part = parts[index];
+                if (part.gameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                part.gameObject.SetActive(true);
+                if (popClip != null)
+                {
+                    AudioSource.PlayClipAtPoint(popClip, part.position);
+                }
+
+                await GrowInAsync(part, growSeconds, cancellationToken);
+            }
+        }
+
+        #endregion
+
+        #region Table controls
+
+        private Transform[] GetTableControls()
+        {
+            return new[] { _slider != null ? _slider.transform : null, _lockButton != null ? _lockButton.transform : null }
+                .Where(part => part != null).ToArray();
+        }
+
+        // Scales up from nothing with a little overshoot; ends at full size even if cut off
+        private static async UniTask GrowInAsync(Transform part, float seconds, CancellationToken cancellationToken)
+        {
+            Vector3 fullScale = part.localScale;
+            try
+            {
+                for (float elapsed = 0f; elapsed < seconds; elapsed += Time.deltaTime)
+                {
+                    part.localScale = fullScale * EaseOutBack(elapsed / seconds);
+                    await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                }
+            }
+            finally
+            {
+                part.localScale = fullScale;
+            }
+        }
+
+        private static float EaseOutBack(float t)
+        {
+            const float overshoot = 1.70158f;
+            float shifted = t - 1f;
+            return 1f + (overshoot + 1f) * shifted * shifted * shifted + overshoot * shifted * shifted;
         }
 
         #endregion

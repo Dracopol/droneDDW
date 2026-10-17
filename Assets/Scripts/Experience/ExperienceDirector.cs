@@ -322,6 +322,8 @@ namespace DroneDDW.Experience
 			}
 
 			await SayAsync(_settings.NeighborhoodWelcome, cancellationToken);
+			await _neighborhood.RevealTableControlsAsync(_settings.TablePopClip, _settings.TablePopGapSeconds,
+				_settings.TablePopGrowSeconds, cancellationToken);
 			_isNeighborhoodLockOpen = true;
 			ApplyInput();
 			await RunGuidedStepAsync("Lock in the choice", WaitForNeighborhoodLockInAsync, null,
@@ -579,6 +581,12 @@ namespace DroneDDW.Experience
 			_orb.MoveTo(_orbNeighborhoodSpot.position);
 			_orb.SetVisible(false);
 			_orb.SetSpatial(false);
+
+			// Out of sight until the welcome ends, so the slider can't set the people talking over the orb
+			if (_environment.Neighborhood != null)
+			{
+				_environment.Neighborhood.HideTableControls();
+			}
 		}
 
 		private void MoveOrbHome()

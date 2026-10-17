@@ -78,15 +78,6 @@ MonoBehaviour:
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
     _text: 'Nice, that''s my new look! That''s how you''ll choose later on: slide,
       then hold.'
-  - _clip: {fileID: 8300000, guid: d0b309f634ed72481cca60a6db0c0980, type: 3}
-    _speaker: 
-    _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: When you've found the version you like best, hold the button to lock in
-      your choice.
-  - _clip: {fileID: 8300000, guid: c4561206c3e0669e1719e90819068c43, type: 3}
-    _speaker: 
-    _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: Thank you! Your choice is saved.
   - _clip: {fileID: 8300000, guid: fe8ca3c9ec3b8811d7cfc2b73ffce21b, type: 3}
     _speaker: Grandma
     _speakerColor: {r: 0.9137255, g: 0.7529412, b: 0.30980393, a: 1}

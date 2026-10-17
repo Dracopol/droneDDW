@@ -94,9 +94,7 @@ namespace DroneDDW.Experience.Editor
 			{ "Narrator_PracticeLockIn_Success", "Nice, that's my new look! That's how you'll choose later on: slide, then hold." },
 			{ "Narrator_CharactersIntro", "Before we start, let me introduce some people from the neighborhood." },
 			{ "Narrator_NeighborhoodWelcome", "This is their neighborhood. The slider has three versions of its future, from nature to efficiency. Look around and listen to what the neighbors have to say." },
-			{ "Narrator_NeighborhoodLockIn_Prompt", "When you've found the version you like best, hold the button to lock in your choice." },
 			{ "Narrator_NeighborhoodLockIn_Stuck", "Choose with the slider, then hold the button until the ring is full." },
-			{ "Narrator_NeighborhoodLockIn_Success", "Thank you! Your choice is saved." },
 			{ "Narrator_Outro", "We're back in the real world. Thanks for helping us think about the future of our neighborhoods." },
 			{ "Narrator_Goodbye", "That's all! You can take off the headset now." },
 		};
