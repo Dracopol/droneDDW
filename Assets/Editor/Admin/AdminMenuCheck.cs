@@ -290,16 +290,15 @@ namespace DroneDDW.Admin.Editor
 				() => Expect(true, Menu.PauseScreen, Menu.ResumeButton) ?? ExpectPaused(true));
 			Add("the session clock stands still while paused", Control.None, CheckClockStopped, RememberClock);
 			Add("left stick down moves the hover", Control.LeftStickDown,
-				() => Expect(true, Menu.PauseScreen, Menu.ResetButton));
-			Add("right stick down moves it too", Control.RightStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.EndButton));
+			Add("right stick down moves it too", Control.RightStickDown,
+				() => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("holding the stick repeats and stops at the last button", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton), holdSeconds: 0.9f);
 			Add("pushing right where nothing is leaves the hover", Control.LeftStickRight,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton));
-			Add("stick up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
-			Add("stick up again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
-			Add("and again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("stick up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
+			Add("stick up again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("the right trigger opens the history on Go back", Control.RightTrigger, CheckHistoryOpened);
 			Add("down reaches the first row's Delete", Control.LeftStickDown,
 				() => Expect(true, Menu.HistoryScreen, Menu.History.GetDeleteButton(0)));
@@ -319,20 +318,11 @@ namespace DroneDDW.Admin.Editor
 				() => Expect(true, Menu.EndScreen, Menu.EndCancelButton));
 			Add("B cancels it, back on End session", Control.RightSecondary,
 				() => Expect(true, Menu.PauseScreen, Menu.EndButton));
-			Add("up to Reset session", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
-			Add("the reset dialog opens on Cancel", Control.RightTrigger,
-				() => Expect(true, Menu.ResetScreen, Menu.ResetCancelButton));
-			Add("B cancels it", Control.RightSecondary, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
-			Add("down", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
-			Add("down again", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("down", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("down to Reset player location", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.LocationButton));
 			Add("Reset player location puts the head over the Player Spot", Control.RightTrigger,
 				CheckPlayerLocation, MoveRigAway);
-			Add("down to Change player language", Control.LeftStickDown,
-				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
-			Add("Change player language does nothing yet", Control.RightTrigger,
-				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton));
 			Add("down to Test save current session", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton));
 			Add("the trigger saves a test row and says so", Control.RightTrigger, CheckTestSaved, RememberSessionCount);
@@ -340,17 +330,15 @@ namespace DroneDDW.Admin.Editor
 			Add("Esc closes the menu and resumes", Control.KeyEscape, CheckClosed, settleSeconds: 0.6f);
 			Add("with the checkbox off, Esc opens it without the test save button", Control.KeyEscape,
 				() => Expect(true, Menu.PauseScreen, Menu.ResumeButton) ?? CheckTestSaveHidden(), HideTestSave);
-			Add("holding the down arrow stops at Change player language", Control.KeyDown,
-				() => Expect(true, Menu.PauseScreen, Menu.LanguageButton), holdSeconds: 1.2f);
-			Add("up arrow", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
-			Add("up arrow again", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
-			Add("and again, to End session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
-			Add("and again, to Reset session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.ResetButton));
-			Add("Enter opens the reset dialog", Control.KeyEnter,
-				() => Expect(true, Menu.ResetScreen, Menu.ResetCancelButton));
-			Add("the right arrow reaches Reset session", Control.KeyRight,
-				() => Expect(true, Menu.ResetScreen, Menu.ResetConfirmButton));
-			Add("Enter resets: the scene reloads, closed and running", Control.KeyEnter, CheckReset, RememberMenu,
+			Add("holding the down arrow stops at Reset player location", Control.KeyDown,
+				() => Expect(true, Menu.PauseScreen, Menu.LocationButton), holdSeconds: 1.2f);
+			Add("up arrow", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("up arrow again, to End session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
+			Add("Enter opens the end dialog", Control.KeyEnter,
+				() => Expect(true, Menu.EndScreen, Menu.EndCancelButton));
+			Add("the right arrow reaches End session", Control.KeyRight,
+				() => Expect(true, Menu.EndScreen, Menu.EndConfirmButton));
+			Add("Enter ends: the scene reloads, closed and running", Control.KeyEnter, CheckReset, RememberMenu,
 				settleSeconds: ReloadSettleSeconds);
 		}
 

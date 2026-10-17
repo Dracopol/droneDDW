@@ -38,7 +38,7 @@ namespace DroneDDW.Experience.Editor
 	// - the Narrator Orb above the table, the practice table (the Neighborhood's table, slider and lock-in button, no
 	//   miniatures), the three portrait cards behind it, the Questionnaire's ghost hands (with the ported hand check),
 	//   the notice panel, the view fade, a light for passthrough
-	// - the director with its steps, headset presence (A / X, or Space, stand in for the sensor), the environment
+	// - the director with its steps, headset presence (trigger / grip, or Space, held to start and to stand in for the sensor), the environment
 	//   switch and the debug keys (N skips)
 	// Everything said comes from Content/Data/Experience/Experience Settings.asset, made once with the placeholder line
 	// everywhere and never overwritten. Run the Admin Menu, Narrator Orb, Characters and Neighborhood builders first.
@@ -227,7 +227,10 @@ namespace DroneDDW.Experience.Editor
 			Transform orbNeighborhood = CreateAnchor("In The Neighborhood", anchors, eyes + OrbNeighborhoodOffset);
 
 			HeadsetPresence presence = experience.AddComponent<HeadsetPresence>();
-			presence.Configure(CreateButtonAction("Headset Fallback", "<Keyboard>/space", "PrimaryButton"));
+			InputAction headsetFallback = CreateButtonAction("Headset Fallback", "<Keyboard>/space", "TriggerButton");
+			headsetFallback.AddBinding("<XRController>{LeftHand}/{GripButton}");
+			headsetFallback.AddBinding("<XRController>{RightHand}/{GripButton}");
+			presence.Configure(headsetFallback);
 			EnvironmentSwitch environment = experience.AddComponent<EnvironmentSwitch>();
 			environment.Configure(fade, passthrough, headCamera, trackingSpace, new[] { tableProp, cardsProp },
 				new[] { light });

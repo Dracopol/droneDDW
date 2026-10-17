@@ -18,10 +18,10 @@ namespace DroneDDW.Admin
 		[Tooltip("Either thumbstick: moves the hover")]
 		[SerializeField] private InputActionReference _navigateAction;
 
-		[Tooltip("Trigger, grip or A / X on either controller: clicks the hovered button")]
+		[Tooltip("Trigger or grip on either controller: clicks the hovered button")]
 		[SerializeField] private InputActionReference _clickAction;
 
-		[Tooltip("B or Y: one screen back, or cancels a dialog")]
+		[Tooltip("A, B, X or Y: one screen back, or cancels a dialog")]
 		[SerializeField] private InputActionReference _backAction;
 
 		#endregion

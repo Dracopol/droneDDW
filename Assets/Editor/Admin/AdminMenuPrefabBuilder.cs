@@ -39,7 +39,7 @@ namespace DroneDDW.Admin.Editor
 
 		// Paused
 		private const float PauseWidth = 640f;
-		// The mockup's panel with its five buttons; End session and the test save button add one pitch each
+		// The mockup's panel with its five buttons: Resume, End session, history, location and test save
 		private const float PauseHeight = 742f;
 		private const float PauseTitleCapMiddle = 130.5f;
 		private const float PauseButtonsTop = 189f;
@@ -200,20 +200,17 @@ namespace DroneDDW.Admin.Editor
 			menu.Configure(settings, input, placement, dimmer, canvas, canvasGroup, MutedColor);
 
 			// Paused: built tall enough for the test save button; the menu shrinks it when the button is off
-			AdminMenuScreen pauseScreen = CreateScreen(canvas, "Pause Screen", PauseWidth,
-				PauseHeight + 2f * PauseButtonPitch, out RectTransform pausePanel);
+			AdminMenuScreen pauseScreen = CreateScreen(canvas, "Pause Screen", PauseWidth, PauseHeight,
+				out RectTransform pausePanel);
 			CreateText(pausePanel, "Title", "Session paused by admin", Padding, PauseTitleCapMiddle,
 				PauseWidth - 2f * Padding, TitleSize, isSemiBold: false, TextColor, TextAlignmentOptions.CaplineLeft);
 			AdminMenuButton resume = CreateMenuButton(pausePanel, "Resume Session", 0, _assets.PlayIcon);
-			AdminMenuButton reset = CreateMenuButton(pausePanel, "Reset Session", 1, _assets.ResetIcon);
-			AdminMenuButton end = CreateMenuButton(pausePanel, "End Session", 2, _assets.EndIcon);
-			AdminMenuButton history = CreateMenuButton(pausePanel, "View Session History", 3, _assets.HistoryIcon);
-			AdminMenuButton location = CreateMenuButton(pausePanel, "Reset Player Location", 4, _assets.LocationIcon);
-			AdminMenuButton language = CreateMenuButton(pausePanel, "Change Player Language", 5,
-				_assets.LanguageIcon);
-			AdminMenuButton testSave = CreateMenuButton(pausePanel, "Test Save Current Session", 6, _assets.SaveIcon);
+			AdminMenuButton end = CreateMenuButton(pausePanel, "End Session", 1, _assets.EndIcon);
+			AdminMenuButton history = CreateMenuButton(pausePanel, "View Session History", 2, _assets.HistoryIcon);
+			AdminMenuButton location = CreateMenuButton(pausePanel, "Reset Player Location", 3, _assets.LocationIcon);
+			AdminMenuButton testSave = CreateMenuButton(pausePanel, "Test Save Current Session", 4, _assets.SaveIcon);
 			pauseScreen.Configure(settings, pauseScreen.GetComponent<CanvasGroup>(),
-				new[] { resume, reset, end, history, location, language, testSave });
+				new[] { resume, end, history, location, testSave });
 
 			// Session history
 			AdminMenuScreen historyScreen = CreateScreen(canvas, "History Screen", HistoryWidth, HistoryHeight,
@@ -222,9 +219,6 @@ namespace DroneDDW.Admin.Editor
 			historyScreen.Configure(settings, historyScreen.GetComponent<CanvasGroup>(), new[] { back });
 
 			// Dialogs
-			AdminMenuScreen resetScreen = CreateDialog(canvas, "Reset Session Screen", ResetDialogHeight,
-				"Are you sure you want to reset current ongoing session?", ResetButtonsTop, "Reset session",
-				out AdminMenuButton resetCancel, out AdminMenuButton resetConfirm, out _);
 			AdminMenuScreen deleteScreen = CreateDialog(canvas, "Delete Session Screen", DeleteDialogHeight,
 				"Are you sure you want to delete this session?", DeleteButtonsTop, "Delete session",
 				out AdminMenuButton deleteCancel, out AdminMenuButton deleteConfirm, out RectTransform deletePanel);
@@ -233,9 +227,8 @@ namespace DroneDDW.Admin.Editor
 				"Are you sure you want to end this session?", ResetButtonsTop, "End session",
 				out AdminMenuButton endCancel, out AdminMenuButton endConfirm, out _);
 
-			menu.ConfigureScreens(pauseScreen, historyScreen, historyTable, resetScreen, deleteScreen, details);
-			menu.ConfigureButtons(resume, reset, history, location, language, testSave, resetCancel, resetConfirm,
-				deleteCancel, deleteConfirm);
+			menu.ConfigureScreens(pauseScreen, historyScreen, historyTable, deleteScreen, details);
+			menu.ConfigureButtons(resume, history, location, testSave, deleteCancel, deleteConfirm);
 			menu.ConfigurePausePanel(pausePanel, PauseButtonPitch);
 			menu.ConfigureEndSession(end, endScreen, endCancel, endConfirm);
 			CreateCheckIn(canvas, menu);

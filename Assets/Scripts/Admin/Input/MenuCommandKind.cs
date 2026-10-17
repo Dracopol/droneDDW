@@ -10,10 +10,10 @@ namespace DroneDDW.Admin
 		// A thumbstick push (arrow keys, WASD): moves the hover
 		Move,
 
-		// Trigger, grip or A / X (Enter, Space): clicks the hovered button
+		// Trigger or grip (Enter, Space): clicks the hovered button
 		Click,
 
-		// B or Y (Backspace): one screen back, or cancels a dialog
+		// A, B, X or Y (Backspace): one screen back, or cancels a dialog
 		Back,
 	}
 }

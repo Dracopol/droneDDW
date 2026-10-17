@@ -11,7 +11,7 @@ namespace DroneDDW.Experience
 {
 	// Runs a participant's session, one awaited part after another (logged as [Experience]):
 	// 1. Check-in: waits for the admin menu's Start session
-	// 2. Settle: asks the participant to adjust the headset and waits until the admin holds A / X, and recentres the
+	// 2. Settle: asks the participant to adjust the headset and waits until the admin holds trigger or grip, and recentres the
 	//    scene in front of them (Reset player location). No handover screen: while casting the headset never sleeps,
 	//    so it can't notice being passed on
 	// 3. Welcome: the orb appears and speaks
@@ -196,13 +196,13 @@ namespace DroneDDW.Experience
 			}
 			catch (OperationCanceledException)
 			{
-				// The scene closed (Reset session, End session, or leaving Play mode)
+				// The scene closed (End session, or leaving Play mode)
 			}
 			catch (Exception exception)
 			{
 				Debug.LogException(exception, this);
-				Debug.LogError("[Experience] The session stopped after the error above. The admin menu's Reset session "
-					+ "starts the participant over; End session goes back to check-in.", this);
+				Debug.LogError("[Experience] The session stopped after the error above. The admin menu's End session "
+					+ "goes back to check-in.", this);
 			}
 		}
 
@@ -365,7 +365,8 @@ namespace DroneDDW.Experience
 			await SayAsync(_settings.Goodbye, cancellationToken);
 			if (!IsFastForward)
 			{
-				await SkippableAsync(_presence.WaitForTakenOffAsync, cancellationToken);
+				await SkippableAsync(token => _presence.WaitForTakenOffAsync(_settings.StartHoldSeconds, token),
+					cancellationToken);
 			}
 
 			SetPhase(ExperiencePhase.Ended);

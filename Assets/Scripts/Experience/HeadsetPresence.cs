@@ -5,18 +5,17 @@ using UnityEngine.InputSystem;
 
 namespace DroneDDW.Experience
 {
-	// Notices the headset coming off and going back on: for the handover (the admin takes it off, the participant puts
-	// it on) and the goodbye (the participant takes it off). It listens to the headset's proximity sensor through
-	// OVRManager (HMDUnmounted / HMDMounted) and, on the Quest, to the app losing and getting back focus, which also
-	// happens when the headset comes off. Some lab headsets have the sensor switched off: then the admin presses A or X
-	// instead, and in the Editor Space does.
+	// Notices the headset coming off, for the goodbye (the participant takes it off), and the admin's start hold. It
+	// listens to the headset's proximity sensor through OVRManager (HMDUnmounted / HMDMounted) and, on the Quest, to the
+	// app losing and getting back focus, which also happens when the headset comes off. Some lab headsets have the
+	// sensor switched off: then the admin holds trigger or grip instead, and in the Editor Space.
 	[DisallowMultipleComponent]
 	[AddComponentMenu("DroneDDW/Experience/Headset Presence")]
 	internal sealed class HeadsetPresence : MonoBehaviour
 	{
 		#region Serialized fields
 
-		[Tooltip("Stands in for the sensor: A / X, and Space in the Editor")]
+		[Tooltip("Held to start, and to stand in for the sensor: trigger or grip, and Space in the Editor")]
 		[SerializeField] private InputAction _fallbackAction;
 
 		#endregion
@@ -25,7 +24,6 @@ namespace DroneDDW.Experience
 
 		private bool _isOn = true;
 		private int _offCount;
-		private int _fallbackCount;
 
 		#endregion
 
@@ -65,19 +63,6 @@ namespace DroneDDW.Experience
 
 		#endregion
 
-		#region Update
-
-		private void Update()
-		{
-			if (_fallbackAction.WasPressedThisFrame())
-			{
-				_fallbackCount++;
-				Debug.Log("[Experience] The admin's button stood in for the headset sensor.", this);
-			}
-		}
-
-		#endregion
-
 		#region Event handlers
 
 		private void HandleHeadsetOff()
@@ -112,50 +97,61 @@ namespace DroneDDW.Experience
 			_fallbackAction = fallbackAction;
 		}
 
-		// The headset came off and is back on (someone else is wearing it now), or the admin pressed the button
-		internal async UniTask WaitForHandoverAsync(CancellationToken cancellationToken)
-		{
-			int offCount = _offCount;
-			int fallbackCount = _fallbackCount;
-			await UniTask.WaitUntil(() => _fallbackCount > fallbackCount || (_offCount > offCount && _isOn),
-				cancellationToken: cancellationToken);
-		}
-
-		// The admin held the button (A / X, Space in the Editor) for the given time: the participant is ready. A press
-		// that was already down when this started (e.g. the one standing in for the sensor) has to be let go first, and a
-		// shorter press doesn't count, so a bump doesn't start the session.
+		// The admin held the button (trigger or grip, Space in the Editor) for the given time: the participant is ready
 		internal async UniTask WaitForStartHoldAsync(float holdSeconds, CancellationToken cancellationToken)
 		{
-			await UniTask.WaitUntil(() => !_fallbackAction.IsPressed(), cancellationToken: cancellationToken);
-			float pressedAt = -1f;
-			while (true)
+			await WaitForHoldAsync(holdSeconds, () => false, cancellationToken);
+			Debug.Log("[Experience] The admin started the session.", this);
+		}
+
+		// The headset came off, or the admin held the button for the given time. On the Quest the app sleeps while the
+		// headset is off, so this completes when the next person puts it on.
+		internal async UniTask WaitForTakenOffAsync(float holdSeconds, CancellationToken cancellationToken)
+		{
+			int offCount = _offCount;
+			if (await WaitForHoldAsync(holdSeconds, () => _offCount > offCount, cancellationToken))
 			{
-				if (!_fallbackAction.IsPressed())
+				Debug.Log("[Experience] The admin's button stood in for the headset sensor.", this);
+			}
+		}
+
+		#endregion
+
+		#region Private
+
+		// True once the button has been held for the given time, false once isDone says so first. A press that was
+		// already down when this started (e.g. the click that started the session), or that was down while the admin
+		// menu paused the session (its clicks use the same buttons), has to be let go first, and a shorter press
+		// doesn't count, so a bump doesn't do it.
+		private async UniTask<bool> WaitForHoldAsync(float holdSeconds, System.Func<bool> isDone,
+			CancellationToken cancellationToken)
+		{
+			bool isReleaseNeeded = true;
+			float pressedAt = -1f;
+			while (!isDone())
+			{
+				bool isPressed = _fallbackAction.IsPressed();
+				if (!isPressed || Time.timeScale == 0f)
 				{
+					isReleaseNeeded = isPressed;
 					pressedAt = -1f;
 				}
-				else if (pressedAt < 0f)
+				else if (!isReleaseNeeded)
 				{
-					pressedAt = Time.unscaledTime;
-				}
-				else if (Time.unscaledTime - pressedAt >= holdSeconds)
-				{
-					Debug.Log("[Experience] The admin started the session.", this);
-					return;
+					if (pressedAt < 0f)
+					{
+						pressedAt = Time.unscaledTime;
+					}
+					else if (Time.unscaledTime - pressedAt >= holdSeconds)
+					{
+						return true;
+					}
 				}
 
 				await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
 			}
-		}
 
-		// The headset came off, or the admin pressed the button. On the Quest the app sleeps while the headset is off,
-		// so this completes when the next person puts it on.
-		internal async UniTask WaitForTakenOffAsync(CancellationToken cancellationToken)
-		{
-			int offCount = _offCount;
-			int fallbackCount = _fallbackCount;
-			await UniTask.WaitUntil(() => _fallbackCount > fallbackCount || _offCount > offCount,
-				cancellationToken: cancellationToken);
+			return false;
 		}
 
 		#endregion

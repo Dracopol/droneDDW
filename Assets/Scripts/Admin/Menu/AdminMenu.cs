@@ -11,17 +11,16 @@ using UnityEngine.UI;
 namespace DroneDDW.Admin
 {
 	// The admin menu from the Figma mockups, for whoever runs the session. The left controller's menu button opens it
-	// and pauses the session; either thumbstick moves the pale blue hover, trigger, grip or A / X clicks, B or Y goes
+	// and pauses the session; either thumbstick moves the pale blue hover, trigger or grip clicks, A, B, X or Y goes
 	// back. Screens:
 	// - Check-in, when the scene's Session Control waits for a participant: it opens by itself, shows the ticket
 	//   scanner's camera image and the number it reads (or the one typed on the number pad), and Start session hands
 	//   the participant to the session. The menu button does nothing until then.
 	// - Number pad: 0-9, Delete and OK, to type the participant number when the ticket doesn't scan
-	// - Paused: Resume (closes the menu), Reset session (the same participant from the start), End session (back to
-	//   check-in), View session history, Reset player location, Change player language (no function yet), and Test
-	//   save current session when the Testing checkbox is on
+	// - Paused: Resume (closes the menu), End session (back to check-in), View session history, Reset player
+	//   location, and Test save current session when the Testing checkbox is on
 	// - Session history: the rows of Sessions.csv, each with Delete
-	// - Reset / end / delete dialogs, which open on Cancel so a double click can't confirm them
+	// - End / delete dialogs, which open on Cancel so a double click can't confirm them
 	// The menu button closes the menu and resumes from any screen. Everything runs on unscaled time, since the
 	// session's time stands still while the menu is open.
 	[DisallowMultipleComponent]
@@ -53,15 +52,12 @@ namespace DroneDDW.Admin
 		[SerializeField] private AdminMenuScreen _pauseScreen;
 		[SerializeField] private AdminMenuScreen _historyScreen;
 		[SerializeField] private SessionHistoryScreen _history;
-		[SerializeField] private AdminMenuScreen _resetScreen;
 		[SerializeField] private AdminMenuScreen _deleteScreen;
 
 		[Header("Paused")]
 		[SerializeField] private AdminMenuButton _resumeButton;
-		[SerializeField] private AdminMenuButton _resetButton;
 		[SerializeField] private AdminMenuButton _historyButton;
 		[SerializeField] private AdminMenuButton _locationButton;
-		[SerializeField] private AdminMenuButton _languageButton;
 		[SerializeField] private AdminMenuButton _testSaveButton;
 
 		[Tooltip("The Paused screen's panel, built tall enough for the test save button; one pitch shorter without it")]
@@ -71,8 +67,6 @@ namespace DroneDDW.Admin
 		[SerializeField] private float _pauseButtonPitch;
 
 		[Header("Dialogs")]
-		[SerializeField] private AdminMenuButton _resetCancelButton;
-		[SerializeField] private AdminMenuButton _resetConfirmButton;
 		[SerializeField] private AdminMenuButton _deleteCancelButton;
 		[SerializeField] private AdminMenuButton _deleteConfirmButton;
 
@@ -176,10 +170,8 @@ namespace DroneDDW.Admin
 		internal PauseDimmer Dimmer => _dimmer;
 		internal AdminMenuScreen PauseScreen => _pauseScreen;
 		internal AdminMenuScreen HistoryScreen => _historyScreen;
-		internal AdminMenuScreen ResetScreen => _resetScreen;
 		internal AdminMenuScreen DeleteScreen => _deleteScreen;
 		internal AdminMenuButton ResumeButton => _resumeButton;
-		internal AdminMenuButton ResetButton => _resetButton;
 		internal AdminMenuButton HistoryButton => _historyButton;
 		internal AdminMenuButton LocationButton => _locationButton;
 		internal AdminMenuButton EndButton => _endButton;
@@ -192,11 +184,8 @@ namespace DroneDDW.Admin
 		internal AdminMenuScreen NumberPadScreen => _numberPadScreen;
 		internal IReadOnlyList<AdminMenuButton> DigitButtons => _digitButtons;
 		internal AdminMenuButton NumberPadOkButton => _numberPadOkButton;
-		internal AdminMenuButton LanguageButton => _languageButton;
 		internal AdminMenuButton TestSaveButton => _testSaveButton;
 		internal float PausePanelHeight => _pausePanel.sizeDelta.y;
-		internal AdminMenuButton ResetCancelButton => _resetCancelButton;
-		internal AdminMenuButton ResetConfirmButton => _resetConfirmButton;
 		internal AdminMenuButton DeleteCancelButton => _deleteCancelButton;
 		internal AdminMenuButton DeleteConfirmButton => _deleteConfirmButton;
 		internal string DeleteDetailsText => _deleteDetails.text;
@@ -209,7 +198,6 @@ namespace DroneDDW.Admin
 		{
 			_pauseScreen.Hide();
 			_historyScreen.Hide();
-			_resetScreen.Hide();
 			_deleteScreen.Hide();
 			_endScreen.Hide();
 			_checkInScreen.Hide();
@@ -356,30 +344,23 @@ namespace DroneDDW.Admin
 		}
 
 		internal void ConfigureScreens(AdminMenuScreen pauseScreen, AdminMenuScreen historyScreen,
-			SessionHistoryScreen history, AdminMenuScreen resetScreen, AdminMenuScreen deleteScreen,
-			TMP_Text deleteDetails)
+			SessionHistoryScreen history, AdminMenuScreen deleteScreen, TMP_Text deleteDetails)
 		{
 			_pauseScreen = pauseScreen;
 			_historyScreen = historyScreen;
 			_history = history;
-			_resetScreen = resetScreen;
 			_deleteScreen = deleteScreen;
 			_deleteDetails = deleteDetails;
 		}
 
-		internal void ConfigureButtons(AdminMenuButton resumeButton, AdminMenuButton resetButton,
-			AdminMenuButton historyButton, AdminMenuButton locationButton, AdminMenuButton languageButton,
-			AdminMenuButton testSaveButton, AdminMenuButton resetCancelButton, AdminMenuButton resetConfirmButton,
-			AdminMenuButton deleteCancelButton, AdminMenuButton deleteConfirmButton)
+		internal void ConfigureButtons(AdminMenuButton resumeButton, AdminMenuButton historyButton,
+			AdminMenuButton locationButton, AdminMenuButton testSaveButton, AdminMenuButton deleteCancelButton,
+			AdminMenuButton deleteConfirmButton)
 		{
 			_resumeButton = resumeButton;
-			_resetButton = resetButton;
 			_historyButton = historyButton;
 			_locationButton = locationButton;
-			_languageButton = languageButton;
 			_testSaveButton = testSaveButton;
-			_resetCancelButton = resetCancelButton;
-			_resetConfirmButton = resetConfirmButton;
 			_deleteCancelButton = deleteCancelButton;
 			_deleteConfirmButton = deleteConfirmButton;
 		}
@@ -868,10 +849,6 @@ namespace DroneDDW.Admin
 			{
 				Close(MenuHand.None);
 			}
-			else if (button == _resetButton)
-			{
-				ShowScreen(_resetScreen, _resetCancelButton);
-			}
 			else if (button == _endButton)
 			{
 				ShowScreen(_endScreen, _endCancelButton);
@@ -912,10 +889,6 @@ namespace DroneDDW.Admin
 			{
 				ResetPlayerLocation();
 			}
-			else if (button == _languageButton)
-			{
-				Debug.Log("[Admin] Change player language doesn't do anything yet.", this);
-			}
 			else if (button == _testSaveButton)
 			{
 				SaveTestSession();
@@ -923,14 +896,6 @@ namespace DroneDDW.Admin
 			else if (button == _history.BackButton)
 			{
 				ShowScreen(_pauseScreen, _historyButton);
-			}
-			else if (button == _resetCancelButton)
-			{
-				ShowScreen(_pauseScreen, _resetButton);
-			}
-			else if (button == _resetConfirmButton)
-			{
-				ResetSession();
 			}
 			else if (button == _deleteCancelButton)
 			{
@@ -946,16 +911,12 @@ namespace DroneDDW.Admin
 			}
 		}
 
-		// B / Y: history back to Paused, dialogs cancel. On Paused it does nothing: resuming stays a deliberate click.
+		// A / B / X / Y: history back to Paused, dialogs cancel. On Paused it does nothing: resuming stays a deliberate click.
 		private void Back(MenuHand hand)
 		{
 			if (_screen == _historyScreen)
 			{
 				ShowScreen(_pauseScreen, _historyButton);
-			}
-			else if (_screen == _resetScreen)
-			{
-				ShowScreen(_pauseScreen, _resetButton);
 			}
 			else if (_screen == _endScreen)
 			{
@@ -1041,19 +1002,6 @@ namespace DroneDDW.Admin
 			}
 
 			ShowHistory(row);
-		}
-
-		private void ResetSession()
-		{
-			if (_sessionControl == null)
-			{
-				Debug.LogWarning("[Admin] Reset session needs a Session Control in the scene.", this);
-				ShowScreen(_pauseScreen, _resetButton);
-				return;
-			}
-
-			Close(MenuHand.None);
-			_sessionControl.ResetSession();
 		}
 
 		// The menu stays open and moves in front of the head's new place

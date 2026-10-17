@@ -67,10 +67,10 @@ namespace DroneDDW.Experience
 		[SerializeField] private float _hintRepeatSeconds = 15f;
 
 		[Header("Timing")]
-		[Tooltip("How long the admin holds A / X (Space in the Editor) to start, once the participant has the headset on "
-			+ "and has adjusted it; the scene then recentres and the intro starts")]
+		[Tooltip("How long the admin holds trigger or grip (Space in the Editor) to start, once the participant has the "
+			+ "headset on and has adjusted it (the scene then recentres and the intro starts), and to end at the goodbye")]
 		[Min(0.1f)]
-		[SerializeField] private float _startHoldSeconds = 1f;
+		[SerializeField] private float _startHoldSeconds = 0.5f;
 
 		[Tooltip("Between two lines in a row")]
 		[Min(0f)]

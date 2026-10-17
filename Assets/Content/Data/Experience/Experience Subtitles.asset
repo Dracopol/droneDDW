@@ -16,8 +16,8 @@ MonoBehaviour:
   - _clip: {fileID: 8300000, guid: 8bb80824274bae1c6f06c58676e12ab7, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: 'Hi and welcome! I''m your guide today. You don''t need any experience with
-      VR: I''ll show you everything, step by step.'
+    _text: 'Hi and welcome! I''m your guide today. You don''t need any experience
+      with VR: I''ll show you everything, step by step.'
   - _clip: {fileID: 8300000, guid: 148ca3a932b0e86016c20d374f2f6361, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
@@ -31,8 +31,8 @@ MonoBehaviour:
   - _clip: {fileID: 8300000, guid: b9ecaee922b372541a1ece881ad14072, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: We're back in the real world. Thanks for helping us think about the future of
-      our neighborhoods.
+    _text: We're back in the real world. Thanks for helping us think about the future
+      of our neighborhoods.
   - _clip: {fileID: 8300000, guid: 9bc6ba8a4cf8db1eca260eac9d9387c4, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
@@ -70,7 +70,7 @@ MonoBehaviour:
     _text: Pick the look you like best for me, then press and hold the button in
       front of the slider until the countdown finishes.
   - _clip: {fileID: 8300000, guid: 31478ae1063a390ab768a7a9f4c6e03d, type: 3}
-    _speaker:
+    _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
     _text: Keep your hand on the button until the countdown finishes.
   - _clip: {fileID: 8300000, guid: 1919c6a3f333b8cdf7910b578640eec0, type: 3}
