@@ -18,8 +18,8 @@ namespace DroneDDW.Neighborhood.Editor.Building
 {
     /// <summary>
     /// The table in front of the seat: the rig from Street_Table.fbx, the three miniatures under its model
-    /// root, the three-notch slider, pushed by any part of a hand and grabbed once the fingers close
-    /// (the same input as the park's slider, tuned by the push settings), and the lock-in button, a push button held down
+    /// root, the three-notch slider with a bigger handle, pushed by any part of a hand (the park's slider input, tuned
+    /// by the push settings, with its finger grab switched off), and the lock-in button, a push button held down
     /// to lock the choice in: in the middle in front of the slider on a deeper top, in the table's right corner or on a
     /// stand beside the table (<see cref="NeighborhoodLockButtonPlacement"/>), made in the table's low-poly palette style.
     /// With the button in front the table stands where the table settings say. The experience also builds a practice
@@ -70,6 +70,11 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const float StandTopHalfWidthMeters = 0.09f;
         private const float StandTopThicknessMeters = 0.04f;
         private const float StandLegWidthMeters = 0.05f;
+
+        // The handle, bigger than the model's (4.4 cm becomes 7 cm, still inside the 7.5 cm deep track), and pushed only:
+        // closing the fingers on it doesn't grab it
+        private const float HandleScale = 1.6f;
+        private const bool IsGrabEnabled = false;
 
         // In front of the slider: the stand's button, this far from the slider's near side and from the table's near edge.
         // The top is made deeper for it, as thick as the model's, on legs as thick as the model's and as far in from its
@@ -151,9 +156,35 @@ namespace DroneDDW.Neighborhood.Editor.Building
             return BuildOnItsOwn(head, trackingSpace, true, DefaultPlacement);
         }
 
+        /// <summary>
+        /// The testing view of the spheres the hands push with and the knob's push and grab boxes, on the slider: for
+        /// tuning the push settings. Only the table tuning scene adds it.
+        /// </summary>
+        internal static void AddHandSpheresView(NeighborhoodTableParts table)
+        {
+#if NEIGHBORHOOD_XRI
+            if (table.SliderDriver is not NeighborhoodSliderHandDriver driver)
+            {
+                return;
+            }
+
+            NeighborhoodHandSpheresView view = driver.gameObject.AddComponent<NeighborhoodHandSpheresView>();
+            view.Configure(driver, GetBuiltInMesh(PrimitiveType.Sphere), GetBuiltInMesh(PrimitiveType.Cube),
+                NeighborhoodAssetUtility.LoadOrCreateHandSpheresMaterial(NeighborhoodAssetUtility.FindRootFolder()));
+#endif
+        }
+
         #endregion
 
         #region Private
+
+        private static Mesh GetBuiltInMesh(PrimitiveType type)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(type);
+            Mesh mesh = primitive.GetComponent<MeshFilter>().sharedMesh;
+            Object.DestroyImmediate(primitive);
+            return mesh;
+        }
 
         // A table outside the Neighborhood scene, reading the layout and push settings itself, on the middle notch
         private static NeighborhoodTableParts BuildOnItsOwn(Transform head, Transform trackingSpace, bool hasMiniatures,
@@ -225,6 +256,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
             Vector3 handlePosition = handle.localPosition;
             handlePosition.x = Mathf.Lerp(-halfTravel, halfTravel, NeighborhoodVersions.ToBlend(start));
             handle.localPosition = handlePosition;
+            ScaleHandle(handle);
             if (handle.TryGetComponent(out BoxCollider handleCollider))
             {
                 // The grab box, which the hand driver keeps on the settings' values while playing
@@ -285,7 +317,7 @@ namespace DroneDDW.Neighborhood.Editor.Building
 
             XRSimpleInteractable interactable = handle.AddComponent<XRSimpleInteractable>();
             NeighborhoodSliderHandDriver driver = slider.gameObject.AddComponent<NeighborhoodSliderHandDriver>();
-            driver.Configure(slider, interactable, handleMesh, handBones, settings);
+            driver.Configure(slider, interactable, handleMesh, handBones, settings, IsGrabEnabled);
             return driver;
 #else
             Debug.LogWarning("[Neighborhood] XR Interaction Toolkit is not installed, so the slider has no XR input yet. "
@@ -326,6 +358,19 @@ namespace DroneDDW.Neighborhood.Editor.Building
             NeighborhoodSliderLook look = slider.gameObject.AddComponent<NeighborhoodSliderLook>();
             look.Configure(slider, handInput, handleRenderer, notches.ToArray(), CreateAudioSource(slider.gameObject),
                 AssetDatabase.LoadAssetAtPath<AudioClip>(NotchClipPath));
+        }
+
+        /// <summary>The handle made bigger than the model's, its underside kept on the track.</summary>
+        private static void ScaleHandle(Transform handle)
+        {
+            Vector3 position = handle.localPosition;
+            if (handle.TryGetComponent(out MeshFilter mesh) && mesh.sharedMesh != null)
+            {
+                position.y += mesh.sharedMesh.bounds.min.y * handle.localScale.y * (1f - HandleScale);
+            }
+
+            handle.localScale *= HandleScale;
+            handle.localPosition = position;
         }
 
         /// <summary>Two orange arrows either side of the handle, pointing outwards, hidden until the experience shows them.</summary>

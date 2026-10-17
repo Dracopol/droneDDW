@@ -57,6 +57,9 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Tooltip("Any part of a hand pushes the handle. Off leaves grabbing only.")]
 		private bool _isPushEnabled = true;
 
+		[SerializeField, Tooltip("Closing the fingers on the handle grabs it. Off leaves pushing only.")]
+		private bool _isGrabEnabled = true;
+
 		[SerializeField, Min(0f), Tooltip("How long nothing may touch or hold the handle "
 			+ "before the version is committed.")]
 		private float _releaseDelaySeconds = 0.3f;
@@ -137,7 +140,9 @@ namespace DroneDDW.Neighborhood.Table
 			ApplyGrabBox();
 
 			// The contact is reported before dragging: the slider's soft detents only apply to a grab
-			IXRSelectInteractor interactor = _interactable.isSelected ? _interactable.firstInteractorSelecting : null;
+			IXRSelectInteractor interactor = _isGrabEnabled && _interactable.isSelected
+				? _interactable.firstInteractorSelecting
+				: null;
 			if (interactor != null)
 			{
 				Vector3 attachPoint = GetAttachPoint(interactor);
@@ -182,13 +187,48 @@ namespace DroneDDW.Neighborhood.Table
 		#region Internal
 
 		internal void Configure(NeighborhoodSlider slider, XRBaseInteractable interactable, MeshFilter handleMesh,
-			NeighborhoodHandBones handBones, NeighborhoodPushSettings settings)
+			NeighborhoodHandBones handBones, NeighborhoodPushSettings settings, bool isGrabEnabled)
 		{
 			_slider = slider;
 			_interactable = interactable;
 			_handleMesh = handleMesh;
 			_handBones = handBones;
 			_settings = settings;
+			_isGrabEnabled = isGrabEnabled;
+		}
+
+		/// <summary>The spheres the push tests right now, for <see cref="NeighborhoodHandSpheresView"/>.</summary>
+		internal void CollectSpheres(List<NeighborhoodHandSphere> spheres)
+		{
+			SampleSpheres(spheres, out _, out _);
+		}
+
+		/// <summary>The box the spheres push against, as a world matrix of a 1 m cube, for drawing it.</summary>
+		internal bool TryGetPushBoxMatrix(out Matrix4x4 matrix)
+		{
+			matrix = default;
+			if (!TryGetPushBox(out Vector3 boxCenter, out Vector3 halfSize))
+			{
+				return false;
+			}
+
+			matrix = transform.localToWorldMatrix * Matrix4x4.TRS(boxCenter, Quaternion.identity, halfSize * 2f);
+			return true;
+		}
+
+		/// <summary>The handle's BoxCollider (the finger grab's reach, and with grabbing off the hover glow's), as a world
+		/// matrix of a 1 m cube.</summary>
+		internal bool TryGetGrabBoxMatrix(out Matrix4x4 matrix)
+		{
+			matrix = default;
+			if (_handleCollider == null)
+			{
+				return false;
+			}
+
+			matrix = _handleCollider.transform.localToWorldMatrix
+				* Matrix4x4.TRS(_handleCollider.center, Quaternion.identity, _handleCollider.size);
+			return true;
 		}
 
 		#endregion
@@ -220,8 +260,8 @@ namespace DroneDDW.Neighborhood.Table
 		/// <summary>
 		/// Where the hands push the handle to, if any part of a hand touches it: the handle stays clear of every
 		/// touching sphere along the hand bones, and squeezed from both sides tighter than it is wide, it sits in the
-		/// middle of the grip. The same rule as the Push Slider Test. The rig has no scale or rotation between the
-		/// slider and the handle, so the slider's local space is in metres and the handle's mesh bounds are aligned
+		/// middle of the grip. The same rule as the Push Slider Test. The rig has no rotation between the slider and the
+		/// handle, so the slider's local space is in metres and the handle's mesh bounds, times its scale, are aligned
 		/// with it.
 		/// </summary>
 		private bool TryGetPushTarget(out Vector3 targetPoint)
@@ -263,7 +303,8 @@ namespace DroneDDW.Neighborhood.Table
 			float centerX = lowestCenterX > highestCenterX
 				? (lowestCenterX + highestCenterX) * 0.5f
 				: Mathf.Clamp(boxCenter.x, lowestCenterX, highestCenterX);
-			targetPoint = _transform.TransformPoint(new Vector3(centerX - _handleMesh.sharedMesh.bounds.center.x, 0f, 0f));
+			float meshCenterX = _handleMesh.sharedMesh.bounds.center.x * _handleMesh.transform.localScale.x;
+			targetPoint = _transform.TransformPoint(new Vector3(centerX - meshCenterX, 0f, 0f));
 			return true;
 		}
 
@@ -315,9 +356,10 @@ namespace DroneDDW.Neighborhood.Table
 			}
 
 			Bounds bounds = _handleMesh.sharedMesh.bounds;
+			Vector3 scale = _handleMesh.transform.localScale;
 			float paddingMeters = NeighborhoodPushSettings.OrDefaults(_settings).PushBoxPaddingMeters;
-			boxCenter = _handleMesh.transform.localPosition + bounds.center;
-			halfSize = Vector3.Max(bounds.extents + Vector3.one * paddingMeters, Vector3.zero);
+			boxCenter = _handleMesh.transform.localPosition + Vector3.Scale(bounds.center, scale);
+			halfSize = Vector3.Max(Vector3.Scale(bounds.extents, scale) + Vector3.one * paddingMeters, Vector3.zero);
 			return true;
 		}
 

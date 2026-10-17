@@ -82,22 +82,22 @@ namespace DroneDDW.Experience.Editor
 		// The words of the orb's lines (English drafts), by clip name; corrections go in the Experience Subtitles asset
 		private static readonly Dictionary<string, string> OrbLineTexts = new()
 		{
-			{ "Narrator_Welcome", "Hi, welcome! I'm your guide today. You don't need any experience with VR: I'll show you everything, step by step." },
+			{ "Narrator_Welcome", "Hi and welcome! I'm your guide today. You don't need any experience with VR: I'll show you everything, step by step." },
 			{ "Narrator_HandCheck_Prompt", "Do you see the see-through hands in front of you? Put your own hands in the same place, so they match." },
 			{ "Narrator_HandCheck_Stuck", "Move your hands slowly until they line up with the see-through hands." },
 			{ "Narrator_HandCheck_Success", "Perfect, I can see your hands." },
-			{ "Narrator_Slider_Prompt", "On the table is a slider. Push it with your finger, or pinch and drag it, and watch what happens to me." },
-			{ "Narrator_Slider_Stuck", "Try touching the handle of the slider on the table and moving it to the side." },
+			{ "Narrator_Slider_Prompt", "On the table is a slider. Push it with your finger and watch what happens to me." },
+			{ "Narrator_Slider_Stuck", "Try touching the handle of the slider on the table and moving it side to side." },
 			{ "Narrator_Slider_Success", "Great! See how I change?" },
-			{ "Narrator_PracticeLockIn_Prompt", "When you've chosen, press and hold the button next to the slider until the ring is full." },
-			{ "Narrator_PracticeLockIn_Stuck", "Keep your finger on the button until the ring fills up." },
-			{ "Narrator_PracticeLockIn_Success", "Locked in! This was only practice, so it doesn't count." },
+			{ "Narrator_PracticeLockIn_Prompt", "Pick the look you like best for me, then press and hold the button in front of the slider until the countdown finishes." },
+			{ "Narrator_PracticeLockIn_Stuck", "Keep your hand on the button until the countdown finishes." },
+			{ "Narrator_PracticeLockIn_Success", "Nice, that's my new look! That's how you'll choose later on: slide, then hold." },
 			{ "Narrator_CharactersIntro", "Before we start, let me introduce some people from the neighborhood." },
-			{ "Narrator_NeighborhoodWelcome", "This is their neighborhood. With the slider you can change how it looks. Take your time to look around." },
+			{ "Narrator_NeighborhoodWelcome", "This is their neighborhood. The slider has three versions of its future, from nature to efficiency. Look around and listen to what the neighbors have to say." },
 			{ "Narrator_NeighborhoodLockIn_Prompt", "When you've found the version you like best, hold the button to lock in your choice." },
 			{ "Narrator_NeighborhoodLockIn_Stuck", "Choose with the slider, then hold the button until the ring is full." },
 			{ "Narrator_NeighborhoodLockIn_Success", "Thank you! Your choice is saved." },
-			{ "Narrator_Outro", "We're back in the room. Thanks for helping us think about the future of our neighborhoods." },
+			{ "Narrator_Outro", "We're back in the real world. Thanks for helping us think about the future of our neighborhoods." },
 			{ "Narrator_Goodbye", "That's all! You can take off the headset now." },
 		};
 		private const string RegularFontPath = "Assets/Content/Fonts/Inter/Inter Regular SDF.asset";

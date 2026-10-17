@@ -85,6 +85,7 @@ namespace DroneDDW.Experience.Editor
 				return;
 			}
 
+			NeighborhoodTableBuilder.AddHandSpheresView(table);
 			GameObject controlsObject = new("Table Tuning");
 			TableTuningControls controls = controlsObject.AddComponent<TableTuningControls>();
 			TMP_Text label = LockButtonTestSceneBuilder.CreateLabel(controlsObject.transform,

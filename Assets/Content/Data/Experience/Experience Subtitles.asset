@@ -16,7 +16,7 @@ MonoBehaviour:
   - _clip: {fileID: 8300000, guid: 8bb80824274bae1c6f06c58676e12ab7, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: 'Hi, welcome! I''m your guide today. You don''t need any experience with
+    _text: 'Hi and welcome! I''m your guide today. You don''t need any experience with
       VR: I''ll show you everything, step by step.'
   - _clip: {fileID: 8300000, guid: 148ca3a932b0e86016c20d374f2f6361, type: 3}
     _speaker: 
@@ -25,12 +25,13 @@ MonoBehaviour:
   - _clip: {fileID: 8300000, guid: 310f6e811274c269e354a882060a60ec, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: This is their neighborhood. With the slider you can change how it looks.
-      Take your time to look around.
+    _text: This is their neighborhood. The slider has three versions of its future,
+      from nature to efficiency. Look around and listen to what the neighbors have
+      to say.
   - _clip: {fileID: 8300000, guid: b9ecaee922b372541a1ece881ad14072, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: We're back in the room. Thanks for helping us think about the future of
+    _text: We're back in the real world. Thanks for helping us think about the future of
       our neighborhoods.
   - _clip: {fileID: 8300000, guid: 9bc6ba8a4cf8db1eca260eac9d9387c4, type: 3}
     _speaker: 
@@ -52,13 +53,13 @@ MonoBehaviour:
   - _clip: {fileID: 8300000, guid: 71fdb6046cff44b2a55b4bbe4aa5eac3, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: On the table is a slider. Push it with your finger, or pinch and drag
-      it, and watch what happens to me.
+    _text: On the table is a slider. Push it with your finger and watch what happens
+      to me.
   - _clip: {fileID: 8300000, guid: 3d0264fd084dcc24b12fbb9e6341f921, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: Try touching the handle of the slider on the table and moving it to the
-      side.
+    _text: Try touching the handle of the slider on the table and moving it side
+      to side.
   - _clip: {fileID: 8300000, guid: ad33e2cdc4639ee7d9df1f517fa3e327, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
@@ -66,16 +67,17 @@ MonoBehaviour:
   - _clip: {fileID: 8300000, guid: adf284525c96c79cbc904eacb1849250, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: When you've chosen, press and hold the button next to the slider until
-      the ring is full.
+    _text: Pick the look you like best for me, then press and hold the button in
+      front of the slider until the countdown finishes.
   - _clip: {fileID: 8300000, guid: 31478ae1063a390ab768a7a9f4c6e03d, type: 3}
-    _speaker: 
+    _speaker:
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: Keep your finger on the button until the ring fills up.
+    _text: Keep your hand on the button until the countdown finishes.
   - _clip: {fileID: 8300000, guid: 1919c6a3f333b8cdf7910b578640eec0, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}
-    _text: Locked in! This was only practice, so it doesn't count.
+    _text: 'Nice, that''s my new look! That''s how you''ll choose later on: slide,
+      then hold.'
   - _clip: {fileID: 8300000, guid: d0b309f634ed72481cca60a6db0c0980, type: 3}
     _speaker: 
     _speakerColor: {r: 1, g: 1, b: 1, a: 1}

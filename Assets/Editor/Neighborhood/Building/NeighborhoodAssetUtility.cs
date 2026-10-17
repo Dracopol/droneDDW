@@ -195,6 +195,39 @@ namespace DroneDDW.Neighborhood.Editor.Building
             return material;
         }
 
+        /// <summary>
+        /// The see-through unlit material the hand spheres view draws with (instanced, coloured per draw). Null without
+        /// URP's Unlit shader.
+        /// </summary>
+        internal static Material LoadOrCreateHandSpheresMaterial(string root)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null)
+            {
+                Debug.LogWarning("[Neighborhood] URP Unlit shader not found, so the hand spheres can't be shown.");
+                return null;
+            }
+
+            Material material = LoadOrCreate(EnsureFolder(root, MaterialsFolder), $"{PalettePrefix}HandSpheres", shader);
+            material.shader = shader;
+            SetFloatIfPresent(material, "_Surface", 1f);
+            SetFloatIfPresent(material, "_Blend", 0f);
+            SetFloatIfPresent(material, "_SrcBlend", (float)BlendMode.SrcAlpha);
+            SetFloatIfPresent(material, "_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            SetFloatIfPresent(material, "_SrcBlendAlpha", (float)BlendMode.One);
+            SetFloatIfPresent(material, "_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
+            SetFloatIfPresent(material, "_ZWrite", 0f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.SetShaderPassEnabled("ShadowCaster", false);
+            material.SetShaderPassEnabled("MotionVectors", false);
+            material.color = Color.white;
+            material.enableInstancing = true;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
         internal static string ModelPath(string root, string fileName)
         {
             return $"{root}/{ModelsFolder}/{fileName}.fbx";
