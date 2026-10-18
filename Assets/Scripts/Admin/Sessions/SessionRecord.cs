@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -50,12 +49,12 @@ namespace DroneDDW.Admin.Sessions
 
 		#region Internal
 
-		// The cell under this header (ignoring case and surrounding spaces), or "" when there is none
+		// The cell under this header (see SessionColumns.IsSame), or "" when there is none
 		internal string Get(string column)
 		{
 			for (int index = 0; index < _header.Count && index < _cells.Length; index++)
 			{
-				if (string.Equals(_header[index]?.Trim(), column, StringComparison.OrdinalIgnoreCase))
+				if (SessionColumns.IsSame(_header[index], column))
 				{
 					return _cells[index].Trim();
 				}

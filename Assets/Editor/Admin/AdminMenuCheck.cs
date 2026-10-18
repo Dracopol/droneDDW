@@ -290,14 +290,14 @@ namespace DroneDDW.Admin.Editor
 				() => Expect(true, Menu.PauseScreen, Menu.ResumeButton) ?? ExpectPaused(true));
 			Add("the session clock stands still while paused", Control.None, CheckClockStopped, RememberClock);
 			Add("left stick down moves the hover", Control.LeftStickDown,
-				() => Expect(true, Menu.PauseScreen, Menu.EndButton));
+				() => Expect(true, Menu.PauseScreen, Menu.LocationButton));
 			Add("right stick down moves it too", Control.RightStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("holding the stick repeats and stops at the last button", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton), holdSeconds: 0.9f);
 			Add("pushing right where nothing is leaves the hover", Control.LeftStickRight,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton));
-			Add("stick up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.LocationButton));
+			Add("stick up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
 			Add("stick up again", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
 			Add("the right trigger opens the history on Go back", Control.RightTrigger, CheckHistoryOpened);
 			Add("down reaches the first row's Delete", Control.LeftStickDown,
@@ -313,16 +313,18 @@ namespace DroneDDW.Admin.Editor
 			Add("holding down scrolls to the last row", Control.LeftStickDown, CheckScrolledToEnd, holdSeconds: 2.6f);
 			Add("B goes back to Paused on View session history", Control.RightSecondary,
 				() => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
-			Add("up to End session", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
-			Add("the end dialog opens on Cancel", Control.RightTrigger,
+			Add("down to Cancel session", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
+			Add("the cancel session dialog opens on Go back", Control.RightTrigger,
 				() => Expect(true, Menu.EndScreen, Menu.EndCancelButton));
-			Add("B cancels it, back on End session", Control.RightSecondary,
+			Add("B goes back, on Cancel session", Control.RightSecondary,
 				() => Expect(true, Menu.PauseScreen, Menu.EndButton));
-			Add("down", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
-			Add("down to Reset player location", Control.LeftStickDown,
+			Add("up", Control.LeftStickUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("up to Reset player location", Control.LeftStickUp,
 				() => Expect(true, Menu.PauseScreen, Menu.LocationButton));
 			Add("Reset player location puts the head over the Player Spot", Control.RightTrigger,
 				CheckPlayerLocation, MoveRigAway);
+			Add("down", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
+			Add("down again", Control.LeftStickDown, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
 			Add("down to Test save current session", Control.LeftStickDown,
 				() => Expect(true, Menu.PauseScreen, Menu.TestSaveButton));
 			Add("the trigger saves a test row and says so", Control.RightTrigger, CheckTestSaved, RememberSessionCount);
@@ -330,15 +332,13 @@ namespace DroneDDW.Admin.Editor
 			Add("Esc closes the menu and resumes", Control.KeyEscape, CheckClosed, settleSeconds: 0.6f);
 			Add("with the checkbox off, Esc opens it without the test save button", Control.KeyEscape,
 				() => Expect(true, Menu.PauseScreen, Menu.ResumeButton) ?? CheckTestSaveHidden(), HideTestSave);
-			Add("holding the down arrow stops at Reset player location", Control.KeyDown,
-				() => Expect(true, Menu.PauseScreen, Menu.LocationButton), holdSeconds: 1.2f);
-			Add("up arrow", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.HistoryButton));
-			Add("up arrow again, to End session", Control.KeyUp, () => Expect(true, Menu.PauseScreen, Menu.EndButton));
-			Add("Enter opens the end dialog", Control.KeyEnter,
+			Add("holding the down arrow stops at Cancel session", Control.KeyDown,
+				() => Expect(true, Menu.PauseScreen, Menu.EndButton), holdSeconds: 1.2f);
+			Add("Enter opens the cancel session dialog", Control.KeyEnter,
 				() => Expect(true, Menu.EndScreen, Menu.EndCancelButton));
-			Add("the right arrow reaches End session", Control.KeyRight,
+			Add("the right arrow reaches Cancel session", Control.KeyRight,
 				() => Expect(true, Menu.EndScreen, Menu.EndConfirmButton));
-			Add("Enter ends: the scene reloads, closed and running", Control.KeyEnter, CheckReset, RememberMenu,
+			Add("Enter cancels: the scene reloads, closed and running", Control.KeyEnter, CheckReset, RememberMenu,
 				settleSeconds: ReloadSettleSeconds);
 		}
 
@@ -452,7 +452,7 @@ namespace DroneDDW.Admin.Editor
 
 			List<string[]> sessions = ReadCsv("Sessions.csv");
 			List<string[]> deleted = ReadCsv("Deleted Sessions.csv");
-			if (sessions.Count != SampleSessions || sessions[0].Last() != "Answer 1" || sessions[1][0] != "002")
+			if (sessions.Count != SampleSessions || sessions[0].Last() != "answer_1" || sessions[1][0] != "002")
 			{
 				return $"Sessions.csv has {sessions.Count - 1} rows, header {string.Join("|", sessions[0])}, first "
 					+ $"{sessions[1][0]}";

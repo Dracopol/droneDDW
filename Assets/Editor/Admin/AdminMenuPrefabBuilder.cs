@@ -205,12 +205,23 @@ namespace DroneDDW.Admin.Editor
 			CreateText(pausePanel, "Title", "Session paused by admin", Padding, PauseTitleCapMiddle,
 				PauseWidth - 2f * Padding, TitleSize, isSemiBold: false, TextColor, TextAlignmentOptions.CaplineLeft);
 			AdminMenuButton resume = CreateMenuButton(pausePanel, "Resume Session", 0, _assets.PlayIcon);
-			AdminMenuButton end = CreateMenuButton(pausePanel, "End Session", 1, _assets.EndIcon);
+			AdminMenuButton location = CreateMenuButton(pausePanel, "Reset Player Location", 1, _assets.LocationIcon);
 			AdminMenuButton history = CreateMenuButton(pausePanel, "View Session History", 2, _assets.HistoryIcon);
-			AdminMenuButton location = CreateMenuButton(pausePanel, "Reset Player Location", 3, _assets.LocationIcon);
+			AdminMenuButton end = CreateMenuButton(pausePanel, "Cancel Session", 3, _assets.EndIcon);
 			AdminMenuButton testSave = CreateMenuButton(pausePanel, "Test Save Current Session", 4, _assets.SaveIcon);
 			pauseScreen.Configure(settings, pauseScreen.GetComponent<CanvasGroup>(),
-				new[] { resume, end, history, location, testSave });
+				new[] { resume, location, history, end, testSave });
+
+			// Check-in menu: the Paused screen's look with only Resume and View session history
+			AdminMenuScreen checkInMenuScreen = CreateScreen(canvas, "Check-In Menu Screen", PauseWidth,
+				PauseHeight - 3f * PauseButtonPitch, out RectTransform checkInMenuPanel);
+			CreateText(checkInMenuPanel, "Title", "Admin menu", Padding, PauseTitleCapMiddle,
+				PauseWidth - 2f * Padding, TitleSize, isSemiBold: false, TextColor, TextAlignmentOptions.CaplineLeft);
+			AdminMenuButton checkInResume = CreateMenuButton(checkInMenuPanel, "Resume", 0, _assets.PlayIcon);
+			AdminMenuButton checkInHistory = CreateMenuButton(checkInMenuPanel, "View Session History", 1,
+				_assets.HistoryIcon);
+			checkInMenuScreen.Configure(settings, checkInMenuScreen.GetComponent<CanvasGroup>(),
+				new[] { checkInResume, checkInHistory });
 
 			// Session history
 			AdminMenuScreen historyScreen = CreateScreen(canvas, "History Screen", HistoryWidth, HistoryHeight,
@@ -223,14 +234,15 @@ namespace DroneDDW.Admin.Editor
 				"Are you sure you want to delete this session?", DeleteButtonsTop, "Delete session",
 				out AdminMenuButton deleteCancel, out AdminMenuButton deleteConfirm, out RectTransform deletePanel);
 			TMP_Text details = CreateDetails(deletePanel);
-			AdminMenuScreen endScreen = CreateDialog(canvas, "End Session Screen", ResetDialogHeight,
-				"Are you sure you want to end this session?", ResetButtonsTop, "End session",
+			AdminMenuScreen endScreen = CreateDialog(canvas, "Cancel Session Screen", ResetDialogHeight,
+				"Are you sure you want to cancel this session?", ResetButtonsTop, "Cancel session",
 				out AdminMenuButton endCancel, out AdminMenuButton endConfirm, out _);
 
 			menu.ConfigureScreens(pauseScreen, historyScreen, historyTable, deleteScreen, details);
 			menu.ConfigureButtons(resume, history, location, testSave, deleteCancel, deleteConfirm);
 			menu.ConfigurePausePanel(pausePanel, PauseButtonPitch);
 			menu.ConfigureEndSession(end, endScreen, endCancel, endConfirm);
+			menu.ConfigureCheckInMenu(checkInMenuScreen, checkInResume, checkInHistory);
 			CreateCheckIn(canvas, menu);
 			CreateNumberPad(canvas, menu);
 			return root;
@@ -541,7 +553,7 @@ namespace DroneDDW.Admin.Editor
 			return box;
 		}
 
-		// A dialog: a two-line title, then Cancel and the confirm button side by side
+		// A dialog: a two-line title, then Go back and the confirm button side by side
 		private AdminMenuScreen CreateDialog(RectTransform canvas, string name, float height, string title,
 			float buttonsTop, string confirmLabel, out AdminMenuButton cancel, out AdminMenuButton confirm,
 			out RectTransform panel)
@@ -553,9 +565,9 @@ namespace DroneDDW.Admin.Editor
 			titleText.textWrappingMode = TextWrappingModes.Normal;
 			titleText.lineSpacing = TitleLineSpacing;
 
-			RectTransform cancelRect = CreateRect("Cancel", panel);
+			RectTransform cancelRect = CreateRect("Go Back", panel);
 			Place(cancelRect, Padding, buttonsTop, DialogButtonWidth, MenuButtonHeight);
-			cancel = CreateButtonParts(cancelRect, "Cancel", ButtonRadius, hasBorder: true, isTonal: false,
+			cancel = CreateButtonParts(cancelRect, "Go back", ButtonRadius, hasBorder: true, isTonal: false,
 				isIconLikeText: false, null, 0f, 0f, -1f, ButtonLabelSize);
 
 			RectTransform confirmRect = CreateRect(confirmLabel, panel);

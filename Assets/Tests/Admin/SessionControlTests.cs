@@ -79,7 +79,7 @@ namespace DroneDDW.Admin.Tests
 			List<string[]> rows = CsvUtil.Parse(File.ReadAllText(Path.Combine(_folder, "Sessions.csv")), ';');
 			Assert.That(isRecorded, Is.True);
 			Assert.That(rows, Has.Count.EqualTo(2));
-			Assert.That(rows[0], Is.EqualTo(new[] { "Id", "Group", "Form choice", "Date", "Time" }));
+			Assert.That(rows[0], Is.EqualTo(new[] { "id", "group", "form_choice", "date", "time" }));
 			Assert.That(rows[1][0], Is.EqualTo("104"));
 			Assert.That(rows[1][1], Is.EqualTo("A"));
 			Assert.That(rows[1][2], Is.EqualTo("Balanced"));

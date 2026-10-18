@@ -77,7 +77,9 @@ namespace DroneDDW.Admin.Tests
 
 			List<string[]> sessions = Read(history.SessionsPath);
 			Assert.AreEqual(2, sessions.Count);
-			Assert.AreEqual("Answer 1", sessions[0][6]);
+			CollectionAssert.AreEqual(
+				new[] { "id", "group", "first_time_participating", "form_choice", "date", "time", "answer_1" },
+				sessions[0]);
 			CollectionAssert.AreEqual(new[] { "002", "B", "no", "neutral", "2026-03-12", "09:18", "second" },
 				sessions[1]);
 
@@ -124,19 +126,19 @@ namespace DroneDDW.Admin.Tests
 			history.Delete(history.Load()[0], DeletedAt);
 
 			string text = File.ReadAllText(history.SessionsPath);
-			StringAssert.StartsWith("Id,Group", text.TrimStart('﻿'));
+			StringAssert.StartsWith("id,group", text);
 		}
 
 		[Test]
-		public void Delete_WritesUtf8WithByteOrderMark()
+		public void Delete_DropsTheOldByteOrderMark()
 		{
 			WriteSessions(Header, "001;A;yes;nature max;2026-03-12;09:14;a", "002;B;no;neutral;2026-03-12;09:18;b");
 			SessionHistory history = CreateHistory();
 
 			history.Delete(history.Load()[0], DeletedAt);
 
-			byte[] bytes = File.ReadAllBytes(history.SessionsPath);
-			Assert.AreEqual(new byte[] { 0xEF, 0xBB, 0xBF }, new[] { bytes[0], bytes[1], bytes[2] });
+			Assert.AreEqual((byte)'i', File.ReadAllBytes(history.SessionsPath)[0]);
+			Assert.AreEqual((byte)'i', File.ReadAllBytes(history.DeletedPath)[0]);
 			Assert.IsFalse(File.Exists(history.SessionsPath + ".tmp"));
 		}
 
@@ -161,10 +163,9 @@ namespace DroneDDW.Admin.Tests
 			List<string> missing = history.Append(TestCells());
 
 			Assert.AreEqual(0, missing.Count);
-			byte[] bytes = File.ReadAllBytes(history.SessionsPath);
-			Assert.AreEqual(new byte[] { 0xEF, 0xBB, 0xBF }, new[] { bytes[0], bytes[1], bytes[2] });
+			Assert.AreEqual((byte)'i', File.ReadAllBytes(history.SessionsPath)[0], "no byte order mark");
 			List<string[]> rows = Read(history.SessionsPath);
-			CollectionAssert.AreEqual(new[] { "Id", "Group", "Form choice", "Date", "Time" }, rows[0]);
+			CollectionAssert.AreEqual(new[] { "id", "group", "form_choice", "date", "time" }, rows[0]);
 			CollectionAssert.AreEqual(new[] { "0", "A", "neutral", "2026-10-05", "14:32" }, rows[1]);
 		}
 
@@ -178,8 +179,38 @@ namespace DroneDDW.Admin.Tests
 
 			List<string[]> rows = Read(history.SessionsPath);
 			Assert.AreEqual(3, rows.Count);
+			CollectionAssert.AreEqual(new[] { "time", "id", "answer_1", "group" }, rows[0]);
+			CollectionAssert.AreEqual(new[] { "09:14", "001", "x", "B" }, rows[1]);
 			CollectionAssert.AreEqual(new[] { "14:32", "0", "", "A" }, rows[2]);
-			CollectionAssert.AreEquivalent(new[] { "Form choice", "Date" }, missing);
+			CollectionAssert.AreEquivalent(new[] { "form_choice", "date" }, missing);
+		}
+
+		[Test]
+		public void Append_ToAnOldStyleFile_RenewsItsHeaderAndKeepsItsRows()
+		{
+			WriteSessions("Id;Group;Form choice;Date;Time", "104;A;Nature;2026-10-17;13:26");
+			SessionHistory history = CreateHistory();
+
+			List<string> missing = history.Append(TestCells());
+
+			Assert.AreEqual(0, missing.Count);
+			Assert.AreEqual((byte)'i', File.ReadAllBytes(history.SessionsPath)[0], "no byte order mark");
+			List<string[]> rows = Read(history.SessionsPath);
+			CollectionAssert.AreEqual(new[] { "id", "group", "form_choice", "date", "time" }, rows[0]);
+			CollectionAssert.AreEqual(new[] { "104", "A", "Nature", "2026-10-17", "13:26" }, rows[1]);
+			CollectionAssert.AreEqual(new[] { "0", "A", "neutral", "2026-10-05", "14:32" }, rows[2]);
+		}
+
+		[Test]
+		public void Load_FindsColumnsInOldAndNewStyleHeaders()
+		{
+			WriteSessions("Id;Form choice", "7;Nature");
+
+			SessionRecord record = CreateHistory().Load()[0];
+
+			Assert.AreEqual("Nature", record.Get(SessionColumns.FormChoice));
+			Assert.AreEqual("Nature", record.Get("Form choice"));
+			Assert.AreEqual("007", record.DisplayId);
 		}
 
 		[Test]

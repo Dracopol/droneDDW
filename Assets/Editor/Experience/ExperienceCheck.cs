@@ -331,7 +331,7 @@ namespace DroneDDW.Experience.Editor
 			}
 
 			string header = string.Join("|", rows[0]);
-			if (header != "Id|Group|Form choice|Date|Time")
+			if (header != "id|group|form_choice|date|time")
 			{
 				return $"the header is {header}";
 			}

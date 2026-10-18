@@ -15,14 +15,16 @@ namespace DroneDDW.Admin
 	// back. Screens:
 	// - Check-in, when the scene's Session Control waits for a participant: it opens by itself, shows the ticket
 	//   scanner's camera image and the number it reads (or the one typed on the number pad), and Start session hands
-	//   the participant to the session. The menu button does nothing until then.
+	//   the participant to the session.
+	// - Check-in menu: the menu button on check-in or the number pad opens it, with Resume (back to check-in) and View
+	//   session history; the menu button again goes back to check-in from it or the history
 	// - Number pad: 0-9, Delete and OK, to type the participant number when the ticket doesn't scan
-	// - Paused: Resume (closes the menu), End session (back to check-in), View session history, Reset player
-	//   location, and Test save current session when the Testing checkbox is on
+	// - Paused: Resume (closes the menu), Reset player location, View session history, Cancel session (back to
+	//   check-in, nothing saved; "end" in the code), and Test save current session when the Testing checkbox is on
 	// - Session history: the rows of Sessions.csv, each with Delete
-	// - End / delete dialogs, which open on Cancel so a double click can't confirm them
-	// The menu button closes the menu and resumes from any screen. Everything runs on unscaled time, since the
-	// session's time stands still while the menu is open.
+	// - Cancel session / delete dialogs, which open on Go back so a double click can't confirm them
+	// During a session the menu button closes the menu and resumes from any screen. Everything runs on unscaled time,
+	// since the session's time stands still while the menu is open.
 	[DisallowMultipleComponent]
 	[AddComponentMenu("DroneDDW/Admin/Admin Menu")]
 	internal sealed class AdminMenu : MonoBehaviour
@@ -103,6 +105,11 @@ namespace DroneDDW.Admin
 		[Tooltip("The largest the camera image may be, in the menu's pixels; it keeps its shape inside")]
 		[SerializeField] private Vector2 _checkInPreviewMaxSize;
 
+		[Header("Check-in menu")]
+		[SerializeField] private AdminMenuScreen _checkInMenuScreen;
+		[SerializeField] private AdminMenuButton _checkInResumeButton;
+		[SerializeField] private AdminMenuButton _checkInHistoryButton;
+
 		[Header("Number pad")]
 		[SerializeField] private AdminMenuScreen _numberPadScreen;
 
@@ -179,6 +186,9 @@ namespace DroneDDW.Admin
 		internal AdminMenuButton EndCancelButton => _endCancelButton;
 		internal AdminMenuButton EndConfirmButton => _endConfirmButton;
 		internal AdminMenuScreen CheckInScreen => _checkInScreen;
+		internal AdminMenuScreen CheckInMenuScreen => _checkInMenuScreen;
+		internal AdminMenuButton CheckInResumeButton => _checkInResumeButton;
+		internal AdminMenuButton CheckInHistoryButton => _checkInHistoryButton;
 		internal AdminMenuButton TypeNumberButton => _typeNumberButton;
 		internal AdminMenuButton StartSessionButton => _startSessionButton;
 		internal AdminMenuScreen NumberPadScreen => _numberPadScreen;
@@ -201,6 +211,7 @@ namespace DroneDDW.Admin
 			_deleteScreen.Hide();
 			_endScreen.Hide();
 			_checkInScreen.Hide();
+			_checkInMenuScreen.Hide();
 			_numberPadScreen.Hide();
 			_canvasGroup.alpha = 0f;
 			_canvas.gameObject.SetActive(false);
@@ -267,7 +278,11 @@ namespace DroneDDW.Admin
 			if (IsCheckingIn)
 			{
 				RefreshCheckIn();
-				if (command.Kind != MenuCommandKind.Toggle)
+				if (command.Kind == MenuCommandKind.Toggle)
+				{
+					ToggleCheckInMenu(command.Hand);
+				}
+				else
 				{
 					DoCommand(command);
 				}
@@ -391,6 +406,14 @@ namespace DroneDDW.Admin
 			_checkInStatus = checkInStatus;
 			_checkInPreview = checkInPreview;
 			_checkInPreviewMaxSize = checkInPreviewMaxSize;
+		}
+
+		internal void ConfigureCheckInMenu(AdminMenuScreen checkInMenuScreen, AdminMenuButton checkInResumeButton,
+			AdminMenuButton checkInHistoryButton)
+		{
+			_checkInMenuScreen = checkInMenuScreen;
+			_checkInResumeButton = checkInResumeButton;
+			_checkInHistoryButton = checkInHistoryButton;
 		}
 
 		internal void ConfigureNumberPad(AdminMenuScreen numberPadScreen, AdminMenuButton[] digitButtons,
@@ -570,6 +593,42 @@ namespace DroneDDW.Admin
 			ShowScreen(_checkInScreen, hasNumber || hovered != _startSessionButton ? hovered : _typeNumberButton);
 			_nextCheckInRefresh = 0f;
 			RefreshCheckIn();
+		}
+
+		// The menu button during check-in: from check-in or the number pad to the check-in menu, from anywhere else
+		// (the check-in menu, the history, the delete dialog) back to check-in. The scanner stays on meanwhile.
+		private void ToggleCheckInMenu(MenuHand hand)
+		{
+			if (_screen == _checkInScreen || _screen == _numberPadScreen)
+			{
+				ShowScreen(_checkInMenuScreen, _checkInResumeButton);
+			}
+			else
+			{
+				ReturnToCheckIn();
+			}
+
+			Pulse(hand, isClick: true);
+		}
+
+		// Check-in again, the hover on Start session when there is a number
+		private void ReturnToCheckIn()
+		{
+			_pendingDelete = null;
+			ShowCheckIn(_participantId.Length > 0 ? _startSessionButton : _typeNumberButton);
+		}
+
+		// Back from the history to the menu that opened it
+		private void ReturnFromHistory()
+		{
+			if (IsCheckingIn)
+			{
+				ShowScreen(_checkInMenuScreen, _checkInHistoryButton);
+			}
+			else
+			{
+				ShowScreen(_pauseScreen, _historyButton);
+			}
 		}
 
 		// A few times a second: what the scanner sees and what to do
@@ -895,7 +954,15 @@ namespace DroneDDW.Admin
 			}
 			else if (button == _history.BackButton)
 			{
-				ShowScreen(_pauseScreen, _historyButton);
+				ReturnFromHistory();
+			}
+			else if (button == _checkInResumeButton)
+			{
+				ReturnToCheckIn();
+			}
+			else if (button == _checkInHistoryButton)
+			{
+				ShowHistory(-1);
 			}
 			else if (button == _deleteCancelButton)
 			{
@@ -911,12 +978,13 @@ namespace DroneDDW.Admin
 			}
 		}
 
-		// A / B / X / Y: history back to Paused, dialogs cancel. On Paused it does nothing: resuming stays a deliberate click.
+		// A / B / X / Y: history back to the menu that opened it, dialogs go back. On Paused and the check-in menu it
+		// does nothing: resuming stays a deliberate click.
 		private void Back(MenuHand hand)
 		{
 			if (_screen == _historyScreen)
 			{
-				ShowScreen(_pauseScreen, _historyButton);
+				ReturnFromHistory();
 			}
 			else if (_screen == _endScreen)
 			{

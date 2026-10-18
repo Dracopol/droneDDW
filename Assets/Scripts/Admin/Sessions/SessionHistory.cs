@@ -9,8 +9,10 @@ namespace DroneDDW.Admin.Sessions
 {
 	// The session history files: Sessions.csv (one row per session, written by Session Control when the participant
 	// locks in their choice, and by the admin menu's test save button) and Deleted Sessions.csv, where the admin menu
-	// moves deleted rows with the time they were deleted. Both are UTF-8 with a byte order mark, so Excel reads them
-	// right. Every call reads the files fresh, so rows logged meanwhile aren't lost.
+	// moves deleted rows with the time they were deleted. Both are plain UTF-8 (no byte order mark, which R's read.csv
+	// would read into the first header) with the headers of SessionColumns, for analysis tools; Excel gets .xlsx copies
+	// from the pull script (Tools/Pull Sessions). A file with old-style headers ("Form choice") gets them rewritten the
+	// first time a row is added or deleted. Every call reads the files fresh, so rows logged meanwhile aren't lost.
 	internal sealed class SessionHistory
 	{
 		#region Fields
@@ -19,7 +21,8 @@ namespace DroneDDW.Admin.Sessions
 		private const string LineBreak = "\r\n";
 		private const string TemporarySuffix = ".tmp";
 
-		private static readonly Encoding FileEncoding = new UTF8Encoding(true);
+		// Reading still skips the byte order mark of files written before 2026-10-18
+		private static readonly Encoding FileEncoding = new UTF8Encoding(false);
 
 		private readonly char _preferredSeparator;
 
@@ -89,6 +92,7 @@ namespace DroneDDW.Admin.Sessions
 			}
 
 			string[] row = rows[index];
+			header = NormalizeHeader(header, out _);
 			AppendDeleted(header, row, deletedAt, separator);
 			rows.RemoveAt(index);
 			WriteTable(SessionsPath, header, rows, separator);
@@ -96,13 +100,13 @@ namespace DroneDDW.Admin.Sessions
 		}
 
 		// Adds a row to the sessions file. A new file takes these columns, in this order, as its header. An existing one
-		// keeps its columns and separator: each value goes under its column (by name, ignoring case) and the file's
-		// other columns stay empty. Returns the columns the existing file doesn't have, whose values were left out.
+		// keeps its columns and separator: each value goes under its column (by name, see SessionColumns.IsSame) and the
+		// file's other columns stay empty. Returns the columns the existing file doesn't have, whose values were left out.
 		internal List<string> Append(IReadOnlyList<(string Column, string Value)> cells)
 		{
 			List<string> missingColumns = new();
 			Directory.CreateDirectory(Folder);
-			if (!TryReadTable(SessionsPath, out string[] header, out _, out char separator))
+			if (!TryReadTable(SessionsPath, out string[] header, out List<string[]> rows, out char separator))
 			{
 				string[] newHeader = new string[cells.Count];
 				string[] newRow = new string[cells.Count];
@@ -126,8 +130,7 @@ namespace DroneDDW.Admin.Sessions
 
 			foreach ((string column, string value) in cells)
 			{
-				int index = Array.FindIndex(header,
-					name => string.Equals(name?.Trim(), column, StringComparison.OrdinalIgnoreCase));
+				int index = Array.FindIndex(header, name => SessionColumns.IsSame(name, column));
 				if (index >= 0)
 				{
 					row[index] = value;
@@ -138,8 +141,7 @@ namespace DroneDDW.Admin.Sessions
 				}
 			}
 
-			string line = CsvUtil.FormatRow(row, separator) + LineBreak;
-			File.AppendAllText(SessionsPath, EnsureLeadingLineBreak(SessionsPath, line), FileEncoding);
+			AppendRow(SessionsPath, header, rows, row, separator);
 			return missingColumns;
 		}
 
@@ -191,10 +193,9 @@ namespace DroneDDW.Admin.Sessions
 			}
 
 			Directory.CreateDirectory(Folder);
-			if (TryReadTable(DeletedPath, out _, out _, out char separator))
+			if (TryReadTable(DeletedPath, out string[] deletedHeader, out List<string[]> deletedRows, out char separator))
 			{
-				string line = CsvUtil.FormatRow(WithCell(row, deletedAtCell), separator) + LineBreak;
-				File.AppendAllText(DeletedPath, EnsureLeadingLineBreak(DeletedPath, line), FileEncoding);
+				AppendRow(DeletedPath, deletedHeader, deletedRows, WithCell(row, deletedAtCell), separator);
 				return;
 			}
 
@@ -205,6 +206,35 @@ namespace DroneDDW.Admin.Sessions
 			text.Append(CsvUtil.FormatRow(WithCell(row, deletedAtCell), sessionsSeparator));
 			text.Append(LineBreak);
 			File.WriteAllText(DeletedPath, text.ToString(), FileEncoding);
+		}
+
+		// Adds the row at the end of the file; a file with old-style headers is rewritten whole, with the headers renewed
+		private static void AppendRow(string path, string[] header, List<string[]> rows, string[] row, char separator)
+		{
+			string[] normalized = NormalizeHeader(header, out bool isChanged);
+			if (isChanged)
+			{
+				rows.Add(row);
+				WriteTable(path, normalized, rows, separator);
+				return;
+			}
+
+			string line = CsvUtil.FormatRow(row, separator) + LineBreak;
+			File.AppendAllText(path, EnsureLeadingLineBreak(path, line), FileEncoding);
+		}
+
+		// Every header as SessionColumns.Normalize writes it; isChanged when any was written differently
+		private static string[] NormalizeHeader(string[] header, out bool isChanged)
+		{
+			isChanged = false;
+			string[] result = new string[header.Length];
+			for (int index = 0; index < header.Length; index++)
+			{
+				result[index] = SessionColumns.Normalize(header[index]);
+				isChanged |= result[index] != header[index];
+			}
+
+			return result;
 		}
 
 		// When the file doesn't end with a line break (edited by hand), the new row still starts on its own line
