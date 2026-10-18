@@ -16,9 +16,16 @@ namespace DroneDDW.Neighborhood.Editor.Import
     /// - Street_Palette: point filtered and uncompressed; Street_LightPool: linear mask; Street_Sky_Dusk: no mips,
     ///   wraps round horizontally.
     /// Colliders come from the "collider" custom property the export writes (the table and the slider handle).
+    /// Street_Shared's wall tops are raised to meet the roofs (NeighborhoodEaveGaps).
     /// </summary>
     internal sealed class NeighborhoodModelPostprocessor : AssetPostprocessor
     {
+        // Raise it whenever what this does to the files changes, so every machine imports them again
+        public override uint GetVersion()
+        {
+            return 3;
+        }
+
         #region Fields
 
         private const string Prefix = "Street_";
@@ -220,6 +227,17 @@ namespace DroneDDW.Neighborhood.Editor.Import
             {
                 GameObjectUtility.SetStaticEditorFlags(child.gameObject, SharedStaticFlags);
             }
+
+            int closed = 0;
+            foreach (MeshFilter meshFilter in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (meshFilter.sharedMesh != null)
+                {
+                    closed += NeighborhoodEaveGaps.Close(meshFilter.sharedMesh, meshFilter.transform.localToWorldMatrix);
+                }
+            }
+
+            Debug.Log($"[Neighborhood] {SharedModel}: raised {closed} wall corners to meet the roofs above them.");
         }
 
         #endregion

@@ -33,6 +33,8 @@ namespace DroneDDW.Characters.Editor
 		// The card's canvas is scaled so that one unit is a millimetre; the sizes below are in millimetres
 		private const float MetersPerUnit = 0.001f;
 		private const float CardWidth = 320f;
+
+		// With the label under the portrait; without one the card ends at the portrait (see GetCardHeight)
 		private const float CardHeight = 300f;
 		private const float CardCornerRadius = 20f;
 		private const float BorderWidth = 5f;
@@ -213,7 +215,7 @@ namespace DroneDDW.Characters.Editor
 				root.AddComponent<VoiceGain>().Configure(levels, role);
 			}
 
-			RectTransform body = CreateBody(root.transform);
+			RectTransform body = CreateBody(root.transform, GetCardHeight(hasLabel));
 			Image border = CreatePanelImage("Border", body, panel, portraits.AccentColor, 0f, CardCornerRadius);
 			CreatePanelImage("Panel", body, panel, PanelColor, BorderWidth, CardCornerRadius - BorderWidth);
 			RawImage portrait = CreatePortrait(body, portraits);
@@ -227,7 +229,14 @@ namespace DroneDDW.Characters.Editor
 			return card;
 		}
 
-		private static RectTransform CreateBody(Transform parent)
+		// Without a label the bust's cut-off bottom rests on the bottom border, so no empty panel shows under it
+		private static float GetCardHeight(bool hasLabel)
+		{
+			float portraitHeight = (CardWidth - 2f * PortraitMargin) / CharacterPortraitBuilder.CropAspect;
+			return hasLabel ? CardHeight : PortraitMargin + portraitHeight + BorderWidth;
+		}
+
+		private static RectTransform CreateBody(Transform parent, float height)
 		{
 			GameObject bodyObject = new("Body", typeof(RectTransform));
 			RectTransform body = (RectTransform)bodyObject.transform;
@@ -236,7 +245,7 @@ namespace DroneDDW.Characters.Editor
 			canvas.renderMode = RenderMode.WorldSpace;
 			canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.TexCoord1
 				| AdditionalCanvasShaderChannels.Normal | AdditionalCanvasShaderChannels.Tangent;
-			body.sizeDelta = new Vector2(CardWidth, CardHeight);
+			body.sizeDelta = new Vector2(CardWidth, height);
 			body.localPosition = Vector3.zero;
 			body.localRotation = Quaternion.identity;
 			body.localScale = Vector3.one * MetersPerUnit;
