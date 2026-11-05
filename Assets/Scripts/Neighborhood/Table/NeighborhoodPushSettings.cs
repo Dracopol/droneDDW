@@ -6,7 +6,7 @@ namespace DroneDDW.Neighborhood.Table
 	/// How the hands meet the table, shared by every scene whose table uses this asset (the neighborhood and the
 	/// experience's practice table): the radius of the spheres along each hand bone, the push's touch margin and sphere
 	/// spacing, a padding around the visible knob box the spheres push against, the knob's grab box (its BoxCollider,
-	/// which only the finger grab reaches for), and how long the lock-in button has to be held. Read live, so changes
+	/// which only the finger grab reaches for) and the release margin around it, and how long the lock-in button has to be held. Read live, so changes
 	/// apply at once; an asset, so changes made in Play mode are kept.
 	/// </summary>
 	[CreateAssetMenu(fileName = "Neighborhood Push Settings", menuName = "DroneDDW/Neighborhood/Push Settings")]
@@ -52,6 +52,10 @@ namespace DroneDDW.Neighborhood.Table
 		[SerializeField, Tooltip("Bigger than the knob, so it is easy to grab.")]
 		private Vector3 _grabBoxSize = new Vector3(0.08f, 0.07f, 0.08f);
 
+		[SerializeField, Range(0f, 0.3f), Tooltip("The release box: the grab box grown by this much on every side. A grab "
+			+ "lets go once the pinch leaves it, even with the fingers still closed.")]
+		private float _releaseMarginMeters = 0.05f;
+
 		[Header("Lock-in button")]
 		[SerializeField, Range(0.2f, 5f), Tooltip("How long a hand has to hold the button down to lock the choice in; "
 			+ "the countdown above the button shows the whole seconds left.")]
@@ -83,6 +87,7 @@ namespace DroneDDW.Neighborhood.Table
 		internal float PushBoxPaddingMeters => _pushBoxPaddingMeters;
 		internal Vector3 GrabBoxCenter => _grabBoxCenter;
 		internal Vector3 GrabBoxSize => _grabBoxSize;
+		internal float ReleaseMarginMeters => _releaseMarginMeters;
 		internal float LockHoldSeconds => _lockHoldSeconds;
 		internal float LockDrainSeconds => _lockDrainSeconds;
 

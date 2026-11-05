@@ -13,7 +13,8 @@ namespace DroneDDW.Neighborhood.Table
 	/// Drives <see cref="NeighborhoodSlider"/> from the hands. By default any part of a hand pushes the handle along the
 	/// track, from either side, and a hand on each side holds it in between, so it can be squeezed and carried. When
 	/// the fingers close on it (its interactable is selected through the finger grab), the handle follows the grab
-	/// instead, keeping its offset. Pushing and grabbing are one drag: it ends, and the version is committed, only once
+	/// instead, keeping its offset, until the fingers open or the pinch leaves the release box (the grab box grown by the
+	/// settings' release margin). Pushing and grabbing are one drag: it ends, and the version is committed, only once
 	/// nothing has touched or held the handle for a short moment, so a touch that flickers mid-push doesn't commit
 	/// early. Every frame it also tells the slider how a hand touches the handle (for its sounds, lights and label).
 	/// How the hands meet the handle comes from the shared push settings, read every frame: the spheres' margin and
@@ -143,6 +144,13 @@ namespace DroneDDW.Neighborhood.Table
 			IXRSelectInteractor interactor = _isGrabEnabled && _interactable.isSelected
 				? _interactable.firstInteractorSelecting
 				: null;
+			if (interactor != null && !IsInReleaseBox(GetAttachPoint(interactor)))
+			{
+				// The pinch left the release box: let go, even with the fingers still closed
+				_interactable.interactionManager.SelectExit(interactor, (IXRSelectInteractable)_interactable);
+				interactor = null;
+			}
+
 			if (interactor != null)
 			{
 				Vector3 attachPoint = GetAttachPoint(interactor);
@@ -228,6 +236,20 @@ namespace DroneDDW.Neighborhood.Table
 
 			matrix = _handleCollider.transform.localToWorldMatrix
 				* Matrix4x4.TRS(_handleCollider.center, Quaternion.identity, _handleCollider.size);
+			return true;
+		}
+
+		/// <summary>The release box (the grab box grown by the settings' release margin), as a world matrix of a 1 m
+		/// cube.</summary>
+		internal bool TryGetReleaseBoxMatrix(out Matrix4x4 matrix)
+		{
+			matrix = default;
+			if (!TryGetReleaseBox(out Vector3 center, out Vector3 size))
+			{
+				return false;
+			}
+
+			matrix = _handleCollider.transform.localToWorldMatrix * Matrix4x4.TRS(center, Quaternion.identity, size);
 			return true;
 		}
 
@@ -382,6 +404,49 @@ namespace DroneDDW.Neighborhood.Table
 			{
 				_handleCollider.size = size;
 			}
+		}
+
+		/// <summary>
+		/// The release box in the handle collider's space: the grab box grown on every side by the release margin, which
+		/// is in metres, so it is divided by the handle's scale. False without a collider.
+		/// </summary>
+		private bool TryGetReleaseBox(out Vector3 center, out Vector3 size)
+		{
+			center = default;
+			size = default;
+			if (_handleCollider == null)
+			{
+				return false;
+			}
+
+			float marginMeters = NeighborhoodPushSettings.OrDefaults(_settings).ReleaseMarginMeters;
+			Vector3 scale = _handleCollider.transform.lossyScale;
+			Vector3 margin = new Vector3(LocalLength(marginMeters, scale.x), LocalLength(marginMeters, scale.y),
+				LocalLength(marginMeters, scale.z));
+			center = _handleCollider.center;
+			size = _handleCollider.size + margin * 2f;
+			return true;
+		}
+
+		/// <summary>Whether a world point is inside the release box. True without a collider, so the grab never
+		/// drops for lack of one.</summary>
+		private bool IsInReleaseBox(Vector3 worldPoint)
+		{
+			if (!TryGetReleaseBox(out Vector3 center, out Vector3 size))
+			{
+				return true;
+			}
+
+			Vector3 offset = _handleCollider.transform.InverseTransformPoint(worldPoint) - center;
+			Vector3 halfSize = size * 0.5f;
+			return Mathf.Abs(offset.x) <= halfSize.x
+				&& Mathf.Abs(offset.y) <= halfSize.y
+				&& Mathf.Abs(offset.z) <= halfSize.z;
+		}
+
+		private static float LocalLength(float meters, float scale)
+		{
+			return Mathf.Approximately(scale, 0f) ? 0f : meters / Mathf.Abs(scale);
 		}
 
 		private Vector3 GetAttachPoint(IXRSelectInteractor interactor)

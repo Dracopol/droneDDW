@@ -1,0 +1,21 @@
+{
+    "name": "DroneDDW.Recording.Editor",
+    "rootNamespace": "DroneDDW.Recording.Editor",
+    "references": [
+        "DroneDDW.Recording",
+        "Unity.Recorder",
+        "Unity.Recorder.Base",
+        "Unity.Recorder.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

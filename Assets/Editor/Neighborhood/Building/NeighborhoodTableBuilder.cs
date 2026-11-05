@@ -71,10 +71,10 @@ namespace DroneDDW.Neighborhood.Editor.Building
         private const float StandTopThicknessMeters = 0.04f;
         private const float StandLegWidthMeters = 0.05f;
 
-        // The handle, bigger than the model's (4.4 cm becomes 7 cm, still inside the 7.5 cm deep track), and pushed only:
-        // closing the fingers on it doesn't grab it
+        // The handle, bigger than the model's (4.4 cm becomes 7 cm, still inside the 7.5 cm deep track). It is pushed, and
+        // closing the fingers on it grabs it (the finger grab takes over from the push)
         private const float HandleScale = 1.6f;
-        private const bool IsGrabEnabled = false;
+        private const bool IsGrabEnabled = true;
 
         // In front of the slider: the stand's button, this far from the slider's near side and from the table's near edge.
         // The top is made deeper for it, as thick as the model's, on legs as thick as the model's and as far in from its

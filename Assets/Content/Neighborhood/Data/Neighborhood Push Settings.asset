@@ -23,5 +23,6 @@ MonoBehaviour:
   _pushBoxPaddingMeters: -0.0044
   _grabBoxCenter: {x: 0, y: 0.03, z: 0}
   _grabBoxSize: {x: 0.08, y: 0.07, z: 0.08}
+  _releaseMarginMeters: 0.05
   _lockHoldSeconds: 3
   _lockDrainSeconds: 0.4

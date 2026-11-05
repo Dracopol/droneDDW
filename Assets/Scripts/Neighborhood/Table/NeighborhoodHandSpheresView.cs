@@ -7,8 +7,8 @@ namespace DroneDDW.Neighborhood.Table
 {
 	/// <summary>
 	/// Testing aid: draws the spheres the hands push the slider with, at their real size (bone radius plus the touch
-	/// margin), in one colour and the ones touching the knob in another, plus the knob's two boxes: the push box the
-	/// spheres push against and the grab box the finger grab reaches for. Tune them all in the shared push settings
+	/// margin), in one colour and the ones touching the knob in another, plus the knob's three boxes: the push box the
+	/// spheres push against, the grab box the finger grab reaches for, and the release box a grab lets go outside of. Tune them all in the shared push settings
 	/// (Neighborhood Push Settings) while it draws. Draws instanced meshes, so it adds no objects or colliders;
 	/// switch the component off to hide everything.
 	/// </summary>
@@ -39,6 +39,7 @@ namespace DroneDDW.Neighborhood.Table
 
 		[SerializeField] private Color _pushBoxColor = new Color(1f, 0.85f, 0.2f, 0.2f);
 		[SerializeField] private Color _grabBoxColor = new Color(0.3f, 1f, 0.45f, 0.12f);
+		[SerializeField] private Color _releaseBoxColor = new Color(1f, 0.25f, 0.3f, 0.06f);
 
 		#endregion
 
@@ -51,10 +52,12 @@ namespace DroneDDW.Neighborhood.Table
 		private readonly List<Matrix4x4> _touchingMatrices = new List<Matrix4x4>();
 		private readonly List<Matrix4x4> _pushBoxMatrices = new List<Matrix4x4>();
 		private readonly List<Matrix4x4> _grabBoxMatrices = new List<Matrix4x4>();
+		private readonly List<Matrix4x4> _releaseBoxMatrices = new List<Matrix4x4>();
 		private MaterialPropertyBlock _idleProperties;
 		private MaterialPropertyBlock _touchingProperties;
 		private MaterialPropertyBlock _pushBoxProperties;
 		private MaterialPropertyBlock _grabBoxProperties;
+		private MaterialPropertyBlock _releaseBoxProperties;
 
 		#endregion
 
@@ -120,6 +123,7 @@ namespace DroneDDW.Neighborhood.Table
 
 			_pushBoxMatrices.Clear();
 			_grabBoxMatrices.Clear();
+			_releaseBoxMatrices.Clear();
 			if (_driver.TryGetPushBoxMatrix(out Matrix4x4 pushBox))
 			{
 				_pushBoxMatrices.Add(pushBox);
@@ -130,8 +134,14 @@ namespace DroneDDW.Neighborhood.Table
 				_grabBoxMatrices.Add(grabBox);
 			}
 
+			if (_driver.TryGetReleaseBoxMatrix(out Matrix4x4 releaseBox))
+			{
+				_releaseBoxMatrices.Add(releaseBox);
+			}
+
 			Draw(_boxMesh, _pushBoxMatrices, ref _pushBoxProperties, _pushBoxColor);
 			Draw(_boxMesh, _grabBoxMatrices, ref _grabBoxProperties, _grabBoxColor);
+			Draw(_boxMesh, _releaseBoxMatrices, ref _releaseBoxProperties, _releaseBoxColor);
 		}
 
 		private void Draw(Mesh mesh, List<Matrix4x4> matrices, ref MaterialPropertyBlock properties, Color color)

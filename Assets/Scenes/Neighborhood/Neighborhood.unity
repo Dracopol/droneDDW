@@ -47117,7 +47117,7 @@ MonoBehaviour:
   _handBones: {fileID: 2570744719064192412}
   _settings: {fileID: 11400000, guid: bfb6479ae3a970645aab1b7ec6564b8d, type: 2}
   _isPushEnabled: 1
-  _isGrabEnabled: 0
+  _isGrabEnabled: 1
   _releaseDelaySeconds: 0.3
   _detentAmplitude: 0.3
   _detentDuration: 0.03
